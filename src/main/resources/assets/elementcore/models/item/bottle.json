@@ -1,0 +1,7 @@
+{
+    "parent": "item/generated",
+    "textures": {
+        "layer0": "elementcore:items/potion_overlay",
+        "layer1": "elementcore:items/potion_bottle_drinkable"
+    }
+}

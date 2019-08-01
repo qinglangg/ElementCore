@@ -14,7 +14,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
 version = '0.1.0'
-group = 'com.elementtimes.elementcore' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+group = 'com.elementtimes' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'elementcore'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
@@ -146,4 +146,8 @@ publishing {
             url "file:///${project.projectDir}/mcmodsrepo"
         }
     }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
 }
