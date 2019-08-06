@@ -9,12 +9,10 @@ import java.lang.annotation.Target;
  * 附魔注册
  * @author luqin2007
  */
+@SuppressWarnings("unused")
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.FIELD})
 public @interface ModEnchantment {
-    /**
-     * registryName
-     * @return registryName
-     */
-    String value() default "";
+    String registerName() default "";
+    String name() default "";
 }

@@ -1,29 +1,26 @@
 package com.elementtimes.elementcore.util;
 
-import com.elementtimes.elementcore.annotation.AnnotationInitializer;
+import com.elementtimes.elementcore.ElementContainer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * 处理反射有关的方法
  *
  * @author luqin2007
  */
+@SuppressWarnings({"unchecked", "unused", "WeakerAccess"})
 public class ReflectUtil {
 
     /**
      * 获得可被注解条目的值
      * 只能获取静态值
      */
-    @SuppressWarnings("unchecked")
-    public static <T> Optional<T> getFromAnnotated(@Nonnull AnnotatedElement holder, @Nullable T defaultValue, AnnotationInitializer initializer) {
+    public static <T> Optional<T> getFromAnnotated(@Nonnull AnnotatedElement holder, @Nullable T defaultValue, ElementContainer initializer) {
         T obj;
         if (holder instanceof AccessibleObject) {
             ((AccessibleObject) holder).setAccessible(true);
@@ -34,7 +31,7 @@ public class ReflectUtil {
         } else if (holder instanceof Field) {
             obj = get((Field) holder, null, defaultValue, true, initializer).orElse(defaultValue);
         } else if (holder instanceof Constructor) {
-            obj = create((Constructor<T>) holder, initializer).orElse(defaultValue);
+            obj = (T) create((Constructor<T>) holder, initializer).orElse(defaultValue);
         } else if (holder instanceof Method) {
             obj = (T) invoke((Method) holder, null, initializer).orElse(defaultValue);
         } else {
@@ -47,21 +44,13 @@ public class ReflectUtil {
      * 使用无参构造创建对象
      *
      * @param aClass 要创建的对象类
-     * @param <T> 对象类型
      */
-    public static <T> Optional<T> create(@Nonnull Class<? extends T> aClass, AnnotationInitializer initializer) {
-        T object = null;
+    public static Optional<Object> create(@Nonnull Class aClass, ElementContainer initializer) {
+        Object object = null;
         try {
-            Constructor<?>[] constructors = aClass.getDeclaredConstructors();
-            for (Constructor<?> constructor : constructors) {
-                constructor.setAccessible(true);
-                if (constructor.getParameterCount() == 0) {
-                    object = (T) constructor.newInstance();
-                    break;
-                }
-            }
-        } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
-            initializer.warn("Cannot create an instance of {}. Please make sure the class has a public constructor with zero parameter.", aClass.getSimpleName());
+            object = aClass.newInstance();
+        } catch (IllegalAccessException | InstantiationException e) {
+            initializer.modInfo.warn("Cannot create an instance of {}. Please make sure the class has a public constructor with zero parameter.", aClass.getSimpleName());
             e.printStackTrace();
         }
         return Optional.ofNullable(object);
@@ -69,12 +58,10 @@ public class ReflectUtil {
 
     /**
      * 使用有参构造创建对象
-     *
      * @param aClass 要创建的对象类
-     * @param <T> 对象类型
      */
-    public static <T> Optional<T> create(@Nonnull Class<? extends T> aClass, Object[] params, AnnotationInitializer initializer) {
-        T object = null;
+    public static Optional create(@Nonnull Class aClass, Object[] params, ElementContainer initializer) {
+        Object object = null;
         try {
             Class[] paramClass = Arrays.stream(params).map(Object::getClass).toArray(Class[]::new);
             try {
@@ -91,14 +78,14 @@ public class ReflectUtil {
                         })
                         .findFirst()
                         .orElseThrow(NullPointerException::new);
-                object = (T) constructor.newInstance(params);
+                object = constructor.newInstance(params);
             } catch (InvocationTargetException | NullPointerException e) {
                 String[] classNames = Arrays.stream(paramClass).map(Class::getSimpleName).toArray(String[]::new);
-                initializer.warn("Cannot find constructor with param types: {}", Arrays.toString(classNames));
+                initializer.modInfo.warn("Cannot find constructor with param types: {}", Arrays.toString(classNames));
                 object = aClass.newInstance();
             }
         } catch (IllegalAccessException | InstantiationException e) {
-            initializer.warn("Cannot create an instance of {}. Please make sure the class has a public constructor with zero parameter.", aClass.getSimpleName());
+            initializer.modInfo.warn("Cannot create an instance of {}. Please make sure the class has a public constructor with zero parameter.", aClass.getSimpleName());
             e.printStackTrace();
         }
         return Optional.ofNullable(object);
@@ -109,20 +96,19 @@ public class ReflectUtil {
      *
      * @param className 要创建的对象类的全类名
      */
-    public static <T> Optional<T> create(@Nonnull String className, Object[] params, AnnotationInitializer initializer) {
-        T object = null;
+    public static Optional create(@Nonnull String className, Object[] params, ElementContainer initializer) {
         if (className.isEmpty()) {
-            initializer.warn("You want to find an EMPTY class.");
+            initializer.modInfo.warn("You want to find an EMPTY class.");
         } else {
             try {
                 Class<?> aClass = Class.forName(className);
-                return (Optional<T>) create(aClass, params, initializer);
+                return create(aClass, params, initializer);
             } catch (ClassNotFoundException e) {
-                initializer.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
+                initializer.modInfo.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
                 e.printStackTrace();
             }
         }
-        return Optional.ofNullable(object);
+        return Optional.empty();
     }
 
     /**
@@ -130,29 +116,29 @@ public class ReflectUtil {
      *
      * @param className 要创建的对象类的全类名
      */
-    public static <T> Optional<T> create(@Nonnull String className, AnnotationInitializer initializer) {
-        T object = null;
+    public static Optional create(@Nonnull String className, ElementContainer initializer) {
+        Object object = null;
         if (className.isEmpty()) {
-            initializer.warn("You want to find an EMPTY class.");
+            initializer.modInfo.warn("You want to find an EMPTY class.");
         } else {
             try {
                 Class<?> aClass = Class.forName(className);
-                object = (T) create(aClass, initializer).orElse(null);
+                object = create(aClass, initializer).orElse(null);
             } catch (ClassNotFoundException e) {
-                initializer.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
+                initializer.modInfo.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
                 e.printStackTrace();
             }
         }
         return Optional.ofNullable(object);
     }
 
-    public static <T> Optional<T> create(@Nonnull Constructor<T> constructor, AnnotationInitializer initializer) {
+    public static Optional create(@Nonnull Constructor constructor, ElementContainer initializer) {
         constructor.setAccessible(true);
-        T t = null;
+        Object t = null;
         try {
             t = constructor.newInstance();
         } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-            initializer.warn("Constructor {} can not invoke", constructor.getName());
+            initializer.modInfo.warn("Constructor {} can not invoke", constructor.getName());
             e.printStackTrace();
         }
         return Optional.ofNullable(t);
@@ -169,7 +155,7 @@ public class ReflectUtil {
      * @param setIfNull 当变量原值为 null 时，是否自动赋值
      * @param <T> 变量类型
      */
-    public static <T> Optional<T> get(@Nonnull Field field, @Nullable Object object, @Nullable T defaultValue, boolean setIfNull, AnnotationInitializer initializer) {
+    public static <T> Optional<T> get(@Nonnull Field field, @Nullable Object object, @Nullable T defaultValue, boolean setIfNull, ElementContainer initializer) {
         T obj = null;
         field.setAccessible(true);
         boolean isStatic = Modifier.isStatic(field.getModifiers());
@@ -180,10 +166,10 @@ public class ReflectUtil {
             } else if (object != null) {
                 obj = (T) field.get(object);
             } else {
-                initializer.warn("Field {} is not static, but the object is null", field.getName());
+                initializer.modInfo.warn("Field {} is not static, but the object is null", field.getName());
             }
         } catch (IllegalAccessException e) {
-            initializer.warn("Cannot get field {}", field.getName());
+            initializer.modInfo.warn("Cannot get field {}", field.getName());
         }
 
         if (obj == null) {
@@ -194,7 +180,7 @@ public class ReflectUtil {
             }
             // 尝试赋值
             if (setIfNull && obj != null) {
-                setField(field, obj, null, initializer);
+                set(field, obj, null, initializer);
             }
         }
 
@@ -209,29 +195,22 @@ public class ReflectUtil {
      * @param method 方法签名
      * @param <T> 方法类型
      */
-    public static <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, AnnotationInitializer initializer) {
-        return invoke(method, object, new Object[0], initializer);
-    }
-
-    public static <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, @Nullable Object[] params, AnnotationInitializer initializer) {
+    public static <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, ElementContainer initializer) {
         T obj = null;
         method.setAccessible(true);
         boolean isStatic = Modifier.isStatic(method.getModifiers());
         // 成员本身值
         try {
-            if (params == null) {
-                params = new Object[0];
-            }
             if (isStatic) {
-                obj = (T) method.invoke(null, params);
+                obj = (T) method.invoke(null);
             } else if (object != null) {
-                obj = (T) method.invoke(object, params);
+                obj = (T) method.invoke(object);
             } else {
-                initializer.warn("Method {} is not static, but the object is null", method.getName());
+                initializer.modInfo.warn("Method {} is not static, but the object is null", method.getName());
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
-            initializer.warn("Cannot invoke method {}", method.getName());
+            initializer.modInfo.warn("Cannot invoke method {}", method.getName());
         }
 
         if (obj == null) {
@@ -241,22 +220,6 @@ public class ReflectUtil {
         return Optional.ofNullable(obj);
     }
 
-    public static void setField(@Nonnull Class clazz, @Nonnull String name, Object value, @Nullable Object object, AnnotationInitializer initializer) {
-        try {
-            Field field = clazz.getField(name);
-            if (field == null) {
-                field = clazz.getDeclaredField(name);
-                if (field == null) {
-                    initializer.warn("Can't find field {} in class {}", name, clazz.getName());
-                } else {
-                    setField(field, value, object, initializer);
-                }
-            }
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        }
-    }
-
     /**
      * 尝试为一个成员变量赋值
      *
@@ -264,7 +227,7 @@ public class ReflectUtil {
      * @param value 要赋的值
      * @param object 所在对象。静态值可为 null
      */
-    public static void setField(@Nonnull Field field, @Nullable Object value, @Nullable Object object, AnnotationInitializer initializer) {
+    public static void set(@Nonnull Field field, @Nullable Object value, @Nullable Object object, ElementContainer initializer) {
         field.setAccessible(true);
         try {
             int modifiers = field.getModifiers();
@@ -272,13 +235,13 @@ public class ReflectUtil {
                 field.set(null, value);
             } else {
                 if (object == null) {
-                    initializer.warn("Field {} is not state, but the object is null", field.getName());
+                    initializer.modInfo.warn("Field {} is not state, but the object is null", field.getName());
                 }
                 field.set(object, value);
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
-            initializer.warn("Field {} cannot set the value: \n\t{}\n Maybe it was a final field.", field.getName(), value);
+            initializer.modInfo.warn("Field {} cannot set the value: \n\t{}\n Maybe it was a final field.", field.getName(), value);
         }
     }
 
@@ -289,8 +252,8 @@ public class ReflectUtil {
      * @param find 需要筛选出的注解
      * @return Map，以注解 Class 对象为键，注解实例为值
      */
-    public static Map<Class<? extends Annotation>, Annotation> getAnnotations(@Nonnull AnnotatedElement handler, @Nullable Class<? extends Annotation>[] find) {
-        Map<Class<? extends Annotation>, Annotation> annotationMap = new HashMap<>();
+    public static Map<Class<? extends Annotation>, Annotation> getAnnotations(@Nonnull AnnotatedElement handler, @Nullable Class<? extends Annotation>[] find, ElementContainer initializer) {
+        Map<Class<? extends Annotation>, Annotation> annotationMap = new LinkedHashMap<>();
         if (handler instanceof AccessibleObject) {
             ((AccessibleObject) handler).setAccessible(true);
         }
@@ -316,7 +279,7 @@ public class ReflectUtil {
      * @return 尝试获取成员的结果
      */
     @SuppressWarnings("unchecked")
-    public static <T> Optional<T> getField(@Nonnull Class clazz, @Nonnull String fieldName, @Nullable Object object, AnnotationInitializer initializer) {
+    public static <T> Optional<T> getField(@Nonnull Class clazz, @Nonnull String fieldName, @Nullable Object object, ElementContainer initializer) {
         T field = null;
         try {
             // 静态成员
@@ -340,21 +303,9 @@ public class ReflectUtil {
                 | InvocationTargetException
                 | NoSuchMethodException
                 | IllegalAccessException e) {
-            initializer.warn("Cannot get field {} from {}", fieldName, clazz.getCanonicalName());
+            initializer.modInfo.warn("Cannot get field {} from {}", fieldName, clazz.getCanonicalName());
             e.printStackTrace();
         }
         return Optional.ofNullable(field);
-    }
-
-    public static Optional<String> getName(@Nullable AnnotatedElement element) {
-        String defaultName = null;
-        if (element instanceof Field) {
-            defaultName = ((Field) element).getName();
-        } else if (element instanceof Class) {
-            defaultName = ((Class) element).getSimpleName();
-        } else if (element instanceof Method) {
-            defaultName = ((Method) element).getName();
-        }
-        return Optional.ofNullable(defaultName);
     }
 }

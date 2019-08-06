@@ -1,121 +1,99 @@
 package com.elementtimes.elementcore.annotation.register;
 
-import com.elementtimes.elementcore.annotation.AnnotationInitializer;
+import com.elementtimes.elementcore.ElementContainer;
+import com.elementtimes.elementcore.ElementCore;
+import com.elementtimes.elementcore.util.FluidUtil;
 import net.minecraft.block.Block;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.registries.IForgeRegistry;
 
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 注解注册
+ *
  * @author luqin2007
  */
-@SuppressWarnings("unused")
 public class ForgeBusRegister {
 
-    private AnnotationInitializer mInitializer;
+    private ElementContainer mInitializer;
 
-    public ForgeBusRegister(AnnotationInitializer initializer) {
+    public ForgeBusRegister(ElementContainer initializer) {
         mInitializer = initializer;
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "ForgeBusRegister");
     }
 
     @SubscribeEvent
     public void registerBlock(RegistryEvent.Register<Block> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerBlock");
-        mInitializer.loadBlocks();
-        mInitializer.loadFluids();
         IForgeRegistry<Block> registry = event.getRegistry();
-        mInitializer.blocks.forEach(registry::register);
-        BlockTags.getCollection().registerAll(mInitializer.blockTags);
-    }
-
-    @SubscribeEvent
-    public void registerTileEntity(RegistryEvent.Register<TileEntityType<?>> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerTileEntity");
-        mInitializer.loadBlocks();
-        IForgeRegistry<TileEntityType<?>> registry = event.getRegistry();
-        mInitializer.blockTileEntities.forEach(registry::register);
-    }
-
-    @SubscribeEvent
-    public void registerFeature(RegistryEvent.Register<Feature<?>> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerFeature");
-        mInitializer.loadFeatures();
-        IForgeRegistry<Feature<?>> registry = event.getRegistry();
-        mInitializer.features.forEach(registry::register);
+        mInitializer.blocks.values().forEach(registry::register);
+        mInitializer.fluidBlocks.keySet().forEach(fluid -> registry.register(fluid.getBlock()));
     }
 
     @SubscribeEvent
     public void registerItem(RegistryEvent.Register<Item> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerItem");
-        mInitializer.loadItems();
-        mInitializer.loadBlocks();
         IForgeRegistry<Item> registry = event.getRegistry();
-        mInitializer.items.forEach(registry::register);
-        ItemTags.getCollection().registerAll(mInitializer.itemTags);
-        mInitializer.blocks.forEach(block -> {
-            Item itemBlock = new BlockItem(block, new Item.Properties()) {
+        mInitializer.items.values().forEach(item -> {
+            registry.register(item);
+            if (mInitializer.itemOreDictionaries.containsKey(item)) {
+                OreDictionary.registerOre(mInitializer.itemOreDictionaries.get(item), item);
+            }
+        });
+        mInitializer.blocks.values().forEach(block -> {
+            ItemBlock itemBlock = new ItemBlock(block) {
                 @Override
-                public int getBurnTime(ItemStack itemStack) {
-                    return mInitializer.blockBurningTimes.getOrDefault(block, super.getBurnTime(itemStack));
+                public int getItemBurnTime(ItemStack itemStack) {
+                    return mInitializer.blockBurningTimes.getOrDefault(block, 0);
                 }
             };
             //noinspection ConstantConditions
             itemBlock.setRegistryName(block.getRegistryName());
             registry.register(itemBlock);
+            if (mInitializer.blockOreDictionaries.containsKey(block)) {
+                OreDictionary.registerOre(mInitializer.blockOreDictionaries.get(block), block);
+            }
+            if (mInitializer.blockTileEntities.containsKey(block)) {
+                GameRegistry.registerTileEntity(mInitializer.blockTileEntities.get(block).right, new ResourceLocation(mInitializer.modInfo.id(), mInitializer.blockTileEntities.get(block).left));
+            }
         });
     }
 
     @SubscribeEvent
-    public void registerFluid(RegistryEvent.Register<Fluid> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerFluid");
-        mInitializer.loadFluids();
-        IForgeRegistry<Fluid> registry = event.getRegistry();
-        mInitializer.fluids.forEach(registry::register);
-        FluidTags.getCollection().registerAll(mInitializer.fluidTags);
+    public void registerRecipe(RegistryEvent.Register<IRecipe> event) {
+        IForgeRegistry<IRecipe> registry = event.getRegistry();
+        mInitializer.recipes.forEach(getter ->
+                Arrays.stream(getter.get()).filter(Objects::nonNull).forEach(registry::register));
     }
 
     @SubscribeEvent
     public void onBurningTime(FurnaceFuelBurnTimeEvent event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "onBurningTime");
-        mInitializer.loadItems();
-        mInitializer.loadBlocks();
-        mInitializer.loadFluids();
         ItemStack itemStack = event.getItemStack();
-        AtomicReference<String> name = new AtomicReference<>();
-        if (FluidRegistry.isUniversalBucketEnabled() && itemStack.getItem() == ForgeMod.getInstance().universalBucket) {
-            LazyOptional<IFluidHandlerItem> fluidHandlerOpt = net.minecraftforge.fluids.FluidUtil.getFluidHandler(itemStack);
-            fluidHandlerOpt.ifPresent(handler -> {
-                Optional<IFluidTankProperties> fluidBucket = Arrays.stream(handler.getTankProperties()).findFirst();
-                if (fluidBucket.isPresent()) {
-                    net.minecraftforge.fluids.Fluid fluid = Objects.requireNonNull(fluidBucket.get().getContents()).getFluid();
-                    if (fluid != null) {
-                        name.set(fluid.getName());
-                    }
+        String name = null;
+        if (itemStack.getItem() == ElementCore.Items.bottle) {
+            name = FluidUtil.getFluid(itemStack).getFluid().getName();
+        } else if (FluidRegistry.isUniversalBucketEnabled() && itemStack.getItem() == ForgeModContainer.getInstance().universalBucket) {
+            Optional<IFluidTankProperties> fluidBucket = Arrays.stream(Objects.requireNonNull(net.minecraftforge.fluids.FluidUtil.getFluidHandler(itemStack)).getTankProperties()).findFirst();
+            if (fluidBucket.isPresent()) {
+                Fluid fluid = Objects.requireNonNull(fluidBucket.get().getContents()).getFluid();
+                if (fluid != null) {
+                    name = fluid.getName();
                 }
-            });
+            }
         }
         int time = mInitializer.fluidBurningTimes.getOrDefault(name, -1);
         if (time > 0) {
@@ -124,9 +102,7 @@ public class ForgeBusRegister {
     }
 
     @SubscribeEvent
-    public void registerEnchantment(RegistryEvent.Register<Enchantment> event) {
-        mInitializer.warn("[{}] {}", mInitializer.modInfo.modid, "registerEnchantment");
-        mInitializer.loadEnchantments();
+    public void onRegisterEnchantment(RegistryEvent.Register<Enchantment> event) {
         IForgeRegistry<Enchantment> registry = event.getRegistry();
         for (Enchantment enchantment : mInitializer.enchantments) {
             registry.register(enchantment);

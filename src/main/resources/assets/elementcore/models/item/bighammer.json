@@ -1,6 +1,6 @@
 {
     "parent": "item/generated",
     "textures": {
-        "layer0": "elementcore:items/bighammer"
+        "layer0": "elementtimes:items/bighammer"
     }
 }
