@@ -35,12 +35,11 @@ public class ElementCore {
         return ECModElements.builder();
     }
 
-    @SuppressWarnings("WeakerAccess")
     public ECModContainer container;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        container = ECModElements.builder().build(event);
+        container = ECModElements.builder().enableDebugMessage().build(event);
     }
 
     @EventHandler

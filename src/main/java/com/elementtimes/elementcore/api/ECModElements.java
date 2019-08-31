@@ -179,17 +179,21 @@ public class ECModElements {
         }
 
         public ECModContainer build(FMLPreInitializationEvent event) {
+            // newInstance
             final ModContainer container = Loader.instance().getIndexedModList().get(event.getModMetadata().modId);
             packages.add(container.getMod().getClass().getPackage().getName());
-            final ECModElements initializer = new ECModElements(event, debugEnable, customAnnotation, packages, container);
-            MinecraftForge.ORE_GEN_BUS.register(new OreBusRegister(initializer));
-            MinecraftForge.EVENT_BUS.register(new TerrainBusRegister(initializer));
-            MinecraftForge.EVENT_BUS.register(new ForgeRegister(initializer));
-            MinecraftForge.EVENT_BUS.register(new RuntimeEvent(initializer));
+            final ECModElements elements = new ECModElements(event, debugEnable, customAnnotation, packages, container);
+            ECModContainer.MODS.put(container.getModId(), elements.container);
+            // event
+            MinecraftForge.ORE_GEN_BUS.register(new OreBusRegister(elements));
+            MinecraftForge.EVENT_BUS.register(new TerrainBusRegister(elements));
+            MinecraftForge.EVENT_BUS.register(new ForgeRegister(elements));
+            MinecraftForge.EVENT_BUS.register(new RuntimeEvent(elements));
             if (FMLCommonHandler.instance().getSide().isClient()) {
-                MinecraftForge.EVENT_BUS.register(new com.elementtimes.elementcore.api.annotation.client.ForgeBusRegisterClient(initializer));
+                MinecraftForge.EVENT_BUS.register(new com.elementtimes.elementcore.api.annotation.client.ForgeBusRegisterClient(elements));
             }
-            return initializer.container;
+            elements.fmlEventRegister.onPreInit(event);
+            return elements.container;
         }
     }
 
