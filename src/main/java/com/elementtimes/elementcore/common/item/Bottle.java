@@ -1,7 +1,7 @@
 package com.elementtimes.elementcore.common.item;
 
 import com.elementtimes.elementcore.ElementCore;
-import com.elementtimes.elementcore.util.FluidUtil;
+import com.elementtimes.elementcore.api.ECUtils;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
@@ -55,7 +55,7 @@ public class Bottle extends Item {
         if (!worldIn.isRemote) {
             TileEntity te = worldIn.getTileEntity(pos);
             ItemStack bottle = player.getHeldItem(hand);
-            FluidStack fluidStack = FluidUtil.getFluid(bottle);
+            FluidStack fluidStack = ECUtils.fluid.getFluid(bottle);
             Capability capability = CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY;
             if (te != null && te.hasCapability(capability, facing.getOpposite())) {
                 @SuppressWarnings("unchecked")
@@ -76,7 +76,7 @@ public class Bottle extends Item {
     @Nonnull
     public String getItemStackDisplayName(@Nonnull ItemStack stack) {
         if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
-            Fluid fluid = FluidUtil.getFluidNotNull(stack).getFluid();
+            Fluid fluid = ECUtils.fluid.getFluidNotNull(stack).getFluid();
             if (fluid != null) {
                 String name = fluid.getLocalizedName(new FluidStack(fluid, 1000));
                 if (name == null) {

@@ -1,8 +1,10 @@
 package com.elementtimes.elementcore;
 
-import com.elementtimes.elementcore.annotation.annotations.ModCreativeTabs;
-import com.elementtimes.elementcore.annotation.annotations.ModFluid;
-import com.elementtimes.elementcore.annotation.annotations.ModItem;
+import com.elementtimes.elementcore.api.ECModContainer;
+import com.elementtimes.elementcore.api.ECModElements;
+import com.elementtimes.elementcore.api.annotation.annotations.ModCreativeTabs;
+import com.elementtimes.elementcore.api.annotation.annotations.ModFluid;
+import com.elementtimes.elementcore.api.annotation.annotations.ModItem;
 import com.elementtimes.elementcore.common.item.Bottle;
 import com.elementtimes.elementcore.common.item.DebugStick;
 import com.elementtimes.elementcore.common.tab.MainTab;
@@ -10,6 +12,7 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -21,35 +24,46 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  * @author luqin2007
  */
 @SuppressWarnings("unused")
-@Mod(modid = ElementCore.MODID, name = "Element Core", version = "1.0")
-public class ElementCore
-{
-    static final String MODID = "elementcore";
+@Mod(modid = ElementCore.MODID, name = "Element Core", version = ElementCore.VERSION)
+public class ElementCore {
+    private static ElementCore INSTANCE = null;
 
-    public static ElementContainer initialize(FMLPreInitializationEvent event) {
-        return ElementContainer.builder().disableDebugMessage().build(event);
+    static final String MODID = "elementcore";
+    static final String VERSION = "0.1.0_1.12.2_14.23.5.2768";
+
+    public static ECModElements.Builder builder() {
+        return ECModElements.builder();
     }
 
     @SuppressWarnings("WeakerAccess")
-    public ElementContainer initialize;
+    public ECModContainer container;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        initialize = ElementContainer.builder().disableDebugMessage().build(event);
+        container = ECModElements.builder().build(event);
     }
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        for (ElementContainer initializer : ElementContainer.INITIALIZERS.values()) {
-            initializer.fmlEventRegister.onInit();
+        for (ECModContainer mod : ECModContainer.MODS.values()) {
+            mod.elements.fmlEventRegister.onInit(event);
         }
     }
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        for (ElementContainer initializer : ElementContainer.INITIALIZERS.values()) {
-            initializer.fmlEventRegister.onPostInit();
+        for (ECModContainer mod : ECModContainer.MODS.values()) {
+            mod.elements.fmlEventRegister.onPostInit(event);
         }
+    }
+
+    @Mod.InstanceFactory
+    public static ElementCore instance() {
+        if (INSTANCE == null) {
+            INSTANCE = new ElementCore();
+            FluidRegistry.enableUniversalBucket();
+        }
+        return INSTANCE;
     }
 
     public static class Items {
