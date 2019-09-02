@@ -1,8 +1,7 @@
 package com.elementtimes.elementcore.common.item;
 
 import com.elementtimes.elementcore.ElementCore;
-import com.elementtimes.elementcore.api.ECUtils;
-import net.minecraft.creativetab.CreativeTabs;
+import com.elementtimes.elementcore.api.common.ECUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -12,13 +11,11 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
@@ -38,15 +35,6 @@ public class Bottle extends Item {
     public Bottle() {
         setContainerItem(Items.GLASS_BOTTLE);
         setMaxStackSize(1);
-    }
-
-    @Override
-    public void getSubItems(@Nonnull CreativeTabs tab, @Nonnull NonNullList<ItemStack> items) {
-        if (isInCreativeTab(tab)) {
-            FluidRegistry.getRegisteredFluids().values().stream()
-                    .map(Bottle::createByFluid)
-                    .forEach(items::add);
-        }
     }
 
     @Override

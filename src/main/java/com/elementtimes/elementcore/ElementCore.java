@@ -1,10 +1,10 @@
 package com.elementtimes.elementcore;
 
-import com.elementtimes.elementcore.api.ECModContainer;
-import com.elementtimes.elementcore.api.ECModElements;
-import com.elementtimes.elementcore.api.annotation.annotations.ModCreativeTabs;
-import com.elementtimes.elementcore.api.annotation.annotations.ModFluid;
-import com.elementtimes.elementcore.api.annotation.annotations.ModItem;
+import com.elementtimes.elementcore.api.common.ECModContainer;
+import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
+import com.elementtimes.elementcore.api.annotation.ModFluid;
+import com.elementtimes.elementcore.api.annotation.ModItem;
 import com.elementtimes.elementcore.common.item.Bottle;
 import com.elementtimes.elementcore.common.item.DebugStick;
 import com.elementtimes.elementcore.common.tab.MainTab;
