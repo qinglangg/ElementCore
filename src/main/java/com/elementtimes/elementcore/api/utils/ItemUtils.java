@@ -6,8 +6,10 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
  * @author lq2007
  */
 public class ItemUtils {
+
+    private static String NBT_ITEMS = "_items_";
 
     private static ItemUtils u = null;
     public static ItemUtils getInstance() {
@@ -91,5 +95,63 @@ public class ItemUtils {
             itemStacks.add(new ItemStack(list.getCompoundTagAt(i)));
         }
         return itemStacks;
+    }
+
+    /**
+     * 将 IItemHandler 写入 NBTTagCompound
+     * @param handler IItemHandler
+     * @param key key
+     * @param nbtTagCompound 待存储 NBTTagCompound
+     * @return nbtTagCompound
+     */
+    public NBTTagCompound writeToNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
+        NBTTagCompound nbt;
+        // nbt
+        if (nbtTagCompound.hasKey(NBT_ITEMS)) {
+            nbt = nbtTagCompound.getCompoundTag(NBT_ITEMS);
+        } else {
+            nbt = new NBTTagCompound();
+            nbtTagCompound.setTag(NBT_ITEMS, nbt);
+        }
+        // to nbt
+        if (handler.getSlots() != 0) {
+            if (handler instanceof INBTSerializable) {
+                nbt.setTag(key, ((INBTSerializable) handler).serializeNBT());
+            } else {
+                NBTTagList list = new NBTTagList();
+                for (int i = 0; i < handler.getSlots(); i++) {
+                    list.appendTag(handler.getStackInSlot(i).serializeNBT());
+                }
+                nbt.setTag(key, list);
+            }
+        }
+        return nbtTagCompound;
+    }
+
+    /**
+     * 从 NBTTagCompound 恢复 IItemHandler
+     * @param handler IItemHandler
+     * @param key key
+     * @param nbtTagCompound 待存储 NBTTagCompound
+     */
+    public void readFromNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
+        if (nbtTagCompound.hasKey(NBT_ITEMS)) {
+            NBTTagCompound nbt = nbtTagCompound.getCompoundTag(NBT_ITEMS);
+            if (handler instanceof INBTSerializable) {
+                ((INBTSerializable) handler).deserializeNBT(nbt.getCompoundTag(key));
+            } else {
+                NBTTagList list = (NBTTagList) nbt.getTag(key);
+                int count = Math.min(list.tagCount(), handler.getSlots());
+                for (int i = 0; i < count; i++) {
+                    ItemStack stack = new ItemStack(list.getCompoundTagAt(i));
+                    if (handler instanceof IItemHandlerModifiable) {
+                        ((IItemHandlerModifiable) handler).setStackInSlot(i, stack);
+                    } else {
+                        handler.extractItem(i, handler.getSlotLimit(i), false);
+                        handler.insertItem(i, stack, false);
+                    }
+                }
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@ import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
 import com.elementtimes.elementcore.api.annotation.ModFluid;
 import com.elementtimes.elementcore.api.annotation.ModItem;
-import com.elementtimes.elementcore.common.item.Bottle;
 import com.elementtimes.elementcore.common.item.DebugStick;
 import com.elementtimes.elementcore.common.tab.MainTab;
 import net.minecraft.creativetab.CreativeTabs;
@@ -29,7 +28,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.1.0_1.12.2_14.23.5.2768";
+    static final String VERSION = "0.2.0_1.12.2_14.23.5.2768";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
@@ -69,9 +68,6 @@ public class ElementCore {
         @ModItem(creativeTabKey = "main", itemColorClass = "com.elementtimes.elementcore.client.DebugStickColor")
         @ModItem.HasSubItem(metadatas = {0b0000, 0b0001}, models = {"minecraft:stick", "minecraft:stick"})
         public static Item debugger = new DebugStick();
-
-        @ModItem(creativeTabKey = "main")
-        public static Item bottle = new Bottle();
     }
 
     public static class Fluids {

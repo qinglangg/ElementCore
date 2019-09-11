@@ -35,9 +35,7 @@ public class RuntimeEvent {
         ECUtils.common.runWithModActive(mElements.container.mod, () -> {
             ItemStack itemStack = event.getItemStack();
             String name = null;
-            if (itemStack.getItem() == ElementCore.Items.bottle) {
-                name = ECUtils.fluid.getFluid(itemStack).getFluid().getName();
-            } else if (FluidRegistry.isUniversalBucketEnabled() && itemStack.getItem() == ForgeModContainer.getInstance().universalBucket) {
+            if (FluidRegistry.isUniversalBucketEnabled() && itemStack.getItem() == ForgeModContainer.getInstance().universalBucket) {
                 Optional<IFluidTankProperties> fluidBucket = Arrays.stream(Objects.requireNonNull(FluidUtil.getFluidHandler(itemStack)).getTankProperties()).findFirst();
                 if (fluidBucket.isPresent()) {
                     Fluid fluid = Objects.requireNonNull(fluidBucket.get().getContents()).getFluid();

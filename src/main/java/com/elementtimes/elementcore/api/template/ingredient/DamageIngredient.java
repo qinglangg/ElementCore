@@ -1,4 +1,4 @@
-package com.elementtimes.elementcore.api.template;
+package com.elementtimes.elementcore.api.template.ingredient;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
