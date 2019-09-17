@@ -1,7 +1,5 @@
 package com.elementtimes.elementcore.api.template.tileentity.lifecycle;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
-import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileEnergyHandler;
@@ -20,8 +18,8 @@ import net.minecraftforge.items.IItemHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -86,16 +84,11 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
             if (o instanceof ITileFluidHandler) {
                 ITileFluidHandler fh = (ITileFluidHandler) o;
                 for (SideHandlerType type : SideHandlerType.values()) {
-                    ITankHandler tanks = fh.getTanks(type);
-                    if (tanks != null && !ECUtils.fluid.isNoCapability(tanks.getTankProperties())) {
-                        info.put(type, tanks);
-                    }
+                    info.put(type, fh.getTanks(type));
                 }
             } else {
                 IFluidHandler tanks = o.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null);
-                if (tanks != null && !ECUtils.fluid.isNoCapability(tanks.getTankProperties())) {
-                    info.put(SideHandlerType.NONE, tanks);
-                }
+                info.put(SideHandlerType.NONE, tanks);
             }
             return info;
         }
@@ -172,6 +165,16 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
         public EnergyInfo(int capacity, int stored) {
             this.capacity = capacity;
             this.stored = stored;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(capacity, stored);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return this == obj;
         }
     }
 

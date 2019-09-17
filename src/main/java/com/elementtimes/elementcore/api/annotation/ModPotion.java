@@ -7,12 +7,13 @@ import java.lang.annotation.Target;
 
 /**
  * 药水
- * 未启用
+ * @deprecated 暂时未实现
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Deprecated
+@SuppressWarnings("unused")
 public @interface ModPotion {
     String registerName();
     String name();

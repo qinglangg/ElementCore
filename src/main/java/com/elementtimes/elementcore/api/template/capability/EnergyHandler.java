@@ -13,6 +13,7 @@ import net.minecraftforge.energy.IEnergyStorage;
  *
  * @author KSGFK create in 2019/3/9
  */
+@SuppressWarnings("unused")
 public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBTTagCompound> {
 
     private int transfer = Integer.MAX_VALUE;
@@ -82,7 +83,7 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
         if (capacity < 0) {
             return Integer.MAX_VALUE;
         }
-        return super.getEnergyStored();
+        return super.getMaxEnergyStored();
     }
 
     @Override

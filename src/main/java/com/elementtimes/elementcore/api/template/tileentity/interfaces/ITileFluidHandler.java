@@ -1,6 +1,5 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import net.minecraft.nbt.NBTTagCompound;
@@ -29,6 +28,8 @@ public interface ITileFluidHandler extends ICapabilityProvider, INBTSerializable
     default SideHandlerType getTankType(EnumFacing facing) {
         return SideHandlerType.ALL;
     }
+
+    default void setTanks(SideHandlerType type, ITankHandler handler) {};
 
     @Override
     default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
@@ -62,18 +63,15 @@ public interface ITileFluidHandler extends ICapabilityProvider, INBTSerializable
         }
     }
 
+    @Override
+    default NBTTagCompound serializeNBT() {
+        return writeToNBT(new NBTTagCompound());
+    }
+
     default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound)  {
         NBTTagCompound nbt = new NBTTagCompound();
-        // input
-        ITankHandler inputs = getTanks(SideHandlerType.INPUT);
-        if (!ECUtils.fluid.isNoCapability(inputs.getTankProperties())) {
-            nbt.setTag(NBT_FLUID_INPUT, ((INBTSerializable) inputs).serializeNBT());
-        }
-        // output
-        ITankHandler outputs = getTanks(SideHandlerType.OUTPUT);
-        if (!ECUtils.fluid.isNoCapability(outputs.getTankProperties())) {
-            nbt.setTag(NBT_FLUID_OUTPUT, ((INBTSerializable) outputs).serializeNBT());
-        }
+        nbt.setTag(NBT_FLUID_INPUT, getTanks(SideHandlerType.INPUT).serializeNBT());
+        nbt.setTag(NBT_FLUID_OUTPUT, getTanks(SideHandlerType.OUTPUT).serializeNBT());
         nbtTagCompound.setTag(NBT_FLUID, nbt);
         return nbtTagCompound;
     }

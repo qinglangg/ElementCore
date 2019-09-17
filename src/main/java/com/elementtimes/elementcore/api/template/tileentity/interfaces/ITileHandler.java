@@ -53,9 +53,9 @@ public interface ITileHandler {
 
         @Override
         default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.writeToNBT(nbtTagCompound);
-            ITileEnergyHandler.super.writeToNBT(nbtTagCompound);
-            ITileFluidHandler.super.writeToNBT(nbtTagCompound);
+            nbtTagCompound = ITileItemHandler.super.writeToNBT(nbtTagCompound);
+            nbtTagCompound = ITileEnergyHandler.super.writeToNBT(nbtTagCompound);
+            nbtTagCompound = ITileFluidHandler.super.writeToNBT(nbtTagCompound);
             return nbtTagCompound;
         }
     }

@@ -17,9 +17,9 @@ import java.util.Map;
  */
 @SideOnly(Side.CLIENT)
 public class GuiDataFromServer {
-    public static final Int2ObjectArrayMap<HandlerInfoMachineLifecycle.EnergyInfo> energies
+    public static final Int2ObjectArrayMap<HandlerInfoMachineLifecycle.EnergyInfo> ENERGIES
             = new Int2ObjectArrayMap<>(3);
 
-    public static final Int2ObjectArrayMap<Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>>> fluids
+    public static final Int2ObjectArrayMap<Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>>> FLUIDS
             = new Int2ObjectArrayMap<>(3);
 }

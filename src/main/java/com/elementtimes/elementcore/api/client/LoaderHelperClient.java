@@ -11,7 +11,6 @@ import java.util.Map;
  * 客户端的注册辅助类
  * @author luqin2007
  */
-@SuppressWarnings("WeakerAccess")
 @SideOnly(Side.CLIENT)
 public class LoaderHelperClient {
     public static ModelResourceLocation getLocationFromState(Map<IBlockState, ModelResourceLocation> locationMap, ModelResourceLocation defLocation, IBlockState state) {

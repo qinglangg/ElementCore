@@ -22,24 +22,18 @@ import java.util.function.IntConsumer;
  *
  * @author luqin2007
  */
+@SuppressWarnings({"unused", "WeakerAccess"})
 public class ItemHandler extends ItemStackHandler implements IItemHandler {
     public static final ItemHandler EMPTY = new ItemHandler(0);
     public static final BiPredicate<Integer, ItemStack> FALSE = (i, is) -> false;
+    public static final BiPredicate<Integer, ItemStack> TRUE = (i, is) -> true;
 
     private int mSize;
     private Int2IntMap mSlotSize = new Int2IntOpenHashMap();
     private boolean replaced = false;
 
-    public ItemHandler() {
-        this(1);
-    }
-
     public ItemHandler(int size) {
         this(size, (integer, itemStack) -> true);
-    }
-
-    public ItemHandler(BiPredicate<Integer, ItemStack> check) {
-        this(1, check);
     }
 
     public ItemHandler(int size, BiPredicate<Integer, ItemStack> check) {
@@ -59,9 +53,8 @@ public class ItemHandler extends ItemStackHandler implements IItemHandler {
         unbindAll();
         NBTTagCompound nbt = super.serializeNBT();
         NBTTagList slotCount = new NBTTagList();
-        mSlotSize.int2IntEntrySet().forEach(entry -> {
-            slotCount.appendTag(new NBTTagIntArray(new int[]{entry.getIntKey(), entry.getIntValue()}));
-        });
+        mSlotSize.int2IntEntrySet().forEach(entry ->
+                slotCount.appendTag(new NBTTagIntArray(new int[]{entry.getIntKey(), entry.getIntValue()})));
         nbt.setTag("_bind_slot_count_", slotCount);
         return nbt;
     }

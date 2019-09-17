@@ -41,7 +41,7 @@ public class DebugStick extends Item {
     @Override
     @Nonnull
     @SuppressWarnings({"deprecation"})
-    public String getItemStackDisplayName(@Nonnull ItemStack stack) {
+        public String getItemStackDisplayName(@Nonnull ItemStack stack) {
         if (stack.getMetadata() == 0b0000) {
             return TextFormatting.RED + I18n.translateToLocal("item.elementcore.debugstick.server.name");
         } else {

@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * 流体注册
  * 通常，应当忽略 name/stillResource/flowingResource/overlayResource/color 参数
  * 以上参数用于当对应注解成员不存在时，用于新建 Fluid 对象。这种用法是不推荐的。
- * 因此 实际有用的 仅为 bucket，creativeTab 参数
+ * 因此 实际有用的 仅为 bucket，creativeTabKey 参数
  * @author luqin2007
  */
 @SuppressWarnings("unused")

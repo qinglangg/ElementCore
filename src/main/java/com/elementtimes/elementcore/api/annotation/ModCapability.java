@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * Capability 能力系统
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)

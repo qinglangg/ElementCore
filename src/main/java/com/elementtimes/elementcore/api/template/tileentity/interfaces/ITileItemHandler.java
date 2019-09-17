@@ -54,6 +54,8 @@ public interface ITileItemHandler extends ICapabilityProvider, INBTSerializable<
         return getItemHandler(getItemType(facing));
     }
 
+    default void setItemHandler(@Nonnull SideHandlerType type, IItemHandler handler) {};
+
     @Override
     default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
         return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY;
@@ -71,17 +73,22 @@ public interface ITileItemHandler extends ICapabilityProvider, INBTSerializable<
             NBTTagCompound nbtItems = nbt.getCompoundTag(NBT_ITEMS);
             if (nbtItems.hasKey(NBT_ITEMS_INPUT)) {
                 final IItemHandler input = getItemHandler(SideHandlerType.INPUT);
-                input.deserializeNBT(nbt.getCompoundTag(NBT_ITEMS_INPUT));
+                input.deserializeNBT(nbtItems.getCompoundTag(NBT_ITEMS_INPUT));
             }
             if (nbtItems.hasKey(NBT_ITEMS_OUTPUT)) {
                 final IItemHandler output = getItemHandler(SideHandlerType.OUTPUT);
-                output.deserializeNBT(nbt.getCompoundTag(NBT_ITEMS_OUTPUT));
+                output.deserializeNBT(nbtItems.getCompoundTag(NBT_ITEMS_OUTPUT));
             }
             if (nbtItems.hasKey(NBT_ITEMS_NONE)) {
                 final IItemHandler none = getItemHandler(SideHandlerType.NONE);
-                none.deserializeNBT(nbt.getCompoundTag(NBT_ITEMS_NONE));
+                none.deserializeNBT(nbtItems.getCompoundTag(NBT_ITEMS_NONE));
             }
         }
+    }
+
+    @Override
+    default NBTTagCompound serializeNBT() {
+        return writeToNBT(new NBTTagCompound());
     }
 
     default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
@@ -96,6 +103,12 @@ public interface ITileItemHandler extends ICapabilityProvider, INBTSerializable<
         if (outputs != ItemHandler.EMPTY && outputs.getSlots() > 0) {
             nbt.setTag(NBT_ITEMS_OUTPUT, ((INBTSerializable) outputs).serializeNBT());
         }
+        // none
+        IItemHandler none = getItemHandler(SideHandlerType.NONE);
+        if (none != ItemHandler.EMPTY && outputs.getSlots() > 0) {
+            nbt.setTag(NBT_ITEMS_NONE, ((INBTSerializable) none).serializeNBT());
+        }
+        nbtTagCompound.setTag(NBT_ITEMS, nbt);
         return nbtTagCompound;
     }
 

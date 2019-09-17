@@ -17,4 +17,8 @@ public class ECUtils {
     public static ItemUtils item = ItemUtils.getInstance();
 
     public static MathUtils math = MathUtils.getInstance();
+
+    public static ArrayUtils array = ArrayUtils.getInstance();
+
+    public static NBTUtils nbt = NBTUtils.getInstance();
 }

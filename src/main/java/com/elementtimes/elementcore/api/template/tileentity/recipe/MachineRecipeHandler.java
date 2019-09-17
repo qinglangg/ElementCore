@@ -15,8 +15,18 @@ import java.util.function.ToIntFunction;
  * 保存合成配方的类
  * @author luqin2007
  */
+@SuppressWarnings("WeakerAccess")
 public class MachineRecipeHandler {
     private List<MachineRecipe> mMachineRecipes = new LinkedList<>();
+
+    public final int inputItemCount, outputItemCount, inputFluidCount, outputFluidCount;
+
+    public MachineRecipeHandler(int inputItemCount, int outputItemCount, int inputFluidCount, int outputFluidCount) {
+        this.inputItemCount = inputItemCount;
+        this.outputItemCount = outputItemCount;
+        this.inputFluidCount = inputFluidCount;
+        this.outputFluidCount = outputFluidCount;
+    }
 
     /**
      * 获取所有合成配方

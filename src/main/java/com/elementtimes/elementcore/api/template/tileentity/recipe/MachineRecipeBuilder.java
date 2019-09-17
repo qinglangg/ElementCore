@@ -2,10 +2,9 @@ package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
 import com.elementtimes.elementcore.api.template.interfaces.Function5;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.fluids.FluidStack;
 
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -18,14 +17,19 @@ import java.util.function.ToIntFunction;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class MachineRecipeBuilder {
     private ToIntFunction<MachineRecipeCapture> cost = (a) -> 0;
-    private List<IngredientPart<ItemStack>> inputItems = new LinkedList<>();
-    private List<IngredientPart<FluidStack>> inputFluids = new LinkedList<>();
-    private List<IngredientPart<ItemStack>> outputItems = new LinkedList<>();
-    private List<IngredientPart<FluidStack>> outputFluids = new LinkedList<>();
+    private List<IngredientPart<ItemStack>> inputItems;
+    private List<IngredientPart<FluidStack>> inputFluids;
+    private List<IngredientPart<ItemStack>> outputItems;
+    private List<IngredientPart<FluidStack>> outputFluids;
+    private int ptrII = 0, ptrIO = 0, ptrFI = 0, ptrFO = 0;
     private MachineRecipeHandler handler;
 
     public MachineRecipeBuilder(MachineRecipeHandler handler) {
         this.handler = handler;
+        inputItems = NonNullList.withSize(handler.inputItemCount, IngredientPart.EMPTY_ITEM);
+        inputFluids = NonNullList.withSize(handler.inputFluidCount, IngredientPart.EMPTY_FLUID);
+        outputItems = NonNullList.withSize(handler.outputItemCount, IngredientPart.EMPTY_ITEM);
+        outputFluids = NonNullList.withSize(handler.outputFluidCount, IngredientPart.EMPTY_FLUID);
     }
 
     /**
@@ -56,7 +60,12 @@ public class MachineRecipeBuilder {
      * @return MachineRecipeBuilder
      */
     public MachineRecipeBuilder addItemInput(IngredientPart<ItemStack> item) {
-        inputItems.add(item);
+        if (ptrII < handler.inputItemCount) {
+            inputItems.set(ptrII, item);
+            ptrII++;
+        } else {
+            throw new RuntimeException("合成配方物品输入已满");
+        }
         return this;
     }
 
@@ -67,7 +76,12 @@ public class MachineRecipeBuilder {
      */
     @SafeVarargs
     public final MachineRecipeBuilder addItemInputs(IngredientPart<ItemStack>... items) {
-        Collections.addAll(inputItems, items);
+        int ptr = 0;
+        while (ptrII < handler.inputItemCount && ptr < items.length) {
+            inputItems.set(ptrII, items[ptr]);
+            ptrII++;
+            ptr++;
+        }
         return this;
     }
 
@@ -77,7 +91,12 @@ public class MachineRecipeBuilder {
      * @return MachineRecipeBuilder
      */
     public MachineRecipeBuilder addItemOutput(IngredientPart<ItemStack> item) {
-        outputItems.add(item);
+        if (ptrIO < handler.outputItemCount) {
+            outputItems.set(ptrIO, item);
+            ptrIO++;
+        } else {
+            throw new RuntimeException("合成配方物品输出已满");
+        }
         return this;
     }
 
@@ -88,7 +107,12 @@ public class MachineRecipeBuilder {
      */
     @SafeVarargs
     public final MachineRecipeBuilder addItemOutputs(IngredientPart<ItemStack>... items) {
-        Collections.addAll(outputItems, items);
+        int ptr = 0;
+        while (ptrIO < handler.outputItemCount && ptr < items.length) {
+            outputItems.set(ptrIO, items[ptr]);
+            ptrIO++;
+            ptr++;
+        }
         return this;
     }
 
@@ -121,15 +145,24 @@ public class MachineRecipeBuilder {
     }
 
     public MachineRecipeBuilder addFluidOutput(IngredientPart<FluidStack> fluid) {
-        outputFluids.add(fluid);
+        if (ptrFO < handler.outputFluidCount) {
+            outputFluids.set(ptrFO, fluid);
+            ptrFO++;
+        } else {
+            throw new RuntimeException("合成配方流体输入已满");
+        }
         return this;
     }
 
     public MachineRecipeBuilder addFluidInput(IngredientPart<FluidStack> fluid) {
-        inputFluids.add(fluid);
+        if (ptrFI < handler.inputFluidCount) {
+            inputFluids.set(ptrFI, fluid);
+            ptrFI++;
+        } else {
+            throw new RuntimeException("合成配方流体输入已满");
+        }
         return this;
     }
-
 
     /**
      * 创建并添加配方

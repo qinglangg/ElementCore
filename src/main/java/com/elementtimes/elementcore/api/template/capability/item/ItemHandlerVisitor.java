@@ -18,12 +18,15 @@ public class ItemHandlerVisitor implements IItemHandler {
     private int mSum = -1;
 
     // 使用 list 兼容多人访问
-    private IntArrayList mSelect = new IntArrayList(getSlots());
-    private IntArrayList mSelectSlot = new IntArrayList(getSlots());
-    private ArrayList<IItemHandler> mSelectHandler = new ArrayList<>(getSlots());
+    private IntArrayList mSelect;
+    private IntArrayList mSelectSlot;
+    private ArrayList<IItemHandler> mSelectHandler;
 
     public ItemHandlerVisitor(IItemHandler... handlers) {
-        this.mHandlers = handlers;
+        mHandlers = handlers;
+        mSelect = new IntArrayList(getSlots());
+        mSelectSlot = new IntArrayList(getSlots());
+        mSelectHandler = new ArrayList<>(getSlots());
         mReadonly = new Readonly();
     }
 
@@ -45,7 +48,7 @@ public class ItemHandlerVisitor implements IItemHandler {
         int index = -1;
         synchronized (this) {
             for (int i = 0; i < mSelect.size(); i++) {
-                if (mSelect.get(i) >= 0) {
+                if (mSelect.getInt(i) >= 0) {
                     mSelect.set(i, slot);
                     index = i;
                 }

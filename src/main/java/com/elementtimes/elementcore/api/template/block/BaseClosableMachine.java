@@ -9,6 +9,8 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import javax.annotation.Nonnull;
+
 import static com.elementtimes.elementcore.api.template.block.Properties.FACING;
 import static com.elementtimes.elementcore.api.template.block.Properties.IS_RUNNING;
 
@@ -16,6 +18,7 @@ import static com.elementtimes.elementcore.api.template.block.Properties.IS_RUNN
  * 拥有 on/off 两种状态的机器
  * @author luqin2007
  */
+@SuppressWarnings("unused")
 public class BaseClosableMachine<T extends TileEntity> extends BlockTileBase<T> {
 
     public BaseClosableMachine(Class<T> entityClass, Object mod) {
@@ -24,6 +27,7 @@ public class BaseClosableMachine<T extends TileEntity> extends BlockTileBase<T> 
     }
 
     @Override
+    @Nonnull
     protected BlockStateContainer createBlockState() {
         return new BlockStateContainer(this, FACING, IS_RUNNING);
     }

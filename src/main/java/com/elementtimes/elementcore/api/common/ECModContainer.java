@@ -12,7 +12,7 @@ import java.util.Objects;
  * 将当前 mod 的信息
  * @author luqin2007
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class ECModContainer {
     public static final Map<String, ECModContainer> MODS = new LinkedHashMap<>();
 

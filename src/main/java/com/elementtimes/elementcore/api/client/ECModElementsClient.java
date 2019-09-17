@@ -21,6 +21,7 @@ import java.util.Map;
  * @author luqin2007
  */
 @SideOnly(Side.CLIENT)
+@SuppressWarnings("WeakerAccess")
 public class ECModElementsClient {
 
     public final ECModElements elements;

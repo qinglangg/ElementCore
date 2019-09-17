@@ -47,22 +47,26 @@ public class MachineRecipe {
      * @return 是否可能为该合成表
      */
     public boolean checkInput(List<ItemStack> input, List<FluidStack> fluids) {
+        // check
+        boolean result = true;
         if (input.size() >= inputs.size() || fluids.size() >= fluidInputs.size()) {
             int size = Math.max(inputs.size(), fluidInputs.size());
             for (int i = 0; i < size; i++) {
                 if (i < inputs.size()) {
                     if (!input.get(i).isEmpty() && !inputs.get(i).matcher.apply(this, i, input, fluids, input.get(i))) {
-                        return false;
+                        result = false;
+                        break;
                     }
                 }
 
                 if (i < fluidInputs.size()) {
                     if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).matcher.apply(this, i, input, fluids, fluids.get(i))) {
-                        return false;
+                        result = false;
+                        break;
                     }
                 }
             }
         }
-        return true;
+        return result;
     }
 }

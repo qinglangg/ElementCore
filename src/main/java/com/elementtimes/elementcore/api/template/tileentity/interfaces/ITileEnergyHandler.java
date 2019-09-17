@@ -142,6 +142,11 @@ public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializabl
         }
     }
 
+    @Override
+    default NBTTagCompound serializeNBT() {
+        return writeToNBT(new NBTTagCompound());
+    }
+
     default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
         nbtTagCompound.setTag(NBT_ENERGY, getEnergyHandler().serializeNBT());
         return nbtTagCompound;

@@ -16,96 +16,118 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 对所有机器 gui 的抽象
- *
+ * GuiContainer
  * @author luqin2007
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 @SideOnly(Side.CLIENT)
 public class BaseGuiContainer extends GuiContainer {
-
-    protected int mTextOffsetY;
 
     /**
      * 机器的 BaseContainer，内含其 TileEntity
      */
     protected BaseContainer container;
 
-    /**
-     * GUI 界面贴图
-     */
-    protected ResourceLocation texture;
-
     // gui 数据
     protected Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>> fluids;
     protected HandlerInfoMachineLifecycle.EnergyInfo energy;
 
-    public BaseGuiContainer(BaseContainer container, ResourceLocation texture, int textOffsetY) {
+    public BaseGuiContainer(BaseContainer container) {
         super(container);
         this.container = container;
-        xSize = container.getWidth();
-        ySize = container.getHeight();
-        mTextOffsetY = textOffsetY;
-        this.texture = texture;
+        xSize = container.size.width;
+        ySize = container.size.height;
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         int gui = container.provider.getGuiId();
         synchronized (this) {
-            fluids = GuiDataFromServer.fluids.remove(gui);
-            energy = GuiDataFromServer.energies.remove(gui);
+            fluids = GuiDataFromServer.FLUIDS.get(gui);
+            energy = GuiDataFromServer.ENERGIES.get(gui);
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
         renderHoveredToolTip(mouseX, mouseY);
         renderHoveredFluid(mouseX, mouseY);
+        renderHoveredEnergy(mouseX, mouseY);
     }
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
         GlStateManager.color(1.0F, 1.0F, 1.0F);
-        this.mc.getTextureManager().bindTexture(texture);
+        this.mc.getTextureManager().bindTexture(container.provider.getBackground());
         this.drawTexturedModalRect(getGuiLeft(), getGuiTop(), 0, 0, this.xSize, this.ySize);
+        // 能量
+        if (energy != null) {
+            for (IGuiProvider.Size energyGui : container.size.energy) {
+                renderGuiEnergy(energyGui);
+            }
+        }
+        // 进度
+        short processValue = container.getEnergyProcessed();
+        for (IGuiProvider.Size process : container.size.process) {
+            renderGuiProcess(process, processValue);
+        }
     }
 
     @Override
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         super.drawGuiContainerForegroundLayer(mouseX, mouseY);
         String name = container.getName();
-        this.fontRenderer.drawString(name, (container.getWidth() - fontRenderer.getStringWidth(name)) / 2, mTextOffsetY, 0x404040);
+        this.fontRenderer.drawString(name,
+                (container.size.width - fontRenderer.getStringWidth(name)) / 2,
+                container.provider.getSize().titleOffsetY, 0x404040);
         // 流体
         if (fluids != null) {
-            GlStateManager.color(1.0F, 1.0F, 1.0F);
-            for (IGuiProvider.FluidSlotInfo slotInfo : container.provider.getFluids()) {
-                SideHandlerType type = slotInfo.type;
-                int slot = slotInfo.slotId;
-                Int2ObjectMap<ImmutablePair<FluidStack, Integer>> typedFluids = fluids.get(type);
-                if (typedFluids != null) {
-                    ImmutablePair<FluidStack, Integer> fluidPair = typedFluids.get(slot);
-                    if (fluidPair != null) {
-                        float total = fluidPair.right;
-                        FluidStack fluidStack = fluidPair.left;
-                        if (fluidStack == null) {
-                            fluidStack = new FluidStack(FluidRegistry.WATER, 0);
-                        }
-                        ResourceLocation stillTexture = fluidStack.getFluid().getStill();
-                        ResourceLocation stillTexture2 = new ResourceLocation(stillTexture.getResourceDomain(), "textures/" + stillTexture.getResourcePath() + ".png");
-                        mc.getTextureManager().bindTexture(stillTexture2);
-                        if (slotInfo.isHorizontal) {
-                            int w = (int) (slotInfo.w * fluidStack.amount / total);
-                            this.drawTexturedModalRect(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
-                        } else {
-                            int h = (int) (slotInfo.h * fluidStack.amount / total);
-                            int y = slotInfo.y + slotInfo.h - h;
-                            this.drawTexturedModalRect(slotInfo.x, y, 0, 0, slotInfo.w, h);
-                        }
+            renderGuiFluid();
+        }
+    }
+
+    private void renderGuiFluid() {
+        GlStateManager.color(1.0F, 1.0F, 1.0F);
+        for (IGuiProvider.FluidSlotInfo slotInfo : container.provider.getFluids()) {
+            SideHandlerType type = slotInfo.type;
+            int slot = slotInfo.slotId;
+            Int2ObjectMap<ImmutablePair<FluidStack, Integer>> typedFluids = fluids.get(type);
+            if (typedFluids != null) {
+                ImmutablePair<FluidStack, Integer> fluidPair = typedFluids.get(slot);
+                if (fluidPair != null) {
+                    float total = fluidPair.right;
+                    FluidStack fluidStack = fluidPair.left;
+                    if (fluidStack == null) {
+                        fluidStack = new FluidStack(FluidRegistry.WATER, 0);
+                    }
+                    ResourceLocation stillTexture = fluidStack.getFluid().getStill();
+                    ResourceLocation stillTexture2 = new ResourceLocation(stillTexture.getResourceDomain(), "textures/" + stillTexture.getResourcePath() + ".png");
+                    mc.getTextureManager().bindTexture(stillTexture2);
+                    if (slotInfo.isHorizontal) {
+                        int w = (int) (slotInfo.w * fluidStack.amount / total);
+                        this.drawTexturedModalRect(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
+                    } else {
+                        int h = (int) (slotInfo.h * fluidStack.amount / total);
+                        int y = slotInfo.y + slotInfo.h - h;
+                        this.drawTexturedModalRect(slotInfo.x, y, 0, 0, slotInfo.w, h);
                     }
                 }
             }
         }
+    }
+
+    private void renderGuiEnergy(IGuiProvider.Size energyGui) {
+        int textureWidth = energy.capacity == 0 ? 0 : (int) (((float) energyGui.w) * energy.stored / energy.capacity);
+        this.drawTexturedModalRect(getGuiLeft() + energyGui.x, getGuiTop() + energyGui.y, energyGui.u, energyGui.v, textureWidth, energyGui.h);
+    }
+
+    private void renderGuiProcess(IGuiProvider.Size process, short processValue) {
+        int arrowWidth = process.w * processValue / Short.MAX_VALUE;
+        this.drawTexturedModalRect(getGuiLeft() + process.x,
+                getGuiTop() + process.y,
+                process.u, process.v, arrowWidth, process.h);
     }
 
     private void renderHoveredFluid(int mouseX, int mouseY) {
@@ -121,6 +143,16 @@ public class BaseGuiContainer extends GuiContainer {
                         texts.add(fluidStack.amount + "/" + total);
                         drawHoveringText(texts, mouseX, mouseY);
                     }
+                }
+            }
+        }
+    }
+
+    private void renderHoveredEnergy(int mouseX, int mouseY) {
+        if (energy != null) {
+            for (IGuiProvider.Size energyPosition : container.size.energy) {
+                if (mouseIn(mouseX, mouseY, energyPosition.x, energyPosition.y, energyPosition.w, energyPosition.h)) {
+                    drawHoveringText(Collections.singletonList(energy.stored + "/" + energy.capacity), mouseX, mouseY);
                 }
             }
         }

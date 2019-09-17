@@ -12,7 +12,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import java.util.List;
 
@@ -86,25 +85,24 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
 
     @Override
     public void onTickStart() {
-        IFluidTankProperties[] propertiesInput = inputFluids.getTankProperties();
-        List<FluidStack> inputFluidList = ECUtils.fluid.toListNotNull(propertiesInput);
+        List<FluidStack> inputFluidList = ECUtils.fluid.toListNotNull(inputFluids);
         mInputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];
             int bucketOutput = entry.getValue()[1];
-            if (!ECUtils.fluid.isFull(propertiesInput, slot)) {
+            if (!ECUtils.fluid.isFull(inputFluids, slot)) {
                 ItemStack containerIn = inputItems.getStackInSlot(bucketInput);
                 IFluidHandlerItem fluidHandler = containerIn.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
                 if (fluidHandler != null) {
                     FluidStack fluidInput = inputFluidList.get(slot);
                     FluidStack transfer;
                     if (fluidInput != null && fluidInput.amount > 0) {
-                        FluidStack take = fluidHandler.drain(new FluidStack(fluidInput, propertiesInput[slot].getCapacity() - fluidInput.amount), false);
+                        FluidStack take = fluidHandler.drain(new FluidStack(fluidInput, inputFluids.getCapacity(slot) - fluidInput.amount), false);
                         transfer = new FluidStack(fluidInput, take == null ? 0 : take.amount);
                     } else if (mMachine.getWorkingRecipe() != null) {
                         transfer = mMachine.getWorkingRecipe().fluidInputs.get(slot);
                     } else {
-                        transfer = fluidHandler.drain(propertiesInput[slot].getCapacity(), false);
+                        transfer = fluidHandler.drain(inputFluids.getCapacity(slot), false);
                     }
 
                     if (transfer != null && transfer.amount != 0) {
@@ -136,8 +134,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
 
     @Override
     public void onTickFinish() {
-        IFluidTankProperties[] properties = outputFluids.getTankProperties();
-        List<FluidStack> outputFluidList = ECUtils.fluid.toListNotNull(properties);
+        List<FluidStack> outputFluidList = ECUtils.fluid.toListNotNull(outputFluids);
         mOutputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];
@@ -145,7 +142,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
             ItemStack containerIn = inputItems.getStackInSlot(bucketInput);
             IFluidHandlerItem fluidHandler = containerIn.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
             if (fluidHandler != null) {
-                if (!ECUtils.fluid.isEmpty(properties, slot)) {
+                if (!ECUtils.fluid.isEmpty(outputFluids, slot)) {
                     FluidStack output = outputFluidList.get(slot);
                     if (output != null && output.amount > 0) {
                         FluidStack drain = outputFluids.drain(slot, output, false);

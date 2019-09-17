@@ -1,10 +1,10 @@
 package com.elementtimes.elementcore.api.common;
 
-import com.elementtimes.elementcore.other.CapabilityObject;
-import com.elementtimes.elementcore.api.annotation.enums.LoadState;
-import com.elementtimes.elementcore.other.ModTooltip;
 import com.elementtimes.elementcore.api.annotation.enums.GenType;
+import com.elementtimes.elementcore.api.annotation.enums.LoadState;
 import com.elementtimes.elementcore.api.common.event.*;
+import com.elementtimes.elementcore.other.CapabilityObject;
+import com.elementtimes.elementcore.other.ModTooltip;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
@@ -18,7 +18,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.gen.feature.WorldGenerator;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;

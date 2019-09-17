@@ -6,8 +6,14 @@ import net.minecraft.item.crafting.Ingredient;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+/**
+ * 流体类型的 Ingredient
+ * @author luqin2007
+ */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class FluidIngredient extends Ingredient {
     private ItemStack mItemStack;
 
@@ -24,13 +30,14 @@ public class FluidIngredient extends Ingredient {
     }
 
     @Override
+    @Nonnull
     public ItemStack[] getMatchingStacks() {
         return new ItemStack[] {mItemStack};
     }
 
     @Override
     public boolean apply(@Nullable ItemStack itemStack) {
-        if (mItemStack.isItemEqual(itemStack)) {
+        if (itemStack != null && mItemStack.isItemEqual(itemStack)) {
             FluidStack fluidStackIn = ECUtils.fluid.getFluid(itemStack);
             FluidStack fluidStack = ECUtils.fluid.getFluid(mItemStack);
             if (fluidStack != null && fluidStackIn != null) {

@@ -5,6 +5,8 @@ import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.annotation.ModBlock;
 import com.elementtimes.elementcore.api.annotation.ModItem;
 import com.elementtimes.elementcore.api.common.LoaderHelper;
+import com.elementtimes.elementcore.api.template.tileentity.BaseTESR;
+import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileTESR;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.client.renderer.ItemMeshDefinition;
 import net.minecraft.client.renderer.block.statemap.DefaultStateMapper;
@@ -119,6 +121,12 @@ public class ClientLoader {
     }
 
     private static void loadBlockTesr(ECModElements elements) {
+        elements.blockTileEntities.forEach((block, te) -> {
+            if (ITileTESR.class.isAssignableFrom(te.right)) {
+                elements.getClientElements().blockTesr.put(te.right, new BaseTESR());
+            }
+        });
+
         Set<ASMDataTable.ASMData> animDataSet = elements.asm.getAll(ModBlock.AnimTESR.class.getName());
         if (animDataSet != null) {
             for (ASMDataTable.ASMData asmData : animDataSet) {

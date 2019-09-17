@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 
 /**
  * 实体
- * 未启用
+ * @deprecated 暂时未实现
  * @author luqin2007
  */
 @SuppressWarnings("unused")

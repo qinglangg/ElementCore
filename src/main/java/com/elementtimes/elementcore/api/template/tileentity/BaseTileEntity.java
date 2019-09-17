@@ -49,8 +49,8 @@ public abstract class BaseTileEntity extends TileEntity implements
         ITickable, IMachineTickable, IMachineRecipe, ITileHandler.All, IGuiProvider {
     public static ItemStackHandler EMPTY = new ItemStackHandler(0);
     protected EnergyHandler mEnergyHandler;
-    protected ItemHandler mInputItems;
-    protected ItemHandler mOutputItems;
+    protected IItemHandler mInputItems;
+    protected IItemHandler mOutputItems;
     protected ItemHandlerVisitor mAllItems;
     protected ITankHandler mInputFluids;
     protected ITankHandler mOutputFluids;
@@ -204,9 +204,18 @@ public abstract class BaseTileEntity extends TileEntity implements
         List<ItemStack> list = ECUtils.item.toList(itemHandler, getRecipeSlotIgnore());
         ItemStack backup = list.get(slot);
         list.set(slot, stack);
-        boolean valid = getRecipes().acceptInput(list, ECUtils.fluid.toListNotNull(getTanks(SideHandlerType.INPUT).getTankProperties()));
+        boolean valid = getRecipes().acceptInput(list, ECUtils.fluid.toListNotNull(getTanks(SideHandlerType.INPUT)));
         list.set(slot, backup);
         return valid;
+    }
+    @Override
+    public void setItemHandler(@Nonnull SideHandlerType type, IItemHandler handler) {
+        if (type == SideHandlerType.INPUT) {
+            mInputItems = handler;
+        } else if (type == SideHandlerType.OUTPUT) {
+            mOutputItems = handler;
+        }
+        mAllItems = new ItemHandlerVisitor(mInputItems, mOutputItems);
     }
 
     // tanks
@@ -227,8 +236,17 @@ public abstract class BaseTileEntity extends TileEntity implements
         }
     }
     @Override
+    public void setTanks(SideHandlerType type, ITankHandler handler) {
+        if (type == SideHandlerType.INPUT) {
+            mInputFluids = handler;
+        } else if (type == SideHandlerType.OUTPUT) {
+            mOutputFluids = handler;
+        }
+        mAllFluids = new TankHandlerVisitor(mInputFluids, mOutputFluids);
+    }
+    @Override
     public boolean isFillValid(int slot, FluidStack fluidStack) {
-        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(getTanks(SideHandlerType.OUTPUT).getTankProperties());
+        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(getTanks(SideHandlerType.INPUT));
         fluids.set(slot, fluidStack);
         return getRecipes().acceptInput(ECUtils.item.toList(getItemHandler(SideHandlerType.INPUT), getRecipeSlotIgnore()), fluids);
     }

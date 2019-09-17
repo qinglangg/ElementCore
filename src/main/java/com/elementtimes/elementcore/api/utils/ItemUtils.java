@@ -20,9 +20,8 @@ import java.util.stream.Collectors;
  * 物品/物品栈有关方法
  * @author lq2007
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class ItemUtils {
-
-    private static String NBT_ITEMS = "_items_";
 
     private static ItemUtils u = null;
     public static ItemUtils getInstance() {
@@ -105,24 +104,15 @@ public class ItemUtils {
      * @return nbtTagCompound
      */
     public NBTTagCompound writeToNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
-        NBTTagCompound nbt;
-        // nbt
-        if (nbtTagCompound.hasKey(NBT_ITEMS)) {
-            nbt = nbtTagCompound.getCompoundTag(NBT_ITEMS);
-        } else {
-            nbt = new NBTTagCompound();
-            nbtTagCompound.setTag(NBT_ITEMS, nbt);
-        }
-        // to nbt
         if (handler.getSlots() != 0) {
             if (handler instanceof INBTSerializable) {
-                nbt.setTag(key, ((INBTSerializable) handler).serializeNBT());
+                nbtTagCompound.setTag(key, ((INBTSerializable) handler).serializeNBT());
             } else {
                 NBTTagList list = new NBTTagList();
                 for (int i = 0; i < handler.getSlots(); i++) {
                     list.appendTag(handler.getStackInSlot(i).serializeNBT());
                 }
-                nbt.setTag(key, list);
+                nbtTagCompound.setTag(key, list);
             }
         }
         return nbtTagCompound;
@@ -135,21 +125,19 @@ public class ItemUtils {
      * @param nbtTagCompound 待存储 NBTTagCompound
      */
     public void readFromNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
-        if (nbtTagCompound.hasKey(NBT_ITEMS)) {
-            NBTTagCompound nbt = nbtTagCompound.getCompoundTag(NBT_ITEMS);
-            if (handler instanceof INBTSerializable) {
-                ((INBTSerializable) handler).deserializeNBT(nbt.getCompoundTag(key));
-            } else {
-                NBTTagList list = (NBTTagList) nbt.getTag(key);
-                int count = Math.min(list.tagCount(), handler.getSlots());
-                for (int i = 0; i < count; i++) {
-                    ItemStack stack = new ItemStack(list.getCompoundTagAt(i));
-                    if (handler instanceof IItemHandlerModifiable) {
-                        ((IItemHandlerModifiable) handler).setStackInSlot(i, stack);
-                    } else {
-                        handler.extractItem(i, handler.getSlotLimit(i), false);
-                        handler.insertItem(i, stack, false);
-                    }
+        if (handler instanceof INBTSerializable) {
+            //noinspection unchecked
+            ((INBTSerializable) handler).deserializeNBT(nbtTagCompound.getTag(key));
+        } else {
+            NBTTagList list = (NBTTagList) nbtTagCompound.getTag(key);
+            int count = Math.min(list.tagCount(), handler.getSlots());
+            for (int i = 0; i < count; i++) {
+                ItemStack stack = new ItemStack(list.getCompoundTagAt(i));
+                if (handler instanceof IItemHandlerModifiable) {
+                    ((IItemHandlerModifiable) handler).setStackInSlot(i, stack);
+                } else {
+                    handler.extractItem(i, handler.getSlotLimit(i), false);
+                    handler.insertItem(i, stack, false);
                 }
             }
         }

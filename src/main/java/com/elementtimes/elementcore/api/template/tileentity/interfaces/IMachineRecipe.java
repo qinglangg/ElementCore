@@ -39,7 +39,7 @@ public interface IMachineRecipe extends INBTSerializable<NBTTagCompound> {
     @Nullable
     default MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
         List<ItemStack> items = ECUtils.item.toList(input, getRecipeSlotIgnore());
-        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler.getTankProperties());
+        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler);
         MachineRecipeCapture[] captures = getRecipes().matchInput(items, fluids);
         if (captures.length == 0) {
             return null;
@@ -76,10 +76,8 @@ public interface IMachineRecipe extends INBTSerializable<NBTTagCompound> {
     default void deserializeNBT(NBTTagCompound nbt) {
         if (nbt.hasKey(NBT_RECIPE) && getRecipes() != null) {
             NBTTagCompound recipe = nbt.getCompoundTag(NBT_RECIPE);
-            MachineRecipeCapture capture = MachineRecipeCapture.fromNBT(recipe, getRecipes());
-            if (capture != null) {
-                setWorkingRecipe(capture);
-            }
+            MachineRecipeCapture capture = MachineRecipeCapture.fromNbt(recipe);
+            setWorkingRecipe(capture);
         }
     }
 

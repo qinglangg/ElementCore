@@ -31,13 +31,14 @@ import java.util.Map;
 @ModNetwork(handlerClass = "com.elementtimes.elementcore.common.network.GuiFluidNetwork$Handler", side = Side.CLIENT)
 public class GuiFluidNetwork implements IMessage {
 
-    Map<SideHandlerType, Int2ObjectMap<FluidStack>> fluids = new HashMap<>();
-    Map<SideHandlerType, Int2IntMap> capabilities = new HashMap<>();
-    int guiType;
+    private Map<SideHandlerType, Int2ObjectMap<FluidStack>> fluids = new HashMap<>();
+    private Map<SideHandlerType, Int2IntMap> capabilities = new HashMap<>();
+    private int guiType;
 
     public GuiFluidNetwork() { }
 
     public void put(int gui, HandlerInfoMachineLifecycle.FluidInfo infos) {
+        guiType = gui;
         for (Map.Entry<SideHandlerType, IFluidHandler> entry : infos.fluids.entrySet()) {
             IFluidTankProperties[] properties = entry.getValue().getTankProperties();
             Int2ObjectMap<FluidStack> rFluids = new Int2ObjectArrayMap<>(properties.length);
@@ -123,7 +124,7 @@ public class GuiFluidNetwork implements IMessage {
                         fluids.get(type).put(slot, ImmutablePair.of(fluidStack, capability));
                     });
                 });
-                GuiDataFromServer.fluids.put(message.guiType, fluids);
+                GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
             }
             return null;
         }

@@ -1,8 +1,12 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Slot;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
+import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -16,6 +20,24 @@ public interface IGuiProvider {
 
     Slot[] ITEM_NULL = new Slot[0];
     FluidSlotInfo[] FLUID_NULL = new FluidSlotInfo[0];
+
+    /**
+     * 获取 GUI 背景
+     * @return 背景资源
+     */
+    ResourceLocation getBackground();
+
+    /**
+     * 获取 GUI 的一系列尺寸
+     * @return 尺寸
+     */
+    GuiSize getSize();
+
+    /**
+     * 获取显示文字
+     * @return 文字
+     */
+    String getTitle();
 
     /**
      * 获取所有打开该机器gui的玩家，用于向他们同步信息
@@ -51,6 +73,11 @@ public interface IGuiProvider {
      * @return 进度
      */
     float getProcess();
+
+    /**
+     * GUI 关闭时调用
+     */
+    default void onGuiClosed(EntityPlayer player) {}
 
     class FluidSlotInfo {
         final public int slotId, x, y, w, h;
@@ -92,4 +119,116 @@ public interface IGuiProvider {
             return new FluidSlotInfo(slotId, SideHandlerType.OUTPUT, x, y, 16, 46, true);
         }
     }
+
+    class GuiSize {
+        public int width, height;
+        public boolean hasTitle = true;
+        public int titleOffsetY;
+        public boolean hasPlayerInventory = true;
+        public int playerInventoryOffsetX, playerInventoryOffsetY;
+        public boolean hasInteractDistanceLimit = true;
+        public int maxInteractDistance = 64;
+        public Size[] process = new Size[0];
+        public Size[] energy = new Size[0];
+
+        public GuiSize copy() {
+            GuiSize size = new GuiSize();
+            size.width = width;
+            size.height = height;
+            size.hasTitle = hasTitle;
+            size.titleOffsetY = titleOffsetY;
+            size.hasPlayerInventory = hasPlayerInventory;
+            size.playerInventoryOffsetX = playerInventoryOffsetX;
+            size.playerInventoryOffsetY = playerInventoryOffsetY;
+            size.hasInteractDistanceLimit = hasInteractDistanceLimit;
+            size.maxInteractDistance = maxInteractDistance;
+            size.process = new Size[size.process.length];
+            for (int i = 0; i < process.length; i++) {
+                size.process[i] = process[i].copy();
+            }
+            size.energy = new Size[size.energy.length];
+            for (int i = 0; i < energy.length; i++) {
+                size.energy[i] = energy[i].copy();
+            }
+            return size;
+        }
+
+        public GuiSize withNoInventory() {
+            hasPlayerInventory = false;
+            return this;
+        }
+
+        public GuiSize withSize(int width, int height, int offsetX, int offsetY) {
+            this.width = width;
+            this.height = height;
+            this.hasPlayerInventory = true;
+            this.playerInventoryOffsetX = offsetX;
+            this.playerInventoryOffsetY = offsetY;
+            return this;
+        }
+
+        public GuiSize withNoTitle() {
+            hasTitle = false;
+            return this;
+        }
+
+        public GuiSize withTitleY(int offsetY) {
+            hasTitle = true;
+            titleOffsetY = offsetY;
+            return this;
+        }
+
+        public GuiSize withNoInteractLimit() {
+            hasInteractDistanceLimit = false;
+            return this;
+        }
+
+        public GuiSize withInteractDistance(int distance) {
+            hasInteractDistanceLimit = true;
+            maxInteractDistance = distance;
+            return this;
+        }
+
+        public GuiSize withEnergy(int x, int y, int u, int v, int w, int h) {
+            Size s = new Size(x, y, u, v, w, h);
+            energy = ArrayUtils.add(energy, s);
+            return this;
+        }
+
+        public GuiSize withEnergy(int x, int y) {
+            return withEnergy(x, y, 24, height, 90, 4);
+        }
+
+        public GuiSize withProcess(int x, int y, int u, int v, int w, int h) {
+            Size s = new Size(x, y, u, v, w, h);
+            process = ArrayUtils.add(process, s);
+            return this;
+        }
+
+        public GuiSize withProcess(int x, int y) {
+            return withEnergy(x, y, 0, height, 24, 17);
+        }
+    }
+
+    class Size {
+        public int x, y, u, v, w, h;
+        public Size(int x, int y, int u, int v, int w, int h) {
+            this.x = x;
+            this.y = y;
+            this.u = u;
+            this.v = v;
+            this.w = w;
+            this.h = h;
+        }
+
+        public Size copy() {
+            return new Size(x, y, u ,v ,w, h);
+        }
+    }
+
+    GuiSize GUI_SIZE_176_156_74 = new GuiSize().withSize(176, 156, 8, 74);
+    GuiSize GUI_SIZE_176_166_84 = new GuiSize().withSize(176, 166, 8, 84);
+    GuiSize GUI_SIZE_176_204_122 = new GuiSize().withSize(176, 204, 8, 122);
+    GuiSize GUI_SIZE_176_201_119 = new GuiSize().withSize(176, 201, 8, 119);
+    GuiSize GUI_SIZE_176_179_97 = new GuiSize().withSize(176, 179, 8, 97);
 }

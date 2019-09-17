@@ -28,7 +28,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.0_1.12.2_14.23.5.2768";
+    static final String VERSION = "0.2.1";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
@@ -38,7 +38,7 @@ public class ElementCore {
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        container = ECModElements.builder().enableDebugMessage().build(event);
+        container = ECModElements.builder().disableDebugMessage().build(event);
     }
 
     @EventHandler

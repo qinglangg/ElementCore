@@ -4,11 +4,11 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerConcatenate;
 
 import java.util.function.BiPredicate;
-import java.util.function.Supplier;
 
 /**
  * 自定义实现的 IFluidHandler
@@ -24,47 +24,59 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     public static final BiPredicate<Integer, FluidStack> TRUE = (i, fluid) -> true;
     public static final BiPredicate<Integer, FluidStack> FALSE = (i, fluid) -> false;
 
-    public TankHandler(BiPredicate<Integer, FluidStack> fillCheck, BiPredicate<Integer, FluidStack> drankCheck, int size) {
-        this(fillCheck, drankCheck, size, 1000);
+    private static IFluidHandler[] build(BiPredicate<Integer, FluidStack> fillCheck, BiPredicate<Integer, FluidStack> drankCheck, int size, int... capacities) {
+        IFluidHandler[] handlers = new IFluidHandler[size];
+        int last = -1;
+        for (int i1 = 0; i1 < size; i1++) {
+            final int i = i1;
+            int capacity;
+            if (capacities.length > i) {
+                capacity = capacities[i];
+            } else if (last > 0) {
+                capacity = last;
+            } else {
+                capacity = 1000;
+            }
+            handlers[i] = new FluidTank(capacity) {
+                @Override
+                public FluidStack drain(int maxDrain, boolean doDrain) {
+                    if (fluid == null || !drankCheck.test(i, new FluidStack(fluid, maxDrain))) {
+                        return null;
+                    }
+                    return super.drain(maxDrain, doDrain);
+                }
+
+                @Override
+                public FluidStack drain(FluidStack resource, boolean doDrain) {
+                    if (resource == null || !drankCheck.test(i, resource)) {
+                        return null;
+                    }
+                    return super.drain(resource, doDrain);
+                }
+
+                @Override
+                public int fill(FluidStack resource, boolean doFill) {
+                    if (resource == null || !fillCheck.test(i, resource)) {
+                        return 0;
+                    }
+                    return super.fill(resource, doFill);
+                }
+            };
+            last = capacity;
+        }
+        return handlers;
     }
 
     public TankHandler(BiPredicate<Integer, FluidStack> fillCheck, BiPredicate<Integer, FluidStack> drankCheck, int size, int... capacities) {
-        this(((Supplier<IFluidHandler[]>) () -> {
-            IFluidHandler[] handlers = new IFluidHandler[size];
-            int last = -1;
-            for (int i = 0; i < size; i++) {
-                int capacity;
-                if (capacities.length > i) {
-                    capacity = capacities[i];
-                } else if (last > 0) {
-                    capacity = last;
-                } else {
-                    capacity = 1000;
-                }
-                handlers[i] = new FluidTank(capacity);
-                last = capacity;
-            }
-            return handlers;
-        }).get());
-        this.mInputValid = fillCheck;
-        this.mOutputValid = drankCheck;
+        super(build(fillCheck, drankCheck, size, capacities));
     }
-
-    public TankHandler(IFluidHandler... fluidHandlers) {
-        super(fluidHandlers);
-    }
-
-    private BiPredicate<Integer, FluidStack> mInputValid;
-    private BiPredicate<Integer, FluidStack> mOutputValid;
 
     @Override
     public NBTTagCompound serializeNBT() {
         NBTTagCompound tag = new NBTTagCompound();
         NBTTagList fluids = new NBTTagList();
-        for (int i = 0; i < subHandlers.length; i++) {
-            IFluidHandler handler = subHandlers[i];
+        for (IFluidHandler handler : subHandlers) {
             NBTTagCompound nbt = new NBTTagCompound();
-            // 目前仅支持 FluidTank，以后有需求再添加吧
             if (handler != null) {
                 FluidTank tank = (FluidTank) handler;
                 nbt.setTag("_tank_", tank.writeToNBT(new NBTTagCompound()));
@@ -90,82 +102,52 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     }
 
     @Override
-    @Deprecated
-    public int fill(FluidStack resource, boolean doFill) {
-        if (!mInputValid.test(-1, resource)) {
-            return 0;
-        }
-        return super.fill(resource, doFill);
-    }
-
-    @Override
     public int fill(int slot, FluidStack resource, boolean doFill) {
-        if (!mInputValid.test(slot, resource)) {
-            return 0;
-        }
-        if (resource == null || resource.amount <= 0) {
-            return 0;
-        }
         return subHandlers[slot].fill(resource, doFill);
     }
 
     @Override
     public int fillIgnoreCheck(int slot, FluidStack resource, boolean doFill) {
-        if (resource == null || resource.amount <= 0) {
-            return 0;
-        }
-        return subHandlers[slot].fill(resource, doFill);
-    }
-
-    @Override
-    @Deprecated
-    public FluidStack drain(FluidStack resource, boolean doDrain) {
-        if (!mOutputValid.test(-1, resource)) {
-            return null;
-        }
-        return super.drain(resource, doDrain);
+        return ((FluidTank) subHandlers[slot]).fillInternal(resource, doFill);
     }
 
     @Override
     public FluidStack drain(int slot, FluidStack resource, boolean doDrain) {
-        if (!mOutputValid.test(slot, resource)
-                || resource == null
-                || resource.amount <= 0) {
-            return null;
-        }
-
         return subHandlers[slot].drain(resource, doDrain);
     }
 
     @Override
     public FluidStack drainIgnoreCheck(int slot, FluidStack resource, boolean doDrain) {
-        if (resource == null || resource.amount <= 0) {
-            return null;
-        }
-
-        return subHandlers[slot].drain(resource, doDrain);
-    }
-
-    @Override
-    @Deprecated
-    public FluidStack drain(int maxDrain, boolean doDrain) {
-        return super.drain(maxDrain, doDrain);
+       return ((FluidTank) subHandlers[slot]).drainInternal(resource, doDrain);
     }
 
     @Override
     public FluidStack drain(int slot, int maxDrain, boolean doDrain) {
-        if (!mOutputValid.test(-1, new FluidStack(subHandlers[slot].getTankProperties()[0].getContents(), maxDrain))
-                || maxDrain <= 0) {
-            return null;
-        }
         return subHandlers[slot].drain(maxDrain, doDrain);
     }
 
     @Override
     public FluidStack drainIgnoreCheck(int slot, int maxDrain, boolean doDrain) {
-        if (maxDrain <= 0) {
-            return null;
+        return ((FluidTank) subHandlers[slot]).drainInternal(maxDrain, doDrain);
+    }
+
+    @Override
+    public int size() {
+        return subHandlers.length;
+    }
+
+    @Override
+    public FluidStack getFluid(int slot, boolean copy) {
+        FluidStack fluid = ((IFluidTank) subHandlers[slot]).getFluid();
+        if (fluid == null || !copy) {
+            return fluid;
+        } else {
+            return fluid.copy();
         }
-        return subHandlers[slot].drain(maxDrain, doDrain);
+    }
+
+    @Override
+    public int getCapacity(int slot) {
+        return ((IFluidTank) subHandlers[slot]).getCapacity();
     }
 }

@@ -17,6 +17,7 @@ public class GuiEnergyNetwork implements IMessage {
     int guiType;
 
     public GuiEnergyNetwork(int gui, int capacity, int energy) {
+        this.guiType = gui;
         this.capacity = capacity;
         this.energy = energy;
     }
@@ -46,7 +47,7 @@ public class GuiEnergyNetwork implements IMessage {
         @Override
         public IMessage onMessage(GuiEnergyNetwork message, MessageContext ctx) {
             synchronized (this) {
-                GuiDataFromServer.energies.put(message.guiType,
+                GuiDataFromServer.ENERGIES.put(message.guiType,
                         new HandlerInfoMachineLifecycle.EnergyInfo(message.capacity, message.energy));
             }
             return null;

@@ -1,6 +1,9 @@
 package com.elementtimes.elementcore.api.template.gui.server;
 
+import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
+import net.minecraft.client.gui.GuiScreenServerList;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -17,61 +20,49 @@ import javax.annotation.Nonnull;
  * 一个机器的 Container
  * @author KSGFK create in 2019/3/9
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class BaseContainer extends Container {
     public IGuiProvider provider;
+    public IGuiProvider.GuiSize size;
     public TileEntity tile;
-    private int width, height;
 
-    public static BaseContainer cm176_156_74(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
-        return new BaseContainer(tileEntity, provider, player, 176, 156, 74);
-    }
-
-    public static BaseContainer cm176_166_84(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
-        return new BaseContainer(tileEntity, provider, player, 176, 166, 84);
-    }
-
-    public static BaseContainer cm176_204_122(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
-        return new BaseContainer(tileEntity, provider, player, 176, 204, 122);
-    }
-
-    public static BaseContainer cm176_201_119(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
-        return new BaseContainer(tileEntity, provider, player, 176, 201, 119);
-    }
-
-    public static BaseContainer cm176_179_97(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
-        return new BaseContainer(tileEntity, provider, player, 176, 179, 97);
-    }
-
-    public BaseContainer(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player, int width, int height, int offsetY) {
-        this(tileEntity, provider, player, width, height, 8, offsetY);
-    }
-
-    public BaseContainer(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player, int width, int height, int offsetX, int offsetY) {
+    public BaseContainer(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
         this.tile = tileEntity;
         this.provider = provider;
-        this.width = width;
-        this.height = height;
+        this.size = provider.getSize();
 
-        int line = 3, slotCount = 9;
+        if (size.hasPlayerInventory) {
+            int line = 3, slotCount = 9;
+            int offsetX = size.playerInventoryOffsetX;
+            int offsetY = size.playerInventoryOffsetY;
 
-        for (int i = 0; i < line; ++i) {
-            for (int j = 0; j < slotCount; ++j) {
-                this.addSlotToContainer(new Slot(player.inventory, j + i * 9 + 9, offsetX + j * 18, offsetY + i * 18));
+            for (int i = 0; i < line; ++i) {
+                for (int j = 0; j < slotCount; ++j) {
+                    this.addSlotToContainer(new Slot(player.inventory, j + i * 9 + 9, offsetX + j * 18, offsetY + i * 18));
+                }
+            }
+            for (int i = 0; i < slotCount; ++i) {
+                this.addSlotToContainer(new Slot(player.inventory, i, offsetX + i * 18, offsetY + 58));
+            }
+
+            Slot[] slots = provider.getSlots();
+            for (Slot slot : slots) {
+                this.addSlotToContainer(slot);
             }
         }
-        for (int i = 0; i < slotCount; ++i) {
-            this.addSlotToContainer(new Slot(player.inventory, i, offsetX + i * 18, offsetY + 58));
-        }
 
-        Slot[] slots = provider.getSlots();
-        for (Slot slot : slots) {
-            this.addSlotToContainer(slot);
+        if (player instanceof EntityPlayerMP) {
+            provider.getOpenedPlayers().add((EntityPlayerMP) player);
         }
     }
 
     @Override
-    public boolean canInteractWith(EntityPlayer playerIn) {
-        return playerIn.getDistanceSq(tile.getPos()) <= 64;
+    public boolean canInteractWith(@Nonnull EntityPlayer playerIn) {
+        if (size.hasInteractDistanceLimit) {
+            return playerIn.getDistanceSq(tile.getPos()) <= size.maxInteractDistance;
+
+        }
+        return true;
     }
 
     /**
@@ -157,16 +148,12 @@ public class BaseContainer extends Container {
     @Override
     public void onContainerClosed(EntityPlayer playerIn) {
         super.onContainerClosed(playerIn);
+        provider.onGuiClosed(playerIn);
         if (playerIn instanceof EntityPlayerMP) {
             provider.getOpenedPlayers().remove(playerIn);
         }
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
+        int guiId = provider.getGuiId();
+        GuiDataFromServer.ENERGIES.remove(guiId);
+        GuiDataFromServer.FLUIDS.remove(guiId);
     }
 }

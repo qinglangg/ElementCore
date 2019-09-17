@@ -129,7 +129,7 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
             return false;
         }
         if (itemHandler.getSlots() < recipeCapture.inputs.size()
-                || tankHandler.getTankProperties().length < recipeCapture.fluidInputs.size()) {
+                || tankHandler.size() < recipeCapture.fluidInputs.size()) {
             return false;
         }
 

@@ -8,6 +8,7 @@ import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * 类似 Java 的 SubList，不过这个做的是加法，对多个 IFluidHandler 的访问器
@@ -15,23 +16,20 @@ import java.util.ArrayList;
  */
 public class TankHandlerVisitor implements ITankHandler {
 
-    private final ITankHandler[] mHandlers;
-    private final Readonly mReadonly;
-    private int mSum = -1;
+    private ITankHandler[] mHandlers;
+    private int[] mTankSlots;
+    private Readonly mReadonly;
+    private int mSum;
 
     // 使用 list 兼容多人访问
     private IntArrayList mSelect;
     private IntArrayList mSelectSlot;
-    private IntArrayList mTankSlots;
     private ArrayList<ITankHandler> mSelectHandler;
 
     public TankHandlerVisitor(ITankHandler... handlers) {
         mHandlers = handlers;
-        mTankSlots = new IntArrayList(mHandlers.length);
-        for (int i = 0; i < mHandlers.length; i++) {
-            mTankSlots.set(i, mHandlers[i].getTankProperties().length);
-        }
-        mSum = mTankSlots.stream().mapToInt(i -> i).sum();
+        mTankSlots = Arrays.stream(handlers).mapToInt(ITankHandler::size).toArray();
+        mSum = Arrays.stream(mTankSlots).sum();
         mReadonly = new Readonly();
         mSelect = new IntArrayList(mSum);
         mSelectSlot = new IntArrayList(mSum);
@@ -48,7 +46,7 @@ public class TankHandlerVisitor implements ITankHandler {
         int index = -1;
         synchronized (this) {
             for (int i = 0; i < mSelect.size(); i++) {
-                if (mSelect.get(i) >= 0) {
+                if (mSelect.getInt(i) >= 0) {
                     mSelect.set(i, slot);
                     index = i;
                 }
@@ -62,8 +60,8 @@ public class TankHandlerVisitor implements ITankHandler {
         }
         // select
         int ptr = 0;
-        for (int i = 0; i < mTankSlots.size(); i++) {
-            final int slots = mTankSlots.getInt(i);
+        for (int i = 0; i < mTankSlots.length; i++) {
+            final int slots = mTankSlots[i];
             if (slot < ptr + slots) {
                 mSelectHandler.set(index, mHandlers[i]);
                 mSelectSlot.set(index, slot - ptr);
@@ -173,6 +171,29 @@ public class TankHandlerVisitor implements ITankHandler {
         return null;
     }
 
+    @Override
+    public int size() {
+        return mSum;
+    }
+
+    @Override
+    public FluidStack getFluid(int slot, boolean copy) {
+        final int i = select(slot);
+        if (i >= 0) {
+            return mSelectHandler.get(i).getFluid(slot, copy);
+        }
+        return null;
+    }
+
+    @Override
+    public int getCapacity(int slot) {
+        final int i = select(slot);
+        if (i >= 0) {
+            return mSelectHandler.get(i).getCapacity(slot);
+        }
+        return 0;
+    }
+
     @Nullable
     @Override
     public FluidStack drain(int maxDrain, boolean doDrain) {
@@ -260,6 +281,21 @@ public class TankHandlerVisitor implements ITankHandler {
         @Override
         public void deserializeNBT(NBTTagCompound nbt) {
 
+        }
+
+        @Override
+        public int size() {
+            return TankHandlerVisitor.this.mSum;
+        }
+
+        @Override
+        public FluidStack getFluid(int slot, boolean copy) {
+            return TankHandlerVisitor.this.getFluid(slot);
+        }
+
+        @Override
+        public int getCapacity(int slot) {
+            return TankHandlerVisitor.this.getCapacity(slot);
         }
     }
 }

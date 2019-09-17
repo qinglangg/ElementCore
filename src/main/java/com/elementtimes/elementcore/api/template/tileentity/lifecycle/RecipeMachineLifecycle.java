@@ -210,29 +210,58 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
         int max = Math.max(recipe.fluidInputs.size(), recipe.fluidOutputs.size());
         for (int i = 0; i < max; i++) {
             if (recipe.fluidInputs.size() > i) {
-                final FluidStack fluid = recipe.fluidInputs.get(i);
-                int amount = (int) (fluid.amount * a);
-                if (simulate) {
-                    FluidStack drain = inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), false);
-                    if (drain == null || drain.amount < amount) {
-                        return false;
+                FluidStack fluid = recipe.fluidInputs.get(i);
+                if (fluid != null && fluid.amount > 0) {
+                    int amountInput = recipe.fluidInputAmounts[i];
+                    if (amountInput > 0) {
+                        float amountFloat = fluid.amount * a;
+                        int amount = (int) amountFloat;
+                        if (amount == 0 || amountFloat - amount > 0) {
+                            amount++;
+                        }
+                        amount = Math.min(amount, amountInput);
+                        if (amount > 0) {
+                            if (simulate) {
+                                FluidStack drain = inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), false);
+                                if (drain == null || drain.amount < amount) {
+                                    return false;
+                                }
+                            } else {
+                                FluidStack stack = inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), true);
+                                if (stack != null) {
+                                    recipe.fluidInputAmounts[i] -= stack.amount;
+                                }
+                            }
+                        }
                     }
-                } else {
-                    inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), true);
                 }
             }
 
             if (recipe.fluidOutputs.size() > i) {
                 final FluidStack fluid = recipe.fluidOutputs.get(i);
-                int amount = (int) (fluid.amount * a);
-                final FluidStack fillStack = new FluidStack(fluid, amount);
-                if (simulate) {
-                    int fill = outputTanks.fillIgnoreCheck(i, fillStack, false);
-                    if (fill < amount) {
-                        return false;
+                if (fluid != null && fluid.amount > 0) {
+                    int amountOutput = recipe.fluidOutputAmounts[i];
+                    if (amountOutput > 0) {
+                        float amountFloat = fluid.amount * a;
+                        int amount = (int) amountFloat;
+                        if (amount == 0 || amountFloat - amount > 0) {
+                            amount++;
+                        }
+                        amount = Math.min(amount, amountOutput);
+                        if (amount > 0) {
+                            if (simulate) {
+                                int fill = outputTanks.fillIgnoreCheck(i, new FluidStack(fluid, amount), false);
+                                if (fill < amount) {
+                                    return false;
+                                }
+                            } else {
+                                int amountFill = outputTanks.fillIgnoreCheck(i, new FluidStack(fluid.getFluid(), amount), true);
+                                if (amountFill > 0) {
+                                    recipe.fluidOutputAmounts[i] -= amountFill;
+                                }
+                            }
+                        }
                     }
-                } else {
-                    outputTanks.fillIgnoreCheck(i, fillStack, true);
                 }
             }
         }

@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
  *
  * @author KSGFK create in 2019/2/17
  */
+@SuppressWarnings("WeakerAccess")
 public class BlockTileBase<T extends TileEntity> extends BlockContainer implements IDismantleBlock {
 
     private Class<T> mEntityClass;
@@ -36,11 +37,6 @@ public class BlockTileBase<T extends TileEntity> extends BlockContainer implemen
         setResistance(25.0F);
         mGui = gui;
         mMod = mod;
-    }
-
-    public BlockTileBase(int gui, Class<T> entityClass, Object mod) {
-        this(Material.IRON, gui, mod);
-        this.mEntityClass = entityClass;
     }
 
     public BlockTileBase(Class<T> entityClass, Object mod) {
@@ -86,7 +82,9 @@ public class BlockTileBase<T extends TileEntity> extends BlockContainer implemen
     }
 
     @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state,
+                                    EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
+                                    float hitX, float hitY, float hitZ) {
         if (!worldIn.isRemote) {
             TileEntity e = worldIn.getTileEntity(pos);
             if (e instanceof IGuiProvider) {
@@ -99,7 +97,8 @@ public class BlockTileBase<T extends TileEntity> extends BlockContainer implemen
     }
 
     @Override
-    public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+    public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state,
+                                EntityLivingBase placer, ItemStack stack) {
         super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
         IDismantleBlock.super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
     }
