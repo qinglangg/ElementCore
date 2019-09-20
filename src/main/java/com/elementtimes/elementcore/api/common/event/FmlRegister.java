@@ -7,6 +7,7 @@ import com.elementtimes.elementcore.api.annotation.enums.LoadState;
 import com.elementtimes.elementcore.api.common.CommonLoader;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -18,6 +19,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -51,7 +53,6 @@ public class FmlRegister {
 
     public void onInit(FMLInitializationEvent event) {
         ECUtils.common.runWithModActive(mElements.container.mod, () -> {
-            registerOreNames();
             invokeMethods();
             runCustomAnnotation(LoadState.Init);
         }, event);
@@ -67,62 +68,43 @@ public class FmlRegister {
     }
 
     private void invokeMethods() {
-        if (mElements.staticFunction != null) {
-            mElements.staticFunction.forEach(method -> {
-                try {
-                    method.invoke(null);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    mElements.container.warn("Invoke Failure because {}, the method is {} in {} ", e.getMessage(), method.getName(), method.getDeclaringClass().getSimpleName());
-                }
-            });
-        }
-    }
-
-    private void registerFluids() {
-        if (mElements.fluids != null) {
-            mElements.fluids.values().forEach(fluid -> {
-                if (!FluidRegistry.registerFluid(fluid)) {
-                    mElements.container.warn("The name {} has been registered to another fluid!", fluid.getName());
-                }
-            });
-        }
-
-        if (mElements.fluidBuckets != null) {
-            mElements.fluidBuckets.forEach(FluidRegistry::addBucketForFluid);
-        }
-
-       if (mElements.fluidBlocks != null) {
-           mElements.fluidBlocks.forEach((fluid, fluidBlockFunction) ->
-                   fluid.setBlock(fluidBlockFunction.apply(fluid)));
-       }
-    }
-
-    private void registerNetwork() {
-        if (mElements.networks != null && !mElements.networks.isEmpty()) {
-            for (int i = 0; i < mElements.networks.size(); i++) {
-                Triple<Class, Class, Side[]> triple = mElements.networks.get(i);
-                for (Side side : triple.getRight()) {
-                    //noinspection unchecked
-                    mElements.channel.registerMessage(triple.getLeft(), triple.getMiddle(), i, side);
-                }
+        for (Method method : mElements.staticFunction) {
+            try {
+                mElements.container.warn("Invoke: " + method.getName());
+                method.invoke(null);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                mElements.container.warn("Invoke Failure because {}, the method is {} in {} ", e.getMessage(), method.getName(), method.getDeclaringClass().getSimpleName());
             }
         }
     }
 
-    private void registerOreNames() {
-        if (mElements.blockOreDictionaries != null) {
-            mElements.blockOreDictionaries.forEach((oreName, blocks) -> {
-                for (Block block : blocks) {
-                    OreDictionary.registerOre(oreName, block);
-                }
-            });
+    private void registerFluids() {
+        for (Fluid fluid : mElements.fluids.values()) {
+            mElements.container.warn("[Fluid]Register: " + fluid.getName());
+            if (!FluidRegistry.registerFluid(fluid)) {
+                mElements.container.warn("The name {} has been registered to another fluid!", fluid.getName());
+            }
         }
-        if (mElements.itemOreDictionaries != null) {
-            mElements.itemOreDictionaries.forEach((oreName, items) -> {
-                for (Item item : items) {
-                    OreDictionary.registerOre(oreName, item);
-                }
-            });
+
+        for (Fluid fluidBucket : mElements.fluidBuckets) {
+            mElements.container.warn("[Fluid]Bucket: " + fluidBucket.getName());
+            FluidRegistry.addBucketForFluid(fluidBucket);
+        }
+
+        mElements.fluidBlocks.forEach((fluid, fluidBlockFunction) -> {
+            mElements.container.warn("[Fluid]Block: " + fluid.getName());
+            fluid.setBlock(fluidBlockFunction.apply(fluid));
+        });
+    }
+
+    private void registerNetwork() {
+        for (int i = 0; i < mElements.networks.size(); i++) {
+            Triple<Class, Class, Side[]> triple = mElements.networks.get(i);
+            for (Side side : triple.getRight()) {
+                mElements.container.warn("Network: " + i + "[ " + side.name() + " ]: " + triple.getMiddle().getName());
+                //noinspection unchecked
+                mElements.channel.registerMessage(triple.getLeft(), triple.getMiddle(), i, side);
+            }
         }
     }
 
@@ -130,6 +112,7 @@ public class FmlRegister {
         final Map<Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> consumerMap = mElements.customAnnotation.row(state);
         if (consumerMap != null && !consumerMap.isEmpty()) {
             consumerMap.forEach((aClass, asmDataConsumer) -> {
+                mElements.container.warn("Custom Annotation: [" + state.name() + "] => " + aClass.getName());
                 final Set<ASMDataTable.ASMData> asmDataSet = mElements.asm.getAll(aClass.getName());
                 if (asmDataSet != null) {
                     asmDataSet.forEach(set -> asmDataConsumer.accept(set, mElements.container));

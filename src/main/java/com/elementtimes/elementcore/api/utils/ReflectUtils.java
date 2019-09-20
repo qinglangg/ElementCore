@@ -354,6 +354,21 @@ public class ReflectUtils {
                 obj = method.invoke(null);
             } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
         }
+        if (obj == null || name.contains("()")) {
+            String funcName = name.substring(0, name.indexOf("()"));
+            if (obj == null) {
+                try {
+                    obj = clazz.getMethod(funcName).invoke(null);
+                } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
+            }
+            if (obj == null) {
+                try {
+                    Method method = clazz.getDeclaredMethod(funcName);
+                    method.setAccessible(true);
+                    obj = method.invoke(null);
+                } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
+            }
+        }
         return Optional.ofNullable(obj);
     }
 }

@@ -77,9 +77,9 @@ public class ElementCore {
         public static CreativeTabs main = new CreativeTabDynamic("elementcore.main", 20L, new ItemStack(Items.debugger, 1, 0), new ItemStack(Items.debugger, 1, 1));
     }
 
-//    public static class Blocks {
-//        @ModBlock(creativeTabKey = "main")
-//        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.tileentity.EnergyBox$TileEntity")
-//        public static Block energy = new EnergyBox();
-//    }
+    public static class Blocks {
+        @ModBlock(creativeTabKey = "main")
+        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.tileentity.EnergyBox$TileEntity")
+        public static Block energy = new EnergyBox();
+    }
 }

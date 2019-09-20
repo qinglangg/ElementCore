@@ -12,6 +12,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.registries.IForgeRegistry;
 
 import java.util.Arrays;
@@ -47,49 +48,55 @@ public class ForgeRegister {
     public void registerItem(RegistryEvent.Register<Item> event) {
         ECUtils.common.runWithModActive(mElements.container.mod, () -> {
             IForgeRegistry<Item> registry = event.getRegistry();
-            if (mElements.items != null) {
-                mElements.items.values().forEach(registry::register);
-            }
-            if (mElements.blocks != null) {
-                mElements.blocks.values().forEach(block -> {
-                    ItemBlock itemBlock = new ItemBlock(block) {
-                        @Override
-                        public int getItemBurnTime(ItemStack itemStack) {
-                            int def = super.getItemBurnTime(itemStack);
-                            return mElements.blockBurningTimes == null ? def : mElements.blockBurningTimes.getOrDefault(block, def);
-                        }
-                    };
-                    //noinspection ConstantConditions
-                    itemBlock.setRegistryName(block.getRegistryName());
-                    registry.register(itemBlock);
-                    if (mElements.blockTileEntities != null && mElements.blockTileEntities.containsKey(block)) {
-                        GameRegistry.registerTileEntity(mElements.blockTileEntities.get(block).right, new ResourceLocation(mElements.container.id(), mElements.blockTileEntities.get(block).left));
+            mElements.items.values().forEach(registry::register);
+            mElements.blocks.values().forEach(block -> {
+                ItemBlock itemBlock = new ItemBlock(block) {
+                    @Override
+                    public int getItemBurnTime(ItemStack itemStack) {
+                        int def = super.getItemBurnTime(itemStack);
+                        return mElements.blockBurningTimes == null ? def : mElements.blockBurningTimes.getOrDefault(block, def);
                     }
-                });
-            }
+                };
+                //noinspection ConstantConditions
+                itemBlock.setRegistryName(block.getRegistryName());
+                registry.register(itemBlock);
+                if (mElements.blockTileEntities != null && mElements.blockTileEntities.containsKey(block)) {
+                    GameRegistry.registerTileEntity(mElements.blockTileEntities.get(block).right, new ResourceLocation(mElements.container.id(), mElements.blockTileEntities.get(block).left));
+                }
+            });
+
+            mElements.blockOreDictionaries.forEach((oreName, blocks) -> {
+                for (Block block : blocks) {
+                    mElements.container.warn("[Block]OreName: " + block.getRegistryName() + " = " + oreName);
+                    OreDictionary.registerOre(oreName, block);
+                }
+            });
+
+            mElements.itemOreDictionaries.forEach((oreName, items) -> {
+                for (Item item : items) {
+                    mElements.container.warn("[Item]OreName: " + item.getRegistryName() + " = " + oreName);
+                    OreDictionary.registerOre(oreName, item);
+                }
+            });
         }, event);
     }
 
     @SubscribeEvent
     public void registerRecipe(RegistryEvent.Register<IRecipe> event) {
-        if (mElements.recipes != null && !mElements.recipes.isEmpty()) {
-            ECUtils.common.runWithModActive(mElements.container.mod, () -> {
-                IForgeRegistry<IRecipe> registry = event.getRegistry();
-                mElements.recipes.forEach(getter ->
-                        Arrays.stream(getter.get()).filter(Objects::nonNull).forEach(registry::register));
-            }, event);
-        }
+        ECUtils.common.runWithModActive(mElements.container.mod, () -> {
+            IForgeRegistry<IRecipe> registry = event.getRegistry();
+            mElements.recipes.forEach(getter ->
+                    Arrays.stream(getter.get()).filter(Objects::nonNull).forEach(registry::register));
+        }, event);
     }
 
     @SubscribeEvent
     public void registerEnchantment(RegistryEvent.Register<Enchantment> event) {
-        if (mElements.enchantments != null && !mElements.enchantments.isEmpty()) {
-            ECUtils.common.runWithModActive(mElements.container.mod, () -> {
-                IForgeRegistry<Enchantment> registry = event.getRegistry();
-                for (Enchantment enchantment : mElements.enchantments) {
-                    registry.register(enchantment);
-                }
-            }, event);
-        }
+        ECUtils.common.runWithModActive(mElements.container.mod, () -> {
+            IForgeRegistry<Enchantment> registry = event.getRegistry();
+            for (Enchantment enchantment : mElements.enchantments) {
+                registry.register(enchantment);
+            }
+        }, event);
     }
 }

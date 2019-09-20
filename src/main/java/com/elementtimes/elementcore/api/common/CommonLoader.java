@@ -581,9 +581,13 @@ public class CommonLoader {
                                 } else if (o2 instanceof IRecipe[]) {
                                     return (IRecipe[]) o2;
                                 } else if (o2 instanceof Collection) {
-                                    return (IRecipe[]) ((Collection) o2).stream()
-                                            .filter(or -> or instanceof IRecipe)
-                                            .toArray();
+                                    ArrayList<IRecipe> recipes = new ArrayList<>(((Collection) o2).size());
+                                    for (Object o1 : ((Collection) o2)) {
+                                        if (o1 instanceof IRecipe) {
+                                            recipes.add((IRecipe) o1);
+                                        }
+                                    }
+                                    return recipes.toArray(new IRecipe[0]);
                                 } else {
                                     elements.container.warn("You annotated a Supplier but it can't provide a Recipe.");
                                     return null;

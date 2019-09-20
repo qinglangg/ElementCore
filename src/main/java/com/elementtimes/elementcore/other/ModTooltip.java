@@ -28,7 +28,13 @@ public class ModTooltip {
     public ModTooltip(Object itemOrBlock, String tooltip) {
         this.itemOrBlock = itemOrBlock;
         final int split = tooltip.indexOf("->");
-        if (split == 0) {
+        if (split < 0) {
+            this.tooltip = tooltip;
+            metadata = new int[0];
+            count = new int[0];
+            nbtOr = new String[0][];
+            nbtAnd = new String[0][];
+        } else if (split == 0) {
             this.tooltip = tooltip.substring(2);
             metadata = new int[0];
             count = new int[0];

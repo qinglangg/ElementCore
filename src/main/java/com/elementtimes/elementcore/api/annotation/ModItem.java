@@ -45,7 +45,9 @@ public @interface ModItem {
          * Tooltips
          * 使用 @m 表示访问 metadata，@n 表示访问 NBT，@c 表示访问个数，-> 表示匹配检查
          *  "@m3@c2@n{Tag}=3->stack3" 意味着只有在 metadata=3，count=2, getTagCompound中Tag值为3 时才会添加 "stack3" 字符串
-         *  "stack md=@m, c=@c, nbtName=@n{Stack.Name}" 表示添加 "stack md=[实际metadata值], c=[count 值], nbtName=[getTagCompound().getTag("Stack").getTag("Name")]"
+         *  "stack md=@m, c=@c, nbtName=@n{Stack.Name}" 表示添加
+         *      "stack md=[实际metadata值], c=[count 值], nbtName=[getTagCompound().getTag("Stack").getTag("Name")]"
+         *  字符串
          * 可以有多个相同类型匹配，同一类型中默认匹配方式为 或，@n& 表示 NBT且，不同类型间使用 且
          *  "@m3@m5@nTag=3@nTag=5@n&{Name}=aa->..." 表示 (meta=3 或 meta=5) 且 (Tag="3" 或 Tag="5" 且 Name="aa") 时匹配通过
          * @return 物品 Tooltip
