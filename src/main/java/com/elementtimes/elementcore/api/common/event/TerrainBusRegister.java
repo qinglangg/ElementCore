@@ -28,7 +28,7 @@ public class TerrainBusRegister {
     public void onGenerateTree(DecorateBiomeEvent.Post event) {
         ECUtils.common.runWithModActive(mElements.container.mod, () -> {
             if (!event.getWorld().isRemote) {
-                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen.get(GenType.Tree);
+                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen == null ? null : mElements.blockWorldGen.get(GenType.Tree);
                 if (worldGenerators != null) {
                     for (WorldGenerator generator: worldGenerators) {
                         ChunkPos chunkPos = event.getChunkPos();

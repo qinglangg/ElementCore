@@ -10,7 +10,7 @@ import net.minecraft.util.NonNullList;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -135,8 +135,8 @@ public class ItemHandler extends ItemStackHandler implements IItemHandler {
         }
     }
 
-    public final List<IntConsumer> onItemChangeListener = new LinkedList<>();
-    public final List<Consumer<ItemStack[]>> onUnbindAllListener = new LinkedList<>();
+    public final List<IntConsumer> onItemChangeListener = new ArrayList<>();
+    public final List<Consumer<ItemStack[]>> onUnbindAllListener = new ArrayList<>();
 
     @Override
     protected void onContentsChanged(int slot) {

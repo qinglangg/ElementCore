@@ -11,8 +11,8 @@ import net.minecraftforge.common.util.INBTSerializable;
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,7 +24,7 @@ import java.util.Objects;
  */
 public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
 
-    LinkedList<BlockPos> renderDirty = new LinkedList<>();
+    ArrayList<BlockPos> renderDirty = new ArrayList<>();
 
     RenderObject EMPTY = new RenderObject(ItemStack.EMPTY);
     String BIND_NBT_TESR_TE = "_nbt_tesr_te_";

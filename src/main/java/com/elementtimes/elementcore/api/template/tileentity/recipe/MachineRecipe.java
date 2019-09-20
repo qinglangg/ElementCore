@@ -26,8 +26,7 @@ public class MachineRecipe {
      * @return 精准的合成表
      */
     public MachineRecipeCapture matchInput(List<ItemStack> input, List<FluidStack> fluids) {
-        boolean match = input.size() >= inputs.size()
-                && fluids.size() >= fluidInputs.size();
+        boolean match = input.size() >= inputs.size() && fluids.size() >= fluidInputs.size();
         // item
         for (int i = 0; match && i < inputs.size(); i++) {
             match = inputs.get(i).matcher.apply(this, i, input, fluids, input.get(i));
@@ -53,14 +52,14 @@ public class MachineRecipe {
             int size = Math.max(inputs.size(), fluidInputs.size());
             for (int i = 0; i < size; i++) {
                 if (i < inputs.size()) {
-                    if (!input.get(i).isEmpty() && !inputs.get(i).matcher.apply(this, i, input, fluids, input.get(i))) {
+                    if (!input.get(i).isEmpty() && !inputs.get(i).accept.apply(this, i, input, fluids, input.get(i))) {
                         result = false;
                         break;
                     }
                 }
 
                 if (i < fluidInputs.size()) {
-                    if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).matcher.apply(this, i, input, fluids, fluids.get(i))) {
+                    if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fluids.get(i))) {
                         result = false;
                         break;
                     }

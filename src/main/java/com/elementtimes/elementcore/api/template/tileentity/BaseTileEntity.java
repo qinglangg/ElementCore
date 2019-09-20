@@ -47,7 +47,8 @@ import java.util.Set;
 @SuppressWarnings("WeakerAccess")
 public abstract class BaseTileEntity extends TileEntity implements
         ITickable, IMachineTickable, IMachineRecipe, ITileHandler.All, IGuiProvider {
-    public static ItemStackHandler EMPTY = new ItemStackHandler(0);
+    public static final ItemStackHandler EMPTY = new ItemStackHandler(0);
+    public static final String BIND_TILE_ENTITY_EXTRA = "_nbt_te_extra_";
     protected EnergyHandler mEnergyHandler;
     protected IItemHandler mInputItems;
     protected IItemHandler mOutputItems;
@@ -64,6 +65,7 @@ public abstract class BaseTileEntity extends TileEntity implements
     protected int mEnergyUnprocessed = 0;
     protected IntSet mIgnoreInputSlot = new IntOpenHashSet();
     protected List<EntityPlayerMP> mPlayers = new ArrayList<>(5);
+    public NBTTagCompound bindNbt = new NBTTagCompound();
 
     public BaseTileEntity(int energyCapacity, int inputCount, int outputCount) {
         this(energyCapacity, inputCount, outputCount, 0, 0, 0, 0);
@@ -267,6 +269,9 @@ public abstract class BaseTileEntity extends TileEntity implements
         ITileHandler.All.super.deserializeNBT(nbt);
         IMachineTickable.super.deserializeNBT(nbt);
         IMachineRecipe.super.deserializeNBT(nbt);
+        if (nbt.hasKey(BIND_TILE_ENTITY_EXTRA)) {
+            bindNbt = nbt.getCompoundTag(BIND_TILE_ENTITY_EXTRA);
+        }
         super.readFromNBT(nbt);
     }
     @Nonnull
@@ -281,6 +286,9 @@ public abstract class BaseTileEntity extends TileEntity implements
         ITileHandler.All.super.writeToNBT(nbt);
         IMachineTickable.super.writeToNBT(nbt);
         IMachineRecipe.super.writeToNBT(nbt);
+        if (!bindNbt.hasNoTags()) {
+            nbt.setTag(BIND_TILE_ENTITY_EXTRA, bindNbt);
+        }
         return nbt;
     }
     @Override

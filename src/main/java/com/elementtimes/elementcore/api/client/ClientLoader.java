@@ -1,9 +1,9 @@
 package com.elementtimes.elementcore.api.client;
 
-import com.elementtimes.elementcore.api.common.ECModElements;
-import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.annotation.ModBlock;
 import com.elementtimes.elementcore.api.annotation.ModItem;
+import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.common.LoaderHelper;
 import com.elementtimes.elementcore.api.template.tileentity.BaseTESR;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileTESR;
@@ -24,6 +24,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.http.util.TextUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 客户端资源加载
@@ -48,6 +49,10 @@ public class ClientLoader {
     private static void loadBlockStateMapper(ECModElements elements) {
         // ModBlock.StateMapper
         Set<ASMDataTable.ASMData> asmStateMapperData = elements.asm.getAll(ModBlock.StateMapper.class.getName());
+        // ModBlock.StateMapperCustom
+        Set<ASMDataTable.ASMData> customDataSet = elements.asm.getAll(ModBlock.StateMapperCustom.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.blockStateMaps = LoaderHelper.createMap(asmStateMapperData, customDataSet);
         if (asmStateMapperData != null) {
             for (ASMDataTable.ASMData asmData : asmStateMapperData) {
                 LoaderHelper.getBlock(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
@@ -68,13 +73,11 @@ public class ClientLoader {
                                 .map(Optional::get)
                                 .toArray(IProperty[]::new);
                         builder.ignore(ignoreProperties);
-                        elements.getClientElements().blockStateMaps.put(block, builder.build());
+                        client.blockStateMaps.put(block, builder.build());
                     });
                 });
             }
         }
-        // ModBlock.StateMapperCustom
-        Set<ASMDataTable.ASMData> customDataSet = elements.asm.getAll(ModBlock.StateMapperCustom.class.getName());
         if (customDataSet != null) {
             for (ASMDataTable.ASMData asmData : customDataSet) {
                 LoaderHelper.getBlock(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
@@ -83,16 +86,18 @@ public class ClientLoader {
                     IStateMapper mapper = (value == null || value.isEmpty())
                             ? new DefaultStateMapper()
                             : ECUtils.reflect.create(value, IStateMapper.class, elements.container.logger).orElse(new DefaultStateMapper());
-                    elements.getClientElements().blockStateMaps.put(block, mapper);
+                    client.blockStateMaps.put(block, mapper);
                 });
             }
         }
 
-        elements.container.warn("loadBlockStateMapper: {}", elements.getClientElements().blockStateMaps.size());
+        elements.container.warn("loadBlockStateMapper: {}", client.blockStateMaps.size());
     }
 
     private static void loadBlockState(ECModElements elements) {
         Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModBlock.StateMap.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.blockStates = LoaderHelper.createMap(asmDataSet);
         if (asmDataSet == null) {
             return;
         }
@@ -112,22 +117,27 @@ public class ClientLoader {
                         for (int i = 0; i < index; i++) {
                             blockStateTriples.add(new ModelLocation(metadatas[i], elements.container.id(), models.get(i), properties.get(i)));
                         }
-                        elements.getClientElements().blockStates.put(block, blockStateTriples);
+                        client.blockStates.put(block, blockStateTriples);
                     }
                 }
             });
         }
-        elements.container.warn("loadBlockState: {}", elements.getClientElements().blockStates.size());
+        elements.container.warn("loadBlockState: {}", client.blockStates.size());
     }
 
     private static void loadBlockTesr(ECModElements elements) {
-        elements.blockTileEntities.forEach((block, te) -> {
-            if (ITileTESR.class.isAssignableFrom(te.right)) {
-                elements.getClientElements().blockTesr.put(te.right, new BaseTESR());
-            }
-        });
-
         Set<ASMDataTable.ASMData> animDataSet = elements.asm.getAll(ModBlock.AnimTESR.class.getName());
+        Set<ASMDataTable.ASMData> tesrDataSet = elements.asm.getAll(ModBlock.TESR.class.getName());
+        List<ImmutablePair<String, Class<? extends TileEntity>>> collect = elements.blockTileEntities.values()
+                .stream()
+                .filter(te -> ITileTESR.class.isAssignableFrom(te.right))
+                .collect(Collectors.toList());
+        elements.getClientElements().blockTesr = LoaderHelper.createMap(collect.size(), animDataSet, tesrDataSet);
+
+        for (ImmutablePair<String, Class<? extends TileEntity>> te : collect) {
+            elements.getClientElements().blockTesr.put(te.right, new BaseTESR());
+        }
+
         if (animDataSet != null) {
             for (ASMDataTable.ASMData asmData : animDataSet) {
                 LoaderHelper.getBlock(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
@@ -152,7 +162,6 @@ public class ClientLoader {
             }
         }
 
-        Set<ASMDataTable.ASMData> tesrDataSet = elements.asm.getAll(ModBlock.TESR.class.getName());
         if (tesrDataSet != null) {
             for (ASMDataTable.ASMData asmData : tesrDataSet) {
                 LoaderHelper.getBlock(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
@@ -176,51 +185,57 @@ public class ClientLoader {
     }
 
     private static void loadBlockColor(ECModElements elements) {
-        Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModBlock.class.getName());
-        if (asmDataSet == null) {
-            return;
-        }
-        for (ASMDataTable.ASMData asmData : asmDataSet) {
-            LoaderHelper.getBlock(elements,asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
-                final String colorClass = (String) asmData.getAnnotationInfo().get("blockColorClass");
-                if (!TextUtils.isBlank(colorClass)) {
-                    IBlockColor color = elements.getClientElements().blockColorMap.get(colorClass);
-                    if (color == null) {
-                        final Optional<IBlockColor> iBlockColorOpt = ECUtils.reflect.create(colorClass, IBlockColor.class, elements.container.logger);
-                        if (iBlockColorOpt.isPresent()) {
-                            final IBlockColor iBlockColor = iBlockColorOpt.get();
-                            elements.getClientElements().blockColorMap.put(colorClass, iBlockColor);
-                            elements.getClientElements().blockColors.put(iBlockColor, new LinkedList<>());
-                            color = iBlockColor;
+        Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModBlock.BlockColor.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.blockColors = LoaderHelper.createMap(asmDataSet);
+        client.blockColorMap = LoaderHelper.createMap(asmDataSet);
+        client.blockItemColors = LoaderHelper.createMap(asmDataSet);
+        client.blockItemColorMap = LoaderHelper.createMap(asmDataSet);
+        if (asmDataSet != null) {
+            for (ASMDataTable.ASMData asmData : asmDataSet) {
+                LoaderHelper.getBlock(elements,asmData.getClassName(), asmData.getObjectName()).ifPresent(block -> {
+                    String colorClass = (String) asmData.getAnnotationInfo().get("value");
+                    if (!TextUtils.isBlank(colorClass)) {
+                        IBlockColor color = client.blockColorMap.get(colorClass);
+                        if (color == null) {
+                            final Optional<IBlockColor> iBlockColorOpt = ECUtils.reflect.create(colorClass, IBlockColor.class, elements.container.logger);
+                            if (iBlockColorOpt.isPresent()) {
+                                final IBlockColor iBlockColor = iBlockColorOpt.get();
+                                client.blockColorMap.put(colorClass, iBlockColor);
+                                client.blockColors.put(iBlockColor, new ArrayList<>());
+                                color = iBlockColor;
+                            }
+                        }
+                        if (color != null) {
+                            client.blockColors.get(color).add(block);
                         }
                     }
-                    if (color != null) {
-                        elements.getClientElements().blockColors.get(color).add(block);
-                    }
-                }
 
-                final String itemColorClass = (String) asmData.getAnnotationInfo().get("blockItemColorClass");
-                if (!TextUtils.isBlank(itemColorClass)) {
-                    IItemColor color = elements.getClientElements().blockItemColorMap.get(colorClass);
-                    if (color == null) {
-                        final Optional<IItemColor> iItemColorOpt = ECUtils.reflect.create(colorClass, IItemColor.class, elements.container.logger);
-                        if (iItemColorOpt.isPresent()) {
-                            final IItemColor iItemColor = iItemColorOpt.get();
-                            elements.getClientElements().blockItemColorMap.put(colorClass, iItemColor);
-                            elements.getClientElements().blockItemColors.put(iItemColor, new LinkedList<>());
-                            color = iItemColor;
+                    final String itemColorClass = (String) asmData.getAnnotationInfo().get("itemColor");
+                    if (!TextUtils.isBlank(itemColorClass)) {
+                        IItemColor color = client.blockItemColorMap.get(itemColorClass);
+                        if (color == null) {
+                            final Optional<IItemColor> iItemColorOpt = ECUtils.reflect.create(itemColorClass, IItemColor.class, elements.container.logger);
+                            if (iItemColorOpt.isPresent()) {
+                                final IItemColor iItemColor = iItemColorOpt.get();
+                                client.blockItemColorMap.put(colorClass, iItemColor);
+                                client.blockItemColors.put(iItemColor, new ArrayList<>());
+                                color = iItemColor;
+                            }
+                        }
+                        if (color != null) {
+                            client.blockItemColors.get(color).add(block);
                         }
                     }
-                    if (color != null) {
-                        elements.getClientElements().blockItemColors.get(color).add(block);
-                    }
-                }
-            });
+                });
+            }
         }
     }
 
     private static void loadItemSub(ECModElements elements) {
         Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModItem.HasSubItem.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.itemSubModel = LoaderHelper.createMap(asmDataSet);
         if (asmDataSet == null) {
             return;
         }
@@ -238,46 +253,50 @@ public class ClientLoader {
                         for (int i = 0; i < index; i++) {
                             modelTriples.add(new ModelLocation(metadatas[i], elements.container.id(), models.get(i)));
                         }
-                        elements.getClientElements().itemSubModel.put(item, modelTriples);
+                        client.itemSubModel.put(item, modelTriples);
                     }
                 }
             });
         }
 
-        elements.container.warn("loadItemSub: {}", elements.getClientElements().itemSubModel.size());
+        elements.container.warn("loadItemSub: {}", client.itemSubModel.size());
     }
 
     private static void loadItemColor(ECModElements elements) {
-        Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModItem.class.getName());
-        if (asmDataSet == null) {
-            return;
-        }
-        for (ASMDataTable.ASMData asmData : asmDataSet) {
-            LoaderHelper.getItem(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(item -> {
-                final String colorClass = (String) asmData.getAnnotationInfo().get("itemColorClass");
-                if (!TextUtils.isBlank(colorClass)) {
-                    IItemColor color = elements.getClientElements().itemColorMap.get(colorClass);
-                    if (color == null) {
-                        final Optional<IItemColor> iItemColorOpt = ECUtils.reflect.create(colorClass, IItemColor.class, elements.container.logger);
-                        if (iItemColorOpt.isPresent()) {
-                            final IItemColor iItemColor = iItemColorOpt.get();
-                            elements.getClientElements().itemColorMap.put(colorClass, iItemColor);
-                            elements.getClientElements().itemColors.put(iItemColor, new LinkedList<>());
-                            color = iItemColor;
+        Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModItem.ItemColor.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.itemColors = LoaderHelper.createMap(asmDataSet);
+        client.itemColorMap = LoaderHelper.createMap(asmDataSet);
+        if (asmDataSet != null) {
+            for (ASMDataTable.ASMData asmData : asmDataSet) {
+                LoaderHelper.getItem(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(item -> {
+                    String colorClass = (String) asmData.getAnnotationInfo().get("value");
+                    if (!TextUtils.isBlank(colorClass)) {
+                        IItemColor color = client.itemColorMap.get(colorClass);
+                        if (color == null) {
+                            final Optional<IItemColor> iItemColorOpt = ECUtils.reflect.create(colorClass, IItemColor.class, elements.container.logger);
+                            if (iItemColorOpt.isPresent()) {
+                                final IItemColor iItemColor = iItemColorOpt.get();
+                                client.itemColorMap.put(colorClass, iItemColor);
+                                client.itemColors.put(iItemColor, new ArrayList<>());
+                                color = iItemColor;
+                            }
+                        }
+                        if (color != null) {
+                            client.itemColors.get(color).add(item);
                         }
                     }
-                    if (color != null) {
-                        elements.getClientElements().itemColors.get(color).add(item);
-                    }
-                }
-            });
+                });
+            }
         }
 
-        elements.container.warn("loadItemSub: {}", elements.getClientElements().itemSubModel.size());
+        elements.container.warn("loadItemColor: {}", client.itemColors.size());
     }
 
     private static void loadItemMeshDefinition(ECModElements elements) {
         Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModItem.HasMeshDefinition.class.getName());
+        ECModElementsClient client = elements.getClientElements();
+        client.itemMeshDefinition = LoaderHelper.createMap(asmDataSet);
         if (asmDataSet == null) {
             return;
         }
@@ -285,7 +304,7 @@ public class ClientLoader {
             LoaderHelper.getItem(elements, asmData.getClassName(), asmData.getObjectName()).ifPresent(item -> {
                 String clazz = (String) asmData.getAnnotationInfo().get("value");
                 ECUtils.reflect.create(clazz, ItemMeshDefinition.class, elements.container.logger)
-                        .ifPresent(meshDefinition -> elements.getClientElements().itemMeshDefinition.put(item, meshDefinition));
+                        .ifPresent(meshDefinition -> client.itemMeshDefinition.put(item, meshDefinition));
             });
         }
     }

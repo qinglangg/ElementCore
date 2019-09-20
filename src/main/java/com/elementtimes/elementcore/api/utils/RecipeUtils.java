@@ -1,8 +1,6 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryCrafting;
@@ -16,7 +14,7 @@ import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -130,12 +128,21 @@ public class RecipeUtils {
     /**
      * 获取单物品输入的输出
      * @param oreName 输入矿辞名
-     * @param receiver 输出
+     * @return 输出
      */
-    public void collectOneBlockCraftingResult(World world, String oreName, Map<ItemStack, ItemStack> receiver) {
-        Arrays.stream(CraftingHelper.getIngredient(oreName).getMatchingStacks())
-                .filter(stack -> !stack.isEmpty() && Block.getBlockFromItem(stack.getItem()) != Blocks.AIR)
-                .map(stack -> ItemHandlerHelper.copyStackWithSize(stack, 1))
-                .forEach(stack -> receiver.put(stack, getCraftingResult(world, NonNullList.withSize(1, stack))));
+    public Map<ItemStack, ItemStack> collectOneBlockCraftingResult(World world, String oreName) {
+        ItemStack[] inputItems = CraftingHelper.getIngredient(oreName).getMatchingStacks();
+        Map<ItemStack, ItemStack> results = new HashMap<>(inputItems.length);
+        for (ItemStack inputItem : inputItems) {
+            ItemStack result;
+            ItemStack i = ItemHandlerHelper.copyStackWithSize(inputItem, 1);
+            if (!i.isEmpty()) {
+                result = getCraftingResult(world, NonNullList.withSize(1, i));
+            } else {
+                result = ItemStack.EMPTY;
+            }
+            results.put(inputItem, result);
+        }
+        return results;
     }
 }

@@ -2,7 +2,6 @@ package com.elementtimes.elementcore.api.annotation;
 
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 
 import java.lang.annotation.ElementType;
@@ -34,20 +33,16 @@ public @interface ModItem {
      */
     String unlocalizedName() default "";
 
-    /**
-     * 物品染色
-     * 只要物品材质直接或间接继承自 item/generated 就能支持染色
-     * @return 物品染色所需 IItemColor 类全类名
-     */
-    String itemColorClass() default "";
-
     String creativeTabKey() default "";
 
+    /**
+     * 自定义 ItemStack 的 Tooltips
+     */
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.FIELD})
     @interface Tooltip {
         /**
-         * 自定义 ItemStack 的 Tooltips
+         * Tooltips
          * 使用 @m 表示访问 metadata，@n 表示访问 NBT，@c 表示访问个数，-> 表示匹配检查
          *  "@m3@c2@n{Tag}=3->stack3" 意味着只有在 metadata=3，count=2, getTagCompound中Tag值为3 时才会添加 "stack3" 字符串
          *  "stack md=@m, c=@c, nbtName=@n{Stack.Name}" 表示添加 "stack md=[实际metadata值], c=[count 值], nbtName=[getTagCompound().getTag("Stack").getTag("Name")]"
@@ -56,6 +51,20 @@ public @interface ModItem {
          * @return 物品 Tooltip
          */
         String[] value();
+    }
+
+    /**
+     * 着色器
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE, ElementType.FIELD})
+    @interface ItemColor {
+        /**
+         * 物品染色
+         * 只要物品材质直接或间接继承自 item/generated 就能支持染色
+         * @return 物品染色所需 IItemColor 类全类名
+         */
+        String value();
     }
 
     /**

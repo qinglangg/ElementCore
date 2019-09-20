@@ -136,11 +136,17 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
         // items
         for (int i = recipeCapture.inputs.size() - 1; i >= 0; i--) {
             ItemStack item = recipeCapture.inputs.get(i);
-            ItemStack extract = itemHandler.extractItem(i, item.getCount(), true);
-            if (!item.isItemEqual(extract) || item.getCount() > extract.getCount()) {
-                return false;
+            if (!item.isEmpty()) {
+                ItemStack extract = itemHandler.extractItem(i, item.getCount(), true);
+                if (!item.isItemEqual(extract) || item.getCount() > extract.getCount()) {
+                    return false;
+                }
+            } else {
+                ItemStack extract = itemHandler.getStackInSlot(i);
+                return item.getItem() == extract.getItem() && item.getItemDamage() == extract.getItemDamage();
             }
         }
+
         // fluids
         for (int i = 0; i < recipeCapture.fluidInputs.size(); i++) {
             FluidStack fluid = recipeCapture.fluidInputs.get(i);

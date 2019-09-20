@@ -7,7 +7,6 @@ import com.elementtimes.elementcore.other.CapabilityObject;
 import com.elementtimes.elementcore.other.ModTooltip;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
@@ -46,85 +45,85 @@ public class ECModElements {
     /**
      * CreativeTabs
      */
-    public final HashMap<String, CreativeTabs> tabs = new HashMap<>();
+    public Map<String, CreativeTabs> tabs = null;
 
     /**
      * Class
      */
-    public final HashMap<String, Class> classes = new HashMap<>();
+    public HashMap<String, Class> classes = new HashMap<>();
 
     /**
      * Block
      */
-    public final Table<String, String, Block> blocks = HashBasedTable.create();
-    public final Map<Block, ImmutablePair<String, Class<? extends TileEntity>>> blockTileEntities = new HashMap<>();
-    public final Map<String, List<Block>> blockOreDictionaries = new HashMap<>();
-    public final Map<GenType, List<WorldGenerator>> blockWorldGen = new HashMap<>();
-    public final Object2IntMap<Block> blockBurningTimes = new Object2IntArrayMap<>();
-    public final Map<Block, ModTooltip[]> blockTooltips = new LinkedHashMap<>();
+    public Map<String, Block> blocks = null;
+    public Map<Block, ImmutablePair<String, Class<? extends TileEntity>>> blockTileEntities = null;
+    public Map<String, List<Block>> blockOreDictionaries = null;
+    public Map<GenType, List<WorldGenerator>> blockWorldGen = null;
+    public Object2IntMap<Block> blockBurningTimes = null;
+    public Map<Block, ModTooltip[]> blockTooltips = null;
     public boolean blockB3d = false, blockObj = false;
 
     /**
      * Item
      */
-    public final Table<String, String, Item> items = HashBasedTable.create();
-    public final Map<String, List<Item>> itemOreDictionaries = new HashMap<>();
+    public Map<String, Item> items = null;
+    public Map<String, List<Item>> itemOreDictionaries = null;
 
     /**
      * Recipe
      */
-    public final List<Supplier<IRecipe[]>> recipes = new ArrayList<>();
+    public List<Supplier<IRecipe[]>> recipes = null;
 
     /**
      * Fluid
      */
-    public final Table<String, String, Fluid> fluids = HashBasedTable.create();
-    public final List<Fluid> fluidBuckets = new LinkedList<>();
-    public final Map<Fluid, CreativeTabs> fluidTabs = new HashMap<>();
-    public final Map<Fluid, Function<Fluid, Block>> fluidBlocks = new HashMap<>();
-    public final Map<Fluid, String> fluidBlockStates = new HashMap<>();
-    public final Object2IntMap<String> fluidBurningTimes = new Object2IntArrayMap<>();
-    public final List<Fluid> fluidResources = new LinkedList<>();
+    public Map<String, Fluid> fluids = null;
+    public List<Fluid> fluidBuckets = null;
+    public Map<Fluid, CreativeTabs> fluidTabs = null;
+    public Map<Fluid, Function<Fluid, Block>> fluidBlocks = null;
+    public Map<Fluid, String> fluidBlockStates = null;
+    public Object2IntMap<String> fluidBurningTimes = null;
+    public List<Fluid> fluidResources = null;
 
     /**
      * Capability
      */
-    public final List<CapabilityObject> capabilities = new ArrayList<>();
+    public List<CapabilityObject> capabilities = null;
 
     /**
      * Network
      */
-    public final List<Triple<Class, Class, Side[]>> networks = new ArrayList<>();
-    public final SimpleNetworkWrapper channel;
+    public List<Triple<Class, Class, Side[]>> networks = null;
+    public SimpleNetworkWrapper channel;
 
     /**
      * Enchantment
      */
-    public final List<Enchantment> enchantments = new ArrayList<>();
+    public List<Enchantment> enchantments = null;
 
     /**
      * Element
      */
-    public final List<Method> staticFunction = new LinkedList<>();
-    public final Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation;
+    public List<Method> staticFunction = null;
+    public Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation;
 
     /**
      * Event
      */
-    public final FmlRegister fmlEventRegister;
+    public FmlRegister fmlEventRegister;
 
     /**
      * ModInfo
      */
-    public final ECModContainer container;
-    public final Object clientElement;
-    public final ASMDataTable asm;
-    public final Set<String> packages;
+    public ECModContainer container;
+    public Object clientElement;
+    public ASMDataTable asm;
+    public Set<String> packages;
 
     /**
      * 通用
      */
-    public final List<ModTooltip> toolTips = new LinkedList<>();
+    public List<ModTooltip> toolTips = null;
 
     ECModElements(FMLPreInitializationEvent event, boolean debugEnable, Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation, Set<String> packages, ModContainer modContainer) {
         this.clientElement = ECUtils.common.isClient() ? new com.elementtimes.elementcore.api.client.ECModElementsClient(this) : null;
@@ -142,8 +141,8 @@ public class ECModElements {
 
     public static class Builder {
 
-        private final Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation = HashBasedTable.create();
-        private final Set<String> packages = new LinkedHashSet<>();
+        private Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation = HashBasedTable.create();
+        private Set<String> packages = new LinkedHashSet<>();
         private boolean debugEnable = true;
 
         public Builder enableDebugMessage() {
@@ -165,9 +164,9 @@ public class ECModElements {
 
         public ECModContainer build(FMLPreInitializationEvent event) {
             // newInstance
-            final ModContainer container = Loader.instance().getIndexedModList().get(event.getModMetadata().modId);
+            ModContainer container = Loader.instance().getIndexedModList().get(event.getModMetadata().modId);
             packages.add(container.getMod().getClass().getPackage().getName());
-            final ECModElements elements = new ECModElements(event, debugEnable, customAnnotation, packages, container);
+            ECModElements elements = new ECModElements(event, debugEnable, customAnnotation, packages, container);
             ECModContainer.MODS.put(container.getModId(), elements.container);
             // event
             MinecraftForge.ORE_GEN_BUS.register(new OreBusRegister(elements));

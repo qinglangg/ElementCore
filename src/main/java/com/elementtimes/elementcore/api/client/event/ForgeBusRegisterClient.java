@@ -59,85 +59,100 @@ public class ForgeBusRegisterClient {
             B3DLoader.INSTANCE.addDomain(mElements.container.id());
         }
         // 注册渲染
-        mElements.items.values().forEach(item -> {
-            final ItemMeshDefinition definition = mClients.itemMeshDefinition.get(item);
-            if (definition != null) {
-                ModelLoader.setCustomMeshDefinition(item, definition);
-            } else if (mClients.itemSubModel.containsKey(item)) {
-                for (Map.Entry<Item, ArrayList<ModelLocation>> entry : mClients.itemSubModel.entrySet()) {
-                    Item i = entry.getKey();
-                    for (ModelLocation triple : entry.getValue()) {
-                        ModelLoader.setCustomModelResourceLocation(i, triple.metadata, triple.modelResourceLocation);
+        if (mElements.items != null) {
+            for (Item item : mElements.items.values()) {
+                registerItemFunc(item);
+            }
+        }
+        if (mElements.blocks != null) {
+            for (Block block : mElements.blocks.values()) {
+                registerBlockFunc(block);
+            }
+        }
+        // 注册流体
+        if (mElements.fluidBlocks != null) {
+            mElements.fluidBlocks.forEach((fluid, block) -> ModelLoader.setCustomStateMapper(fluid.getBlock(), new StateMapperBase() {
+                @Nonnull
+                @Override
+                protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
+                    String bs = mElements.fluidBlockStates == null ? null : mElements.fluidBlockStates.get(fluid);
+                    ResourceLocation location;
+                    if (bs != null && !bs.isEmpty()) {
+                        location = new ResourceLocation(mElements.container.id(), bs);
+                    } else {
+                        location = fluid.getBlock().getRegistryName();
                     }
+                    assert location != null;
+                    return new ModelResourceLocation(location, fluid.getName());
+                }
+            }));
+        }
+        // 注册 TESR
+        if (mClients.blockTesr != null) {
+            mClients.blockTesr.forEach(ClientRegistry::bindTileEntitySpecialRenderer);
+        }
+    }
+
+    private void registerItemFunc(Item item) {
+        ItemMeshDefinition definition = mClients.itemMeshDefinition == null ? null : mClients.itemMeshDefinition.get(item);
+        if (definition != null) {
+            ModelLoader.setCustomMeshDefinition(item, definition);
+        } else if (mClients.itemSubModel.containsKey(item)) {
+            for (Map.Entry<Item, ArrayList<ModelLocation>> entry : mClients.itemSubModel.entrySet()) {
+                Item i = entry.getKey();
+                for (ModelLocation triple : entry.getValue()) {
+                    ModelLoader.setCustomModelResourceLocation(i, triple.metadata, triple.modelResourceLocation);
+                }
+            }
+        } else {
+            //noinspection ConstantConditions
+            ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
+        }
+    }
+
+    private void registerBlockFunc(Block block) {
+        if (mClients.blockStateMaps != null && mClients.blockStateMaps.containsKey(block)) {
+            // IStateMapper
+            IStateMapper mapper = mClients.blockStateMaps.get(block);
+            ModelLoader.setCustomStateMapper(block, mapper);
+            // ResourceLocation
+            ArrayList<ModelLocation> triples = mClients.blockStates == null ? null : mClients.blockStates.get(block);
+            if (triples != null) {
+                Item item = Item.getItemFromBlock(block);
+                Map<IBlockState, ModelResourceLocation> locationMap;
+                //noinspection ConstantConditions
+                ModelResourceLocation defLocation = new ModelResourceLocation(block.getRegistryName(), "inventory");
+                locationMap = mapper.putStateModelLocations(block);
+                if (triples.size() == 0) {
+                    // metadata from DefaultState
+                    int defMeta = block.getMetaFromState(block.getDefaultState());
+                    ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, block.getDefaultState()));
+                    if (defMeta != 0b0000) {
+                        // metadata from 0b0000
+                        //noinspection deprecation
+                        IBlockState stateZero = block.getStateFromMeta(0b0000);
+                        ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, stateZero));
+                    }
+                    return;
+                }
+                for (ModelLocation triple : triples) {
+                    ModelLoader.setCustomModelResourceLocation(item, triple.metadata, triple.modelResourceLocation);
+                }
+            } else {
+                mapper.putStateModelLocations(block).forEach((iBlockState, modelResourceLocation) -> ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), block.getMetaFromState(iBlockState), modelResourceLocation));
+            }
+        } else {
+            if (mClients.blockStates != null && mClients.blockStates.containsKey(block)) {
+                final ArrayList<ModelLocation> triples = mClients.blockStates.get(block);
+                Item blockItem = Item.getItemFromBlock(block);
+                for (ModelLocation triple : triples) {
+                    ModelLoader.setCustomModelResourceLocation(blockItem, triple.metadata, triple.modelResourceLocation);
                 }
             } else {
                 //noinspection ConstantConditions
-                ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
+                ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0, new ModelResourceLocation(block.getRegistryName(), "inventory"));
             }
-        });
-        mElements.blocks.values().forEach(block -> {
-            if (mClients.blockStateMaps.containsKey(block)) {
-                // IStateMapper
-                IStateMapper mapper = mClients.blockStateMaps.get(block);
-                ModelLoader.setCustomStateMapper(block, mapper);
-                // ResourceLocation
-                final ArrayList<ModelLocation> triples = mClients.blockStates.get(block);
-
-                if (mClients.blockStates.containsKey(block)) {
-                    Item item = Item.getItemFromBlock(block);
-                    Map<IBlockState, ModelResourceLocation> locationMap;
-                    //noinspection ConstantConditions
-                    ModelResourceLocation defLocation = new ModelResourceLocation(block.getRegistryName(), "inventory");
-                    locationMap = mapper.putStateModelLocations(block);
-                    if (triples == null || triples.size() == 0) {
-                        // metadata from DefaultState
-                        int defMeta = block.getMetaFromState(block.getDefaultState());
-                        ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, block.getDefaultState()));
-                        if (defMeta != 0b0000) {
-                            // metadata from 0b0000
-                            //noinspection deprecation
-                            IBlockState stateZero = block.getStateFromMeta(0b0000);
-                            ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, stateZero));
-                        }
-                        return;
-                    }
-                    for (ModelLocation triple : triples) {
-                        ModelLoader.setCustomModelResourceLocation(item, triple.metadata, triple.modelResourceLocation);
-                    }
-                } else {
-                    mapper.putStateModelLocations(block).forEach((iBlockState, modelResourceLocation) -> ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), block.getMetaFromState(iBlockState), modelResourceLocation));
-                }
-            } else {
-                if (mClients.blockStates.containsKey(block)) {
-                    final ArrayList<ModelLocation> triples = mClients.blockStates.get(block);
-                    Item blockItem = Item.getItemFromBlock(block);
-                    for (ModelLocation triple : triples) {
-                        ModelLoader.setCustomModelResourceLocation(blockItem, triple.metadata, triple.modelResourceLocation);
-                    }
-                } else {
-                    //noinspection ConstantConditions
-                    ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0, new ModelResourceLocation(block.getRegistryName(), "inventory"));
-                }
-            }
-        });
-        // 注册流体
-        mElements.fluidBlocks.forEach((fluid, block) -> ModelLoader.setCustomStateMapper(fluid.getBlock(), new StateMapperBase() {
-            @Nonnull
-            @Override
-            protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
-                String bs = mElements.fluidBlockStates.get(fluid);
-                ResourceLocation location;
-                if (bs != null && !bs.isEmpty()) {
-                    location = new ResourceLocation(mElements.container.id(), bs);
-                } else {
-                    location = fluid.getBlock().getRegistryName();
-                }
-                assert location != null;
-                return new ModelResourceLocation(location, fluid.getName());
-            }
-        }));
-        // 注册 TESR
-        mClients.blockTesr.forEach(ClientRegistry::bindTileEntitySpecialRenderer);
+        }
     }
 
     @SubscribeEvent
@@ -148,15 +163,17 @@ public class ForgeBusRegisterClient {
 
     private void regFluidSpiritFunc(TextureStitchEvent.Pre event) {
         TextureMap textureMap = event.getMap();
-        mElements.fluidResources.forEach(fluid -> {
-            if (fluid.getStill() != null) {
-                textureMap.registerSprite(fluid.getStill());
-            }
+        if (mElements.fluidResources != null) {
+            mElements.fluidResources.forEach(fluid -> {
+                if (fluid.getStill() != null) {
+                    textureMap.registerSprite(fluid.getStill());
+                }
 
-            if (fluid.getFlowing() != null) {
-                textureMap.registerSprite(fluid.getFlowing());
-            }
-        });
+                if (fluid.getFlowing() != null) {
+                    textureMap.registerSprite(fluid.getFlowing());
+                }
+            });
+        }
     }
 
     @SubscribeEvent
@@ -166,16 +183,20 @@ public class ForgeBusRegisterClient {
     }
 
     private void registerItemColorFunc(ColorHandlerEvent.Item event) {
-        mClients.itemColors.forEach((color, items) -> {
-            if (items.size() > 0) {
-                event.getItemColors().registerItemColorHandler(color, items.toArray(new Item[0]));
-            }
-        });
-        mClients.blockItemColors.forEach((color, blocks) -> {
-            if (blocks.size() > 0) {
-                event.getItemColors().registerItemColorHandler(color, blocks.toArray(new Block[0]));
-            }
-        });
+        if (mClients.itemColors != null) {
+            mClients.itemColors.forEach((color, items) -> {
+                if (items.size() > 0) {
+                    event.getItemColors().registerItemColorHandler(color, items.toArray(new Item[0]));
+                }
+            });
+        }
+        if (mClients.blockItemColors != null) {
+            mClients.blockItemColors.forEach((color, blocks) -> {
+                if (blocks.size() > 0) {
+                    event.getItemColors().registerItemColorHandler(color, blocks.toArray(new Block[0]));
+                }
+            });
+        }
     }
 
     @SubscribeEvent
@@ -185,10 +206,12 @@ public class ForgeBusRegisterClient {
     }
 
     private void registerBlockColorFunc(ColorHandlerEvent.Block event) {
-        mClients.blockColors.forEach((color, blocks) -> {
-            if (blocks.size() > 0) {
-                event.getBlockColors().registerBlockColorHandler(color, blocks.toArray(new Block[0]));
-            }
-        });
+        if (mClients.blockColors != null) {
+            mClients.blockColors.forEach((color, blocks) -> {
+                if (blocks.size() > 0) {
+                    event.getBlockColors().registerBlockColorHandler(color, blocks.toArray(new Block[0]));
+                }
+            });
+        }
     }
 }

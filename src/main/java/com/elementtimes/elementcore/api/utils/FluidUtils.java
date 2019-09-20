@@ -175,7 +175,7 @@ public class FluidUtils {
         if (slot < handler.size()) {
             FluidStack fluid = handler.getFluid(slot, false);
             int capacity = handler.getCapacity(slot);
-            return capacity < 0 || (fluid != null && fluid.amount < capacity);
+            return capacity < 0 || (fluid != null && fluid.amount >= capacity);
         }
         return false;
     }

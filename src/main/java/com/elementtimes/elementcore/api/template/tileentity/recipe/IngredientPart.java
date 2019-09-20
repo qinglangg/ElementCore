@@ -27,13 +27,19 @@ public class IngredientPart<T> {
     private static String SYMBOL_ITEM_ALL = "[all]";
     private static String SYMBOL_ITEM_ORE = "[ore]";
     private static String SYMBOL_ITEM_ID = "[id]";
-    protected static final Random rand = new Random(System.currentTimeMillis());
+    protected static final Random RAND = new Random(System.currentTimeMillis());
 
     /**
      * 测试输入是否匹配
      * 用于机器检索合成表
      */
     public Function5.Match<T> matcher;
+
+    /**
+     * 测试输入是否匹配
+     * 用于机器验证输入物品
+     */
+    public Function5.Match<T> accept;
 
     /**
      * 根据输入获取实际物品及数量
@@ -52,9 +58,10 @@ public class IngredientPart<T> {
      */
     public float probability = 1.0f;
 
-    public IngredientPart(Function5.Match<T> matcher, Function5.StackGetter<T> getter, Supplier<List<T>> allViableValues) {
+    public IngredientPart(Function5.Match<T> matcher, Function5.Match<T> accept, Function5.StackGetter<T> getter, Supplier<List<T>> allViableValues) {
         this.getter = getter;
         this.matcher = matcher;
+        this.accept = accept;
         this.allViableValues = allViableValues;
     }
 
@@ -65,10 +72,14 @@ public class IngredientPart<T> {
         return this;
     }
 
+    private static boolean itemEqual(ItemStack is1, ItemStack is2) {
+        return is1.getItem() == is2.getItem() && is1.getItemDamage() == is2.getItemDamage();
+    }
+
     public static IngredientPart<ItemStack> forItem(Ingredient ingredient, int count) {
         Function5.Match<ItemStack> match = (recipe, slot, inputItems, inputFluids, input) -> ingredient.apply(input);
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) -> {
-            if (rand.nextFloat() > probability) {
+            if (RAND.nextFloat() > probability) {
                 return ItemStack.EMPTY;
             }
 
@@ -85,7 +96,15 @@ public class IngredientPart<T> {
                 Arrays.stream(ingredient.getMatchingStacks())
                         .map(itemStack -> ItemHandlerHelper.copyStackWithSize(itemStack, count))
                         .collect(Collectors.toList());
-        return new IngredientPart<>(match, get, allViableValues);
+        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> {
+            for (ItemStack stack : ingredient.getMatchingStacks()) {
+                if (itemEqual(stack, input)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
     public static IngredientPart<ItemStack> forItem(ItemStack itemStack) {
@@ -96,9 +115,10 @@ public class IngredientPart<T> {
             return false;
         };
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) ->
-                rand.nextFloat() > probability ? ItemStack.EMPTY : itemStack.copy();
+                RAND.nextFloat() > probability ? ItemStack.EMPTY : itemStack.copy();
         Supplier<List<ItemStack>> allViableValues = () -> Collections.singletonList(itemStack);
-        return new IngredientPart<>(match, get, allViableValues);
+        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> itemEqual(input, itemStack);
+        return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
     public static IngredientPart<ItemStack> forItem(Item item, int count) {
@@ -109,9 +129,10 @@ public class IngredientPart<T> {
             return false;
         };
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) ->
-                rand.nextFloat() > probability ? ItemStack.EMPTY : new ItemStack(item, count);
+                RAND.nextFloat() > probability ? ItemStack.EMPTY : new ItemStack(item, count);
         Supplier<List<ItemStack>> allViableValues = () -> Collections.singletonList(new ItemStack(item, count));
-        return new IngredientPart<>(match, get, allViableValues);
+        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> input.getItem() == item;
+        return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
     public static IngredientPart<ItemStack> forItem(Block block, int count) {
@@ -147,19 +168,21 @@ public class IngredientPart<T> {
     }
 
     public static IngredientPart<FluidStack> forFluid(FluidStack fluidStack) {
-        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input.containsFluid(fluidStack);
+        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && input.containsFluid(fluidStack);
         Function5.StackGetter<FluidStack> get = (recipe, items, fluids, slot, probability) ->
-                rand.nextFloat() > probability ? null : fluidStack.copy();
+                RAND.nextFloat() > probability ? null : fluidStack.copy();
         Supplier<List<FluidStack>> allViableValues = () -> Collections.singletonList(fluidStack);
-        return new IngredientPart<>(match, get, allViableValues);
+        Function5.Match<FluidStack> accept = (recipe, slot, inputItems, inputFluids, input) -> fluidStack.isFluidEqual(input);
+        return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
     public static IngredientPart<FluidStack> forFluid(Fluid fluid, int amount) {
         Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && fluid == input.getFluid() && amount <= input.amount;
         Function5.StackGetter<FluidStack> get = (recipe, items, fluids, slot, probability) ->
-                rand.nextFloat() > probability ? null : new FluidStack(fluid, amount);
+                RAND.nextFloat() > probability ? null : new FluidStack(fluid, amount);
         Supplier<List<FluidStack>> allViableValues = () -> Collections.singletonList(new FluidStack(fluid, amount));
-        return new IngredientPart<>(match, get, allViableValues);
+        Function5.Match<FluidStack> accept = (recipe, slot, inputItems, inputFluids, input) -> input != null && fluid == input.getFluid();
+        return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
     public static IngredientPart<FluidStack> forFluidRandom(FluidStack fluidStack, float probability) {
@@ -190,14 +213,20 @@ public class IngredientPart<T> {
                     return emptyStack;
                 };
 
-                allViableValues = () -> {
-                    List<ItemStack> items = new LinkedList<>();
-                    return Arrays.stream(contains)
-                            .map(c -> c.allViableValues)
-                            .map(Supplier::get)
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toList());
+                accept = (recipe, slot, inputItems, inputFluids, input) -> {
+                    for (IngredientPart<T> part : contains) {
+                        if (part.accept.apply(recipe, slot, inputItems, inputFluids, input)) {
+                            return true;
+                        }
+                    }
+                    return true;
                 };
+
+                allViableValues = () -> Arrays.stream(contains)
+                        .map(c -> c.allViableValues)
+                        .map(Supplier::get)
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList());
             }
         };
     }
@@ -214,11 +243,13 @@ public class IngredientPart<T> {
 
     public static IngredientPart<ItemStack> EMPTY_ITEM = new IngredientPart<>(
             (recipe, slot, inputItems, inputFluids, input) -> true,
+            (recipe, slot, inputItems, inputFluids, input) -> false,
             (recipe, items, fluids, slot, probability) -> ItemStack.EMPTY,
             () -> Collections.singletonList(ItemStack.EMPTY));
 
     public static IngredientPart<FluidStack> EMPTY_FLUID = new IngredientPart<>(
             (recipe, slot, inputItems, inputFluids, input) -> true,
+            (recipe, slot, inputItems, inputFluids, input) -> false,
             (recipe, items, fluids, slot, probability) -> FluidUtils.EMPTY,
             () -> Collections.singletonList(FluidUtils.EMPTY));
 }

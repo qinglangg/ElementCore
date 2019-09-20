@@ -126,8 +126,9 @@ public class MachineRecipeBuilder {
     public MachineRecipeBuilder addItemInput(Predicate<ItemStack> inputCheck, Function<ItemStack, ItemStack> inputConvert, List<ItemStack> allInputValues) {
         return addItemInput(new IngredientPart<>(
                 (recipe, slot, inputItems, inputFluids, input) -> inputCheck.test(input),
+                (recipe, slot, inputItems, inputFluids, input) -> inputCheck.test(input),
                 (recipe, input, fluids, i, probability) ->
-                        IngredientPart.rand.nextFloat() > probability ? ItemStack.EMPTY : inputConvert.apply(input.get(i)),
+                        IngredientPart.RAND.nextFloat() > probability ? ItemStack.EMPTY : inputConvert.apply(input.get(i)),
                 () -> allInputValues));
     }
 
@@ -140,6 +141,7 @@ public class MachineRecipeBuilder {
     public MachineRecipeBuilder addItemOutput(Function5.StackGetter<ItemStack> outputGetter, List<ItemStack> allInputValues) {
         return addItemOutput(new IngredientPart<>(
                 (recipe, slot, inputItems, inputFluids, input) -> true,
+                (recipe, slot, inputItems, inputFluids, input) -> false,
                 outputGetter,
                 () -> allInputValues));
     }

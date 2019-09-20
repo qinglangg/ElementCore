@@ -7,7 +7,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.ToIntFunction;
 
@@ -17,7 +17,7 @@ import java.util.function.ToIntFunction;
  */
 @SuppressWarnings("WeakerAccess")
 public class MachineRecipeHandler {
-    private List<MachineRecipe> mMachineRecipes = new LinkedList<>();
+    private List<MachineRecipe> mMachineRecipes = new ArrayList<>();
 
     public final int inputItemCount, outputItemCount, inputFluidCount, outputFluidCount;
 
@@ -220,7 +220,7 @@ public class MachineRecipeHandler {
      */
     @Nonnull
     public MachineRecipeCapture[] matchInput(List<ItemStack> input, List<FluidStack> fluids) {
-        List<MachineRecipeCapture> captures = new LinkedList<>();
+        List<MachineRecipeCapture> captures = new ArrayList<>(mMachineRecipes.size());
         for (MachineRecipe recipe : mMachineRecipes) {
             MachineRecipeCapture capture = recipe.matchInput(input, fluids);
             if (capture != null) {

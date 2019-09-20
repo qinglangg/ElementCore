@@ -1,16 +1,17 @@
 package com.elementtimes.elementcore;
 
+import com.elementtimes.elementcore.api.annotation.ModBlock;
+import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
+import com.elementtimes.elementcore.api.annotation.ModItem;
 import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
-import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
-import com.elementtimes.elementcore.api.annotation.ModFluid;
-import com.elementtimes.elementcore.api.annotation.ModItem;
+import com.elementtimes.elementcore.api.template.tabs.CreativeTabDynamic;
+import com.elementtimes.elementcore.common.block.EnergyBox;
 import com.elementtimes.elementcore.common.item.DebugStick;
-import com.elementtimes.elementcore.common.tab.MainTab;
+import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.Fluid;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -22,7 +23,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
  * 元素核心
  * @author luqin2007
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "WeakerAccess"})
 @Mod(modid = ElementCore.MODID, name = "Element Core", version = ElementCore.VERSION)
 public class ElementCore {
     private static ElementCore INSTANCE = null;
@@ -65,21 +66,20 @@ public class ElementCore {
     }
 
     public static class Items {
-        @ModItem(creativeTabKey = "main", itemColorClass = "com.elementtimes.elementcore.client.DebugStickColor")
+        @ModItem(creativeTabKey = "main")
+        @ModItem.ItemColor("com.elementtimes.elementcore.client.DebugStickColor")
         @ModItem.HasSubItem(metadatas = {0b0000, 0b0001}, models = {"minecraft:stick", "minecraft:stick"})
         public static Item debugger = new DebugStick();
     }
 
-    public static class Fluids {
-        @ModFluid(density = -10, creativeTabKey = "main")
-        @ModFluid.FluidBlock(creativeTabKey = "main")
-        public static Fluid air = new Fluid("elementcore.air",
-                new ResourceLocation(ElementCore.MODID, "fluid/air_still"),
-                new ResourceLocation(ElementCore.MODID, "fluid/air_fluid"), 0xFF949494);
-    }
-
     public static class Tabs {
         @ModCreativeTabs
-        public static CreativeTabs main = new MainTab();
+        public static CreativeTabs main = new CreativeTabDynamic("elementcore.main", 20L, new ItemStack(Items.debugger, 1, 0), new ItemStack(Items.debugger, 1, 1));
     }
+
+//    public static class Blocks {
+//        @ModBlock(creativeTabKey = "main")
+//        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.tileentity.EnergyBox$TileEntity")
+//        public static Block energy = new EnergyBox();
+//    }
 }

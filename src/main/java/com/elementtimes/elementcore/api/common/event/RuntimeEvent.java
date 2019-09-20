@@ -54,7 +54,7 @@ public class RuntimeEvent {
                     }
                 }
             }
-            int time = mElements.fluidBurningTimes.getOrDefault(name, -1);
+            int time = mElements.fluidBurningTimes == null ? -1 : mElements.fluidBurningTimes.getOrDefault(name, -1);
             if (time > 0) {
                 event.setBurnTime(time);
             }

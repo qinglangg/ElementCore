@@ -33,22 +33,48 @@ public @interface ModBlock {
      */
     String unlocalizedName() default "";
 
-    /**
-     * @return 燃烧时间
-     */
-    int burningTime() default 0;
-
     String creativeTabKey() default "";
 
-    String blockColorClass() default "";
+    /**
+     * 燃烧时间
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE, ElementType.FIELD})
+    @interface BurningTime {
+        /**
+         * 燃烧时间
+         * @return 燃烧时间
+         */
+        int value();
+    }
 
-    String blockItemColorClass() default "";
+    /**
+     * 着色器
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE, ElementType.FIELD})
+    @interface BlockColor {
+        /**
+         * 方块着色器
+         * @return 着色器全类名
+         */
+        String value() default "";
 
+        /**
+         * 物品着色器
+         * @return 着色器全类名
+         */
+        String itemColor() default "";
+    }
+
+    /**
+     * 自定义 ItemStack 的 Tooltips
+     */
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.FIELD})
     @interface Tooltip {
         /**
-         * 自定义 ItemStack 的 Tooltips
+         * Tooltips
          * 使用 @m 表示访问 metadata，@n 表示访问 NBT，@c 表示访问个数，-> 表示匹配检查
          *  "@m3@c2@n{Tag}=3->stack3" 意味着只有在 metadata=3，count=2, getTagCompound中Tag值为3 时才会添加 "stack3" 字符串
          *  "stack md=@m, c=@c, nbtName=@n{Stack.Name}" 表示添加

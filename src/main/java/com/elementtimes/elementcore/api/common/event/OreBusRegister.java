@@ -26,7 +26,7 @@ public class OreBusRegister {
     public void onGenerateOre(OreGenEvent.Post event) {
         ECUtils.common.runWithModActive(mElements.container.mod, () -> {
             if (!event.getWorld().isRemote) {
-                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen.get(GenType.Ore);
+                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen == null ? null : mElements.blockWorldGen.get(GenType.Ore);
                 if (worldGenerators != null) {
                     for (WorldGenerator generator: worldGenerators) {
                         if (TerrainGen.generateOre(event.getWorld(), event.getRand(), generator, event.getPos(), OreGenEvent.GenerateMinable.EventType.CUSTOM)) {

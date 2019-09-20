@@ -10,22 +10,20 @@ import net.minecraft.util.EnumFacing;
  * 发电机的生命周期
  * @author luqin2007
  */
-public class EnergyGeneratorLifecycle implements IMachineLifecycle {
+public class EnergyGeneratorLifecycle <T extends TileEntity & ITileEnergyHandler> implements IMachineLifecycle {
 
     private TileEntity mTe;
-    private ITileEnergyHandler mHandler;
 
-    public EnergyGeneratorLifecycle(TileEntity te, ITileEnergyHandler handler) {
+    public EnergyGeneratorLifecycle(T te) {
         mTe = te;
-        mHandler = handler;
     }
 
     @Override
     public void onTickFinish() {
         if (mTe.getWorld() != null) {
             for (EnumFacing value : EnumFacing.values()) {
-                EnergyHandler.EnergyProxy proxy = mHandler.getEnergyProxy(value);
-                mHandler.sendEnergy(proxy.getEnergyStored(), value.getOpposite(),
+                EnergyHandler.EnergyProxy proxy = ((ITileEnergyHandler) mTe).getEnergyProxy(value);
+                ((ITileEnergyHandler) mTe).sendEnergy(proxy.getEnergyStored(), value.getOpposite(),
                         mTe.getWorld().getTileEntity(mTe.getPos().offset(value)), proxy);
             }
         }

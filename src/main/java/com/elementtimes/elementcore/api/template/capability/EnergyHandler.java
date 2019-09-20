@@ -99,6 +99,9 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
     @Override
     public NBTTagCompound serializeNBT() {
         NBTTagCompound nbt = new NBTTagCompound();
+        nbt.setInteger("capacity", capacity);
+        nbt.setInteger("receive", maxReceive);
+        nbt.setInteger("extract", maxExtract);
         nbt.setInteger("energy", energy);
         nbt.setInteger("transfer", transfer);
         return nbt;
@@ -108,6 +111,14 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
     public void deserializeNBT(NBTTagCompound nbt) {
         if (nbt.hasKey("capacity")) {
             capacity = nbt.getInteger("capacity");
+        }
+
+        if (nbt.hasKey("receive")) {
+            maxReceive = nbt.getInteger("receive");
+        }
+
+        if (nbt.hasKey("extract")) {
+            maxExtract = nbt.getInteger("extract");
         }
 
         if (nbt.hasKey("energy")) {

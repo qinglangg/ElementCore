@@ -214,10 +214,15 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
                 if (fluid != null && fluid.amount > 0) {
                     int amountInput = recipe.fluidInputAmounts[i];
                     if (amountInput > 0) {
-                        float amountFloat = fluid.amount * a;
-                        int amount = (int) amountFloat;
-                        if (amount == 0 || amountFloat - amount > 0) {
-                            amount++;
+                        int amount;
+                        if (machine.getEnergyUnprocessed() == 0) {
+                            amount = amountInput;
+                        } else {
+                            float amountFloat = fluid.amount * a;
+                            amount = (int) amountFloat;
+                            if (amount == 0) {
+                                amount++;
+                            }
                         }
                         amount = Math.min(amount, amountInput);
                         if (amount > 0) {

@@ -7,7 +7,9 @@ import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 加载的辅助类
@@ -16,9 +18,9 @@ import java.util.Optional;
 @SuppressWarnings("WeakerAccess")
 public class LoaderHelper {
 
-    public static Optional<Class> getOrLoadClass(@Nonnull ECModElements initializer, @Nonnull String className) {
+    public static Optional<Class> getOrLoadClass(@Nonnull ECModElements elements, @Nonnull String className) {
         boolean skip = true;
-        for (String packageName : initializer.packages) {
+        for (String packageName : elements.packages) {
             if (className.startsWith(packageName)) {
                 skip = false;
                 break;
@@ -27,39 +29,42 @@ public class LoaderHelper {
         if (skip) {
             return Optional.empty();
         }
-        Class clazz = initializer.classes.get(className);
+        Class clazz = elements.classes == null ? null : elements.classes.get(className);
         if (clazz == null) {
             try {
                 clazz = Class.forName(className);
             } catch (ClassNotFoundException e) {
-                initializer.container.warn("Can't find class: {}", className);
+                elements.container.warn("Can't find class: {}", className);
             }
             if (clazz != null) {
-                initializer.classes.put(className, clazz);
+                if (elements.classes == null) {
+                    elements.classes = new HashMap<>(16);
+                }
+                elements.classes.put(className, clazz);
             }
         }
         return Optional.ofNullable(clazz);
     }
 
-    public static Optional<Block> getBlock(ECModElements initializer, String className, String objectName) {
-        return Optional.ofNullable(initializer.blocks.get(className, objectName == null ? "" : objectName));
+    public static Optional<Block> getBlock(ECModElements elements, String className, String objectName) {
+        return Optional.ofNullable(elements.blocks == null ? null : elements.blocks.get(className + (objectName == null ? "" : objectName)));
     }
 
-    public static Optional<Item> getItem(ECModElements initializer, String className, String objectName) {
-        return Optional.ofNullable(initializer.items.get(className, objectName == null ? "" : objectName));
+    public static Optional<Item> getItem(ECModElements elements, String className, String objectName) {
+        return Optional.ofNullable(elements.items == null ? null : elements.items.get(className + (objectName == null ? "" : objectName)));
     }
 
-    public static Optional<Fluid> getFluid(ECModElements initializer, String className, String objectName) {
-        return Optional.ofNullable(initializer.fluids.get(className, objectName == null ? "" : objectName));
+    public static Optional<Fluid> getFluid(ECModElements elements, String className, String objectName) {
+        return Optional.ofNullable(elements.fluids == null ? null : elements.fluids.get(className + (objectName == null ? "" : objectName)));
     }
 
-    public static CreativeTabs getTab(String key, ECModElements initializer) {
+    public static CreativeTabs getTab(String key, ECModElements elements) {
         CreativeTabs creativeTabs = null;
         if (key != null && !key.isEmpty()) {
-            creativeTabs = initializer.tabs.get(key);
+            creativeTabs = elements == null ? null : elements.tabs.get(key);
             if (creativeTabs == null) {
                 for (ECModContainer mod : ECModContainer.MODS.values()) {
-                    creativeTabs = mod.elements.tabs.get(key);
+                    creativeTabs = mod.elements.tabs == null ? null : mod.elements.tabs.get(key);
                     if (creativeTabs != null) {
                         break;
                     }
@@ -129,5 +134,21 @@ public class LoaderHelper {
                 ((BlockFluidBase) fluidBlock).setDensity(density);
             }
         }
+    }
+
+    public static <K, V> HashMap<K, V> createMap(Set... sets) {
+        int size = 0;
+        for (Set set : sets) {
+            size += set == null ? 0 : set.size();
+        }
+        return new HashMap<>(size);
+    }
+
+    public static <K, V> HashMap<K, V> createMap(int start, Set... sets) {
+        int size = start;
+        for (Set set : sets) {
+            size += set == null ? 0 : set.size();
+        }
+        return new HashMap<>(size);
     }
 }

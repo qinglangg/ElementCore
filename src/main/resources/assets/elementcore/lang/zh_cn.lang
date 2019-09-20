@@ -3,11 +3,8 @@ itemGroup.elementcore.main=元素核心
 # item
 item.elementcore.debugstick.client.name=调试棒(客户端)
 item.elementcore.debugstick.server.name=调试棒(服务端)
-item.elementcore.bottle.name=%s瓶
 # block
-# fluid
-fluid.elementcore.air=空气
-tile.elementcore.air.name=空气
+tile.elementcore.energy.name=创造能量盒
 # chat
 chat.elementcore.debug.noblock=(%d, %d, %d) 无方块
 chat.elementcore.debug.noblockte=方块 [%s] 无 TileEntity
