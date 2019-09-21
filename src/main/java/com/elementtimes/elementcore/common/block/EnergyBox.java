@@ -7,7 +7,6 @@ import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileEnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.EnergyGeneratorLifecycle;
-import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
@@ -83,10 +82,6 @@ public class EnergyBox extends BlockTileBase<EnergyBox.TileEntity> implements IT
 
         public EnergyType getType(EnumFacing facing) {
             return mType[facing.getIndex()];
-        }
-
-        public void markRender() {
-            
         }
 
         @Override

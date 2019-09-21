@@ -2,19 +2,12 @@ package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
 import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.template.block.Properties;
-import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
-import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.items.IItemHandler;
-
-import javax.annotation.Nullable;
 
 /**
  * 与机器每 tick 执行的工作有关的接口
@@ -116,47 +109,6 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
             setEnergyUnprocessed(newUnprocessed);
             setEnergyProcessed(getEnergyProcessed() + rDelta);
         }
-    }
-
-    /**
-     * 检查当前机器条件是否可以进行对应合成表的合成
-     * 通常包括是否具有此合成表，输入物体/流体/能量是否足够
-     *
-     * @return 通常意味着可以进行下一次合成。
-     */
-    default boolean isRecipeCanWork(@Nullable MachineRecipeCapture recipeCapture, IItemHandler itemHandler, ITankHandler tankHandler) {
-        if (recipeCapture == null) {
-            return false;
-        }
-        if (itemHandler.getSlots() < recipeCapture.inputs.size()
-                || tankHandler.size() < recipeCapture.fluidInputs.size()) {
-            return false;
-        }
-
-        // items
-        for (int i = recipeCapture.inputs.size() - 1; i >= 0; i--) {
-            ItemStack item = recipeCapture.inputs.get(i);
-            if (!item.isEmpty()) {
-                ItemStack extract = itemHandler.extractItem(i, item.getCount(), true);
-                if (!item.isItemEqual(extract) || item.getCount() > extract.getCount()) {
-                    return false;
-                }
-            } else {
-                ItemStack extract = itemHandler.getStackInSlot(i);
-                return item.getItem() == extract.getItem() && item.getItemDamage() == extract.getItemDamage();
-            }
-        }
-
-        // fluids
-        for (int i = 0; i < recipeCapture.fluidInputs.size(); i++) {
-            FluidStack fluid = recipeCapture.fluidInputs.get(i);
-            FluidStack drain = tankHandler.drainIgnoreCheck(i, fluid, false);
-            if (!fluid.isFluidEqual(drain) || fluid.amount > drain.amount) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**

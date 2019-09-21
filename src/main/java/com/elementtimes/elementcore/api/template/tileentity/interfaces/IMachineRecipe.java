@@ -29,23 +29,6 @@ public interface IMachineRecipe extends INBTSerializable<NBTTagCompound> {
      */
     MachineRecipeHandler getRecipes();
 
-    /**
-     * 根据所在上下文获取可行的下一个合成表
-     * 通常这里只检查输入量是否足够
-     * @param input 输入物品
-     * @param tankHandler 输入流体
-     * @return 匹配的合成表
-     */
-    @Nullable
-    default MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
-        List<ItemStack> items = ECUtils.item.toList(input, getRecipeSlotIgnore());
-        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler);
-        MachineRecipeCapture[] captures = getRecipes().matchInput(items, fluids);
-        if (captures.length == 0) {
-            return null;
-        }
-        return captures[0];
-    }
 
     /**
      * 根据所在上下文获取正在执行的合成表

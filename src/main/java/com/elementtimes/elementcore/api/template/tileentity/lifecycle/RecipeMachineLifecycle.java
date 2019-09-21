@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.template.tileentity.lifecycle;
 
+import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
 import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import com.elementtimes.elementcore.api.template.capability.item.IItemHandler;
@@ -13,6 +14,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -84,8 +87,8 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
     @Override
     public boolean onCheckStart() {
         // 合成表
-        recipe = machine.getNextRecipe(inputItems, inputTanks);
-        if (machine.isRecipeCanWork(recipe, inputItems, inputTanks)) {
+        recipe = getNextRecipe(inputItems, inputTanks);
+        if (isRecipeCanWork(recipe, inputItems, inputTanks)) {
             // 能量
             assert recipe != null;
             int change = recipe.energy;
@@ -277,5 +280,63 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
         ItemStack input = inputItems.getStackInSlot(slotInput).copy();
         int bind = outputItems.bind(input);
         mBindInputToOutputMap.put(slotInput, bind);
+    }
+
+    /**
+     * 检查当前机器条件是否可以进行对应合成表的合成
+     * 通常包括是否具有此合成表，输入物体/流体/能量是否足够
+     *
+     * @return 通常意味着可以进行下一次合成。
+     */
+    protected boolean isRecipeCanWork(@Nullable MachineRecipeCapture recipeCapture, net.minecraftforge.items.IItemHandler itemHandler, ITankHandler tankHandler) {
+        if (recipeCapture == null) {
+            return false;
+        }
+        if (itemHandler.getSlots() < recipeCapture.inputs.size()
+                || tankHandler.size() < recipeCapture.fluidInputs.size()) {
+            return false;
+        }
+
+        // items
+        for (int i = 0; i < recipeCapture.inputs.size(); i++) {
+            ItemStack item = recipeCapture.inputs.get(i);
+            if (!item.isEmpty()) {
+                ItemStack extract = itemHandler.extractItem(i, item.getCount(), true);
+                if (!item.isItemEqual(extract) || item.getCount() > extract.getCount()) {
+                    return false;
+                }
+            } else {
+                return ECUtils.item.isItemRawEqual(item, itemHandler.getStackInSlot(i));
+            }
+        }
+
+        // fluids
+        for (int i = 0; i < recipeCapture.fluidInputs.size(); i++) {
+            FluidStack fluid = recipeCapture.fluidInputs.get(i);
+            FluidStack drain = tankHandler.drainIgnoreCheck(i, fluid, false);
+            if (!fluid.isFluidEqual(drain) || fluid.amount > drain.amount) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 根据所在上下文获取可行的下一个合成表
+     * 通常这里只检查输入量是否足够
+     * @param input 输入物品
+     * @param tankHandler 输入流体
+     * @return 匹配的合成表
+     */
+    @Nullable
+    protected MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
+        List<ItemStack> items = ECUtils.item.toList(input, machine.getRecipeSlotIgnore());
+        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler);
+        MachineRecipeCapture[] captures = machine.getRecipes().matchInput(items, fluids);
+        if (captures.length == 0) {
+            return null;
+        }
+        return captures[0];
     }
 }

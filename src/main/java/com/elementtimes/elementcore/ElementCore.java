@@ -5,25 +5,40 @@ import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
 import com.elementtimes.elementcore.api.annotation.ModItem;
 import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.template.block.BaseClosableMachine;
+import com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer;
+import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tabs.CreativeTabDynamic;
+import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
 import com.elementtimes.elementcore.common.block.EnergyBox;
 import com.elementtimes.elementcore.common.item.DebugStick;
+import com.elementtimes.elementcore.test.TileTest;
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.network.IGuiHandler;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import javax.annotation.Nullable;
 
 /**
  * 元素核心
  * @author luqin2007
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
+@SuppressWarnings({"unused"})
 @Mod(modid = ElementCore.MODID, name = "Element Core", version = ElementCore.VERSION)
 public class ElementCore {
     private static ElementCore INSTANCE = null;
@@ -47,6 +62,28 @@ public class ElementCore {
         for (ECModContainer mod : ECModContainer.MODS.values()) {
             mod.elements.fmlEventRegister.onInit(event);
         }
+        NetworkRegistry.INSTANCE.registerGuiHandler(this, new IGuiHandler() {
+            @Nullable
+            @Override
+            public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
+                TileEntity tileEntity = world.getTileEntity(new BlockPos(x, y, z));
+                if (tileEntity instanceof IGuiProvider) {
+                    return new BaseContainer(tileEntity, player);
+                }
+                return null;
+            }
+
+            @Nullable
+            @Override
+            @SideOnly(Side.CLIENT)
+            public Object getClientGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
+                TileEntity tileEntity = world.getTileEntity(new BlockPos(x, y, z));
+                if (tileEntity instanceof IGuiProvider) {
+                    return new BaseGuiContainer(new BaseContainer(tileEntity, player));
+                }
+                return getServerGuiElement(ID, player, world, x, y, z);
+            }
+        });
     }
 
     @EventHandler
@@ -79,7 +116,13 @@ public class ElementCore {
 
     public static class Blocks {
         @ModBlock(creativeTabKey = "main")
-        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.tileentity.EnergyBox$TileEntity")
+        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.EnergyBox$TileEntity")
         public static Block energy = new EnergyBox();
+
+        @ModBlock(creativeTabKey = "main")
+        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.test.TileTest")
+        @ModBlock.StateMapperCustom
+        @ModBlock.StateMap
+        public static Block test = new BaseClosableMachine<>(TileTest.class, ElementCore.INSTANCE);
     }
 }

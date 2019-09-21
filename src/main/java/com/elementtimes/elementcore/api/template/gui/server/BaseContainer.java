@@ -2,8 +2,6 @@ package com.elementtimes.elementcore.api.template.gui.server;
 
 import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
-import net.minecraft.client.gui.GuiScreenServerList;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -25,6 +23,10 @@ public class BaseContainer extends Container {
     public IGuiProvider provider;
     public IGuiProvider.GuiSize size;
     public TileEntity tile;
+
+    public BaseContainer(TileEntity tileEntity, EntityPlayer player) {
+        this(tileEntity, (IGuiProvider) tileEntity, player);
+    }
 
     public BaseContainer(TileEntity tileEntity, IGuiProvider provider, EntityPlayer player) {
         this.tile = tileEntity;

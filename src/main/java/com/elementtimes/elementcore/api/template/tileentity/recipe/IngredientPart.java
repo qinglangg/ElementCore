@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
+import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.template.interfaces.Function5;
 import com.elementtimes.elementcore.api.utils.FluidUtils;
 import net.minecraft.block.Block;
@@ -72,10 +73,6 @@ public class IngredientPart<T> {
         return this;
     }
 
-    private static boolean itemEqual(ItemStack is1, ItemStack is2) {
-        return is1.getItem() == is2.getItem() && is1.getItemDamage() == is2.getItemDamage();
-    }
-
     public static IngredientPart<ItemStack> forItem(Ingredient ingredient, int count) {
         Function5.Match<ItemStack> match = (recipe, slot, inputItems, inputFluids, input) -> ingredient.apply(input);
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) -> {
@@ -98,7 +95,7 @@ public class IngredientPart<T> {
                         .collect(Collectors.toList());
         Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> {
             for (ItemStack stack : ingredient.getMatchingStacks()) {
-                if (itemEqual(stack, input)) {
+                if (ECUtils.item.isItemRawEqual(stack, input)) {
                     return true;
                 }
             }
@@ -117,7 +114,7 @@ public class IngredientPart<T> {
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) ->
                 RAND.nextFloat() > probability ? ItemStack.EMPTY : itemStack.copy();
         Supplier<List<ItemStack>> allViableValues = () -> Collections.singletonList(itemStack);
-        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> itemEqual(input, itemStack);
+        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> ECUtils.item.isItemRawEqual(input, itemStack);
         return new IngredientPart<>(match, accept, get, allViableValues);
     }
 

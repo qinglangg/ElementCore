@@ -5,6 +5,7 @@ item.elementcore.debugstick.client.name=调试棒(客户端)
 item.elementcore.debugstick.server.name=调试棒(服务端)
 # block
 tile.elementcore.energy.name=创造能量盒
+item.elementcore.test.name=测试机器
 # chat
 chat.elementcore.debug.noblock=(%d, %d, %d) 无方块
 chat.elementcore.debug.noblockte=方块 [%s] 无 TileEntity

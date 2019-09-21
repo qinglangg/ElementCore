@@ -142,4 +142,21 @@ public class ItemUtils {
             }
         }
     }
+
+    public boolean isItemRawEqual(ItemStack is1, ItemStack is2) {
+        if (is1 == is2) {
+            return true;
+        }
+        if (is1.getCount() == 0 || is2.getCount() == 0) {
+            int i1 = is1.getCount();
+            int i2 = is2.getCount();
+            is1.setCount(1);
+            is2.setCount(1);
+            boolean equal = is1.isItemEqual(is2);
+            is1.setCount(i1);
+            is2.setCount(i2);
+            return equal;
+        }
+        return is1.isItemEqual(is2);
+    }
 }
