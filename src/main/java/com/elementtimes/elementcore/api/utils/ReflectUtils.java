@@ -371,4 +371,17 @@ public class ReflectUtils {
         }
         return Optional.ofNullable(obj);
     }
+
+    public void setFinalField(Field field, Object newValue) throws NoSuchFieldException, IllegalAccessException {
+        setFinalField(null, field, newValue);
+    }
+
+    public void setFinalField(Object object, Field field, Object newValue) throws NoSuchFieldException, IllegalAccessException {
+        final Field modifiersField = field.getClass().getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        final int modifiers = field.getModifiers();
+        modifiersField.setInt(field, modifiers & ~Modifier.FINAL);
+        field.set(object, newValue);
+        modifiersField.setInt(field, modifiers);
+    }
 }

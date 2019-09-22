@@ -105,7 +105,9 @@ public class ElementCore {
     public static class Items {
         @ModItem(creativeTabKey = "main")
         @ModItem.ItemColor("com.elementtimes.elementcore.client.DebugStickColor")
-        @ModItem.HasSubItem(metadatas = {0b0000, 0b0001}, models = {"minecraft:stick", "minecraft:stick"})
+        @ModItem.HasSubItem(
+                metadatas = {0b0000, 0b0001, 0b0010},
+                models = {"minecraft:stick", "minecraft:stick", "minecraft:stick"})
         public static Item debugger = new DebugStick();
     }
 

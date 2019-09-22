@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.tools;
 
+import com.elementtimes.elementcore.api.common.ECUtils;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.enchantment.EnumEnchantmentType;
 import net.minecraft.item.ItemStack;
@@ -10,7 +11,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -26,15 +26,6 @@ public class CreativeTabWrapper extends CreativeTabs {
     private final CreativeTabs tab;
     private final List<Predicate<ItemStack>> itemPredicates = new LinkedList<>();
 
-    private static void setStaticFinalField(Field field, Object newValue) throws NoSuchFieldException, IllegalAccessException {
-        final Field modifiersField = field.getClass().getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        final int modifiers = field.getModifiers();
-        modifiersField.setInt(field, modifiers & ~Modifier.FINAL);
-        field.set(null, newValue);
-        modifiersField.setInt(field, modifiers);
-    }
-
     public static CreativeTabWrapper apply(CreativeTabs tab, String label) {
         CreativeTabWrapper newTab = new CreativeTabWrapper(tab, label);
         // 替换成员
@@ -44,7 +35,7 @@ public class CreativeTabWrapper extends CreativeTabs {
                 Object o = field.get(null);
                 if (o == tab) {
                     field.setAccessible(true);
-                    setStaticFinalField(field, newTab);
+                    ECUtils.reflect.setFinalField(field, newTab);
                     break;
                 }
             } catch (IllegalAccessException | NoSuchFieldException e) {

@@ -17,9 +17,12 @@ public class DebugStickColor implements IItemColor {
         if (stack.getMetadata() == 0b0000) {
             // RED
             return 0xFFFF0000;
-        } else {
+        } else if (stack.getMetadata() == 0b0001) {
             // BLUE
             return 0xFF0000FF;
+        } else {
+            // YELLOW
+            return 0xFFFFFF00;
         }
     }
 }

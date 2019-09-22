@@ -3,6 +3,7 @@ itemGroup.elementcore.main=ElementCore
 # item
 item.elementcore.debugstick.client.name=Debug Stick(Client)
 item.elementcore.debugstick.server.name=Debug Stick(Server)
+item.elementcore.debugstick.tool.name=Debug Stick(Tool)
 # block
 tile.elementcore.energy.name=Creative Energy Box
 tile.elementcore.test.name=Test Machine

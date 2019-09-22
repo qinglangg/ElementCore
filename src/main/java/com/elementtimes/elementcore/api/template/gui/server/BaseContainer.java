@@ -155,7 +155,11 @@ public class BaseContainer extends Container {
             provider.getOpenedPlayers().remove(playerIn);
         }
         int guiId = provider.getGuiId();
-        GuiDataFromServer.ENERGIES.remove(guiId);
-        GuiDataFromServer.FLUIDS.remove(guiId);
+        if (GuiDataFromServer.ENERGIES.containsKey(guiId)) {
+            GuiDataFromServer.ENERGIES.remove(guiId);
+        }
+        if (GuiDataFromServer.FLUIDS.containsKey(guiId)) {
+            GuiDataFromServer.FLUIDS.remove(guiId);
+        }
     }
 }

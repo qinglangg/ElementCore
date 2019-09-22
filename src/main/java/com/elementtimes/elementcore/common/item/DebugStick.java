@@ -1,7 +1,11 @@
 package com.elementtimes.elementcore.common.item;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.util.SearchTree;
+import net.minecraft.client.util.SearchTreeManager;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -35,6 +39,7 @@ public class DebugStick extends Item {
         if (items.removeIf(is -> is.getItem() == this)) {
             items.add(new ItemStack(this, 1, 0b0000));
             items.add(new ItemStack(this, 1, 0b0001));
+            items.add(new ItemStack(this, 1, 0b0010));
         }
     }
 
@@ -44,9 +49,18 @@ public class DebugStick extends Item {
         public String getItemStackDisplayName(@Nonnull ItemStack stack) {
         if (stack.getMetadata() == 0b0000) {
             return TextFormatting.RED + I18n.translateToLocal("item.elementcore.debugstick.server.name");
-        } else {
+        } else if (stack.getMetadata() == 0b0001) {
             return TextFormatting.BLUE + I18n.translateToLocal("item.elementcore.debugstick.client.name");
+        } else if (stack.getMetadata() == 0b0010) {
+            return TextFormatting.YELLOW + I18n.translateToLocal("item.elementcore.debugstick.tool.name");
         }
+        return super.getItemStackDisplayName(stack);
+    }
+
+    @Override
+    public ItemStack onItemUseFinish(ItemStack stack, World worldIn, EntityLivingBase entityLiving) {
+        System.out.println(stack);
+        return super.onItemUseFinish(stack, worldIn, entityLiving);
     }
 
     @Nonnull
@@ -62,6 +76,11 @@ public class DebugStick extends Item {
             case 0b0001:
                 if (worldIn.isRemote) {
                     debug(worldIn, pos, player);
+                }
+                break;
+            case 0b0010:
+                if (!worldIn.isRemote) {
+                    onAction(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
                 }
                 break;
             default:
@@ -132,5 +151,13 @@ public class DebugStick extends Item {
                 player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + nbt.toString()));
             }
         }
+    }
+
+    private void onAction(EntityPlayer player,
+                          World worldIn, BlockPos pos,
+                          EnumHand hand, EnumFacing facing,
+                          float hitX, float hitY, float hitZ) {
+        EntityLightningBolt lightningBolt = new EntityLightningBolt(worldIn, pos.getX(), pos.getY(), pos.getZ(), false);
+        worldIn.addWeatherEffect(lightningBolt);
     }
 }
