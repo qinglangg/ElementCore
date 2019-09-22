@@ -44,7 +44,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.1";
+    static final String VERSION = "0.2.2";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
