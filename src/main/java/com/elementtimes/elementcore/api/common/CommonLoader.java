@@ -18,6 +18,7 @@ import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.item.crafting.ShapedRecipes;
 import net.minecraft.item.crafting.ShapelessRecipes;
+import net.minecraft.potion.Potion;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.gen.feature.WorldGenerator;
@@ -78,6 +79,8 @@ public class CommonLoader {
         loadEnchantment(elements);
         // element
         loadStaticFunction(elements);
+        // potion
+        loadPotion(elements);
         elements.container.warn("common load finished");
     }
 
@@ -515,12 +518,25 @@ public class CommonLoader {
                     String unlocalizedName = (String) asmData.getAnnotationInfo().get("unlocalizedName");
                     String creativeTabKey = (String) asmData.getAnnotationInfo().get("creativeTabKey");
                     if (className != null && !className.isEmpty()) {
-                        Block block = ECUtils.reflect.create(className, new Object[]{fluid}, Block.class, elements.container.logger).orElse(null);
-                        // fluid
-                        LoaderHelper.decorateFluidBlock(block, registerName, creativeTabKey, unlocalizedName, fluid.getName(), density, elements);
-                        if (block != null) {
-                            fluidBlock = (f) -> block;
-                        }
+                        fluidBlock = (f) -> {
+                            Optional<Block> blockOpt = ECUtils.reflect.create(className, new Object[]{f}, Block.class, elements.container.logger);
+                            if (blockOpt.isPresent()) {
+                                Block block = blockOpt.get();
+                                LoaderHelper.decorateFluidBlock(block, registerName, creativeTabKey, unlocalizedName, f.getName(), density, elements);
+                                return block;
+                            } else {
+                                ModAnnotation.EnumHolder holder = (ModAnnotation.EnumHolder) asmData.getAnnotationInfo().get("type");
+                                FluidBlockType type;
+                                if (holder == null) {
+                                    type = FluidBlockType.Classic;
+                                } else {
+                                    type = FluidBlockType.valueOf(holder.getValue());
+                                }
+                                Block block = type.create(f);
+                                LoaderHelper.decorateFluidBlock(block, registerName, creativeTabKey, unlocalizedName, fluid.getName(), density, elements);
+                                return block;
+                            }
+                        };
                     }
 
                     if (fluidBlock == null) {
@@ -798,6 +814,36 @@ public class CommonLoader {
             }
         }
         elements.container.warn("loadEnchantment: {}", elements.enchantments.size());
+    }
+
+    private static void loadPotion(ECModElements elements) {
+        Set<ASMDataTable.ASMData> asmDataSet = elements.asm.getAll(ModPotion.class.getName());
+        elements.potions = new ArrayList<>(asmDataSet == null ? 0 : asmDataSet.size());
+        if (asmDataSet != null) {
+            for (ASMDataTable.ASMData asmData : asmDataSet) {
+                LoaderHelper.getOrLoadClass(elements, asmData.getClassName()).ifPresent(clazz -> {
+                    Map<String, Object> annotationInfo = asmData.getAnnotationInfo();
+                    String objectName = asmData.getObjectName();
+                    String registerName = (String) annotationInfo.getOrDefault("value", objectName);
+                    String potionName = (String) annotationInfo.getOrDefault("name", objectName);
+                    ECUtils.reflect.getField(clazz, objectName, null, Potion.class, elements.container.logger).ifPresent(potion -> {
+                        if (potion.getRegistryName() == null) {
+                            if (registerName.contains(":")) {
+                                potion.setRegistryName(registerName);
+                            } else {
+                                potion.setRegistryName(elements.container.id(), registerName);
+                            }
+                        }
+
+                        if (potion.getName().isEmpty()) {
+                            potion.setPotionName(potionName);
+                        }
+
+                        elements.potions.add(potion);
+                    });
+                });
+            }
+        }
     }
 
     private static void loadStaticFunction(ECModElements elements) {

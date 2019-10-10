@@ -7,15 +7,24 @@ import java.lang.annotation.Target;
 
 /**
  * 药水
- * @deprecated 暂时未实现
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-@Deprecated
+@Target(ElementType.FIELD)
 @SuppressWarnings("unused")
 public @interface ModPotion {
-    String registerName();
-    String name();
-    String creativeTabClass() default "com.elementtimes.tutorial.common.creativetabs.ElementTimesTabs$Main";
+    /**
+     * RegistryName
+     * 默认 变量名
+     * @return RegistryName
+     */
+    String value() default "";
+
+    /**
+     * PotionName
+     * 默认 变量名
+     * @return PotionName
+     */
+    String name() default "";
+//    String creativeTabClass() default "com.elementtimes.tutorial.common.creativetabs.ElementTimesTabs$Main";
 }

@@ -105,9 +105,20 @@ public class ReflectUtils {
                 })
                 .findFirst();
         if (constructorOpt.isPresent()) {
-            return create(constructorOpt.get(), type, logger);
+            Constructor constructor = constructorOpt.get();
+            if (!constructor.isAccessible()) {
+                constructor.setAccessible(true);
+            }
+            try {
+                T instance = (T) constructor.newInstance(params);
+                return Optional.of(instance);
+            } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
+                return Optional.empty();
+            }
+        } else {
+            return create(aClass, type, logger);
         }
-        return Optional.empty();
     }
 
     /**

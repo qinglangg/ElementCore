@@ -12,7 +12,7 @@ import com.elementtimes.elementcore.api.template.tabs.CreativeTabDynamic;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
 import com.elementtimes.elementcore.common.block.EnergyBox;
 import com.elementtimes.elementcore.common.item.DebugStick;
-import com.elementtimes.elementcore.test.TileTest;
+import com.elementtimes.elementcore.common.block.tileentity.TileTest;
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
@@ -44,7 +44,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.2";
+    static final String VERSION = "0.2.3";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
@@ -113,16 +113,20 @@ public class ElementCore {
 
     public static class Tabs {
         @ModCreativeTabs
-        public static CreativeTabs main = new CreativeTabDynamic("elementcore.main", 20L, new ItemStack(Items.debugger, 1, 0), new ItemStack(Items.debugger, 1, 1));
+        public static CreativeTabs main = new CreativeTabDynamic("elementcore.main", 20L,
+                new ItemStack(Items.debugger, 1, 0),
+                new ItemStack(Items.debugger, 1, 1),
+                new ItemStack(Items.debugger, 1, 2));
     }
 
     public static class Blocks {
         @ModBlock(creativeTabKey = "main")
         @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.EnergyBox$TileEntity")
+        @ModBlock.Tooltip("ITileEnergy 测试")
         public static Block energy = new EnergyBox();
 
         @ModBlock(creativeTabKey = "main")
-        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.test.TileTest")
+        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.common.block.tileentity.TileTest")
         @ModBlock.StateMapperCustom
         @ModBlock.StateMap
         public static Block test = new BaseClosableMachine<>(TileTest.class, ElementCore.INSTANCE);

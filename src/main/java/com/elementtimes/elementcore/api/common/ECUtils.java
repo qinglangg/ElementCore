@@ -21,4 +21,6 @@ public class ECUtils {
     public static ArrayUtils array = ArrayUtils.getInstance();
 
     public static NBTUtils nbt = NBTUtils.getInstance();
+
+    public static StorageUtils storage = StorageUtils.getInstance();
 }

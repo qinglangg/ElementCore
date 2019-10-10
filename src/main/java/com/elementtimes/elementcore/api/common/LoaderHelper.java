@@ -120,7 +120,11 @@ public class LoaderHelper {
         if (fluidBlock != null) {
             registerName = (registerName == null || registerName.isEmpty()) ? name : registerName;
             if (fluidBlock.getRegistryName() == null) {
-                fluidBlock.setRegistryName(initializer.container.id(), registerName);
+                if (registerName.contains(":")) {
+                    fluidBlock.setRegistryName(registerName);
+                } else {
+                    fluidBlock.setRegistryName(initializer.container.id(), registerName);
+                }
             }
             registerName = fluidBlock.getRegistryName().getResourcePath();
             fluidBlock.setCreativeTab(getTab(creativeTabKey, initializer));

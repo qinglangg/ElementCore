@@ -1,4 +1,4 @@
-package com.elementtimes.elementcore.test;
+package com.elementtimes.elementcore.common.block.tileentity;
 
 import com.elementtimes.elementcore.ElementCore;
 import com.elementtimes.elementcore.api.annotation.ModInvokeStatic;
@@ -33,7 +33,7 @@ public class TileTest extends BaseTileEntity {
     }
 
     public TileTest() {
-        super(-1, 1, 1);
+        super(10000, 1, 1);
     }
 
     @Nonnull
