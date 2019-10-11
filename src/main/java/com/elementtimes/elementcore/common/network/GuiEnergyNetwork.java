@@ -1,7 +1,6 @@
 package com.elementtimes.elementcore.common.network;
 
 import com.elementtimes.elementcore.api.annotation.ModNetwork;
-import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
 import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -47,7 +46,7 @@ public class GuiEnergyNetwork implements IMessage {
         @Override
         public IMessage onMessage(GuiEnergyNetwork message, MessageContext ctx) {
             synchronized (this) {
-                GuiDataFromServer.ENERGIES.put(message.guiType,
+                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.put(message.guiType,
                         new HandlerInfoMachineLifecycle.EnergyInfo(message.capacity, message.energy));
             }
             return null;

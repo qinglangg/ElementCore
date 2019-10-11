@@ -1,6 +1,5 @@
 package com.elementtimes.elementcore.api.template.gui.server;
 
-import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -155,11 +154,13 @@ public class BaseContainer extends Container {
             provider.getOpenedPlayers().remove(playerIn);
         }
         int guiId = provider.getGuiId();
-        if (GuiDataFromServer.ENERGIES.containsKey(guiId)) {
-            GuiDataFromServer.ENERGIES.remove(guiId);
-        }
-        if (GuiDataFromServer.FLUIDS.containsKey(guiId)) {
-            GuiDataFromServer.FLUIDS.remove(guiId);
+        if (playerIn.world.isRemote) {
+            if (com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.containsKey(guiId)) {
+                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.remove(guiId);
+            }
+            if (com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.containsKey(guiId)) {
+                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.remove(guiId);
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.elementtimes.elementcore.api.template.gui.client;
 
-import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
@@ -8,8 +7,6 @@ import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInf
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.inventory.ClickType;
-import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;

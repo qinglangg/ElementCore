@@ -31,6 +31,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.nio.channels.NetworkChannel;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -138,7 +139,8 @@ public class ECModElements {
         this.container = new ECModContainer(modContainer, this, debugEnable);
         this.asm = event.getAsmData();
         this.fmlEventRegister = new FmlRegister(this);
-        this.channel = NetworkRegistry.INSTANCE.newSimpleChannel(container.id() + "_network_annotation");
+        // channel name 最大 20
+        this.channel = NetworkRegistry.INSTANCE.newSimpleChannel(newChannelName(modContainer.getModId()));
     }
 
     public static Builder builder() {
@@ -196,5 +198,27 @@ public class ECModElements {
     @SideOnly(Side.CLIENT)
     public com.elementtimes.elementcore.api.client.ECModElementsClient getClientElements() {
         return (com.elementtimes.elementcore.api.client.ECModElementsClient) clientElement;
+    }
+
+    private static String newChannelName(String modid) {
+        String channelNamePrefix;
+        String channelNameSuffix = "_channel";
+        if (modid.length() <= 12) {
+            channelNamePrefix = modid;
+        } else {
+            channelNamePrefix = modid.substring(0, 12);
+        }
+        String name = channelNamePrefix + channelNameSuffix;
+        int tryId = 0;
+        while (NetworkRegistry.INSTANCE.hasChannel(name, Side.CLIENT)
+                || NetworkRegistry.INSTANCE.hasChannel(name, Side.SERVER)) {
+            String prefix2 = tryId + channelNamePrefix;
+            if (prefix2.length() > 12) {
+                prefix2 = prefix2.substring(0, 12);
+            }
+            name = prefix2 + channelNameSuffix;
+            tryId++;
+        }
+        return name;
     }
 }

@@ -1,7 +1,6 @@
 package com.elementtimes.elementcore.common.network;
 
 import com.elementtimes.elementcore.api.annotation.ModNetwork;
-import com.elementtimes.elementcore.api.template.gui.GuiDataFromServer;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
 import com.elementtimes.elementcore.api.utils.FluidUtils;
@@ -70,7 +69,7 @@ public class GuiFluidNetwork implements IMessage {
         guiType = buf.readInt();
         int typeCount = buf.readInt();
         for (int t = 0; t < typeCount; t++) {
-            SideHandlerType type = SideHandlerType.valueOf(ByteBufUtils.readUTF8String(buf));
+            SideHandlerType type = SideHandlerType.get(buf.readInt());
             int count = buf.readInt();
             Int2ObjectMap<FluidStack> rFluids = new Int2ObjectArrayMap<>(count);
             Int2IntMap rCapabilities = new Int2IntArrayMap(count);
@@ -90,7 +89,7 @@ public class GuiFluidNetwork implements IMessage {
         buf.writeInt(guiType);
         buf.writeInt(fluids.size());
         fluids.keySet().forEach(type -> {
-            ByteBufUtils.writeUTF8String(buf, type.name());
+            buf.writeInt(type.id);
             Int2ObjectMap<FluidStack> rFluids = fluids.get(type);
             Int2IntMap rCapabilities = capabilities.get(type);
             buf.writeInt(rFluids.size());
@@ -124,7 +123,7 @@ public class GuiFluidNetwork implements IMessage {
                         fluids.get(type).put(slot, ImmutablePair.of(fluidStack, capability));
                     });
                 });
-                GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
+                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
             }
             return null;
         }

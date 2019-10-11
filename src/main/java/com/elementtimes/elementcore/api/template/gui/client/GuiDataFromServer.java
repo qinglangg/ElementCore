@@ -1,4 +1,4 @@
-package com.elementtimes.elementcore.api.template.gui;
+package com.elementtimes.elementcore.api.template.gui.client;
 
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
