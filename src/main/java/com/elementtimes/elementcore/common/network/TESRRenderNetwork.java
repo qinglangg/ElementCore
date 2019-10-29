@@ -25,6 +25,7 @@ public class TESRRenderNetwork implements IMessage {
     public NBTTagCompound nbt;
     public int dim;
     public BlockPos pos;
+    private boolean isValid = false;
 
     public TESRRenderNetwork() { }
 
@@ -36,9 +37,12 @@ public class TESRRenderNetwork implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        nbt = ByteBufUtils.readTag(buf);
-        pos = NBTUtil.getPosFromTag(Objects.requireNonNull(ByteBufUtils.readTag(buf)));
-        dim = buf.readInt();
+        try {
+            nbt = ByteBufUtils.readTag(buf);
+            pos = NBTUtil.getPosFromTag(Objects.requireNonNull(ByteBufUtils.readTag(buf)));
+            dim = buf.readInt();
+            isValid = true;
+        } catch (RuntimeException ignore) {}
     }
 
     @Override
@@ -52,7 +56,7 @@ public class TESRRenderNetwork implements IMessage {
 
         @Override
         public IMessage onMessage(TESRRenderNetwork message, MessageContext ctx) {
-            if (net.minecraftforge.fml.client.FMLClientHandler.instance().getWorldClient().provider.getDimension() == message.dim) {
+            if (message.isValid && net.minecraftforge.fml.client.FMLClientHandler.instance().getWorldClient().provider.getDimension() == message.dim) {
                 TileEntity te = net.minecraftforge.fml.client.FMLClientHandler.instance().getWorldClient().getTileEntity(message.pos);
                 if (te instanceof ITileTESR) {
                     ((ITileTESR) te).receiveRenderMessage(message.nbt);

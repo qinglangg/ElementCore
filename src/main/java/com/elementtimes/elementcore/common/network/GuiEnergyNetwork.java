@@ -14,6 +14,7 @@ public class GuiEnergyNetwork implements IMessage {
     int capacity;
     int energy;
     int guiType;
+    private boolean isValid = false;
 
     public GuiEnergyNetwork(int gui, int capacity, int energy) {
         this.guiType = gui;
@@ -27,9 +28,12 @@ public class GuiEnergyNetwork implements IMessage {
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        guiType = buf.readInt();
-        capacity = buf.readInt();
-        energy = buf.readInt();
+        try {
+            guiType = buf.readInt();
+            capacity = buf.readInt();
+            energy = buf.readInt();
+            isValid = true;
+        } catch (RuntimeException ignore) {}
     }
 
     @Override
@@ -46,8 +50,10 @@ public class GuiEnergyNetwork implements IMessage {
         @Override
         public IMessage onMessage(GuiEnergyNetwork message, MessageContext ctx) {
             synchronized (this) {
-                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.put(message.guiType,
-                        new HandlerInfoMachineLifecycle.EnergyInfo(message.capacity, message.energy));
+                if (message.isValid) {
+                    com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.put(message.guiType,
+                            new HandlerInfoMachineLifecycle.EnergyInfo(message.capacity, message.energy));
+                }
             }
             return null;
         }

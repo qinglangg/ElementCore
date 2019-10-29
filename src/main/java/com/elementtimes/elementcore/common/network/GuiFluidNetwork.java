@@ -33,6 +33,7 @@ public class GuiFluidNetwork implements IMessage {
     private Map<SideHandlerType, Int2ObjectMap<FluidStack>> fluids = new HashMap<>();
     private Map<SideHandlerType, Int2IntMap> capabilities = new HashMap<>();
     private int guiType;
+    private boolean isValid = false;
 
     public GuiFluidNetwork() { }
 
@@ -66,22 +67,25 @@ public class GuiFluidNetwork implements IMessage {
      */
     @Override
     public void fromBytes(ByteBuf buf) {
-        guiType = buf.readInt();
-        int typeCount = buf.readInt();
-        for (int t = 0; t < typeCount; t++) {
-            SideHandlerType type = SideHandlerType.get(buf.readInt());
-            int count = buf.readInt();
-            Int2ObjectMap<FluidStack> rFluids = new Int2ObjectArrayMap<>(count);
-            Int2IntMap rCapabilities = new Int2IntArrayMap(count);
-            for (int i = 0; i < count; i++) {
-                int slot = buf.readInt();
-                FluidStack fluid = FluidStack.loadFluidStackFromNBT(ByteBufUtils.readTag(buf));
-                rFluids.put(slot, fluid);
-                rCapabilities.put(slot, buf.readInt());
+        try {
+            guiType = buf.readInt();
+            int typeCount = buf.readInt();
+            for (int t = 0; t < typeCount; t++) {
+                SideHandlerType type = SideHandlerType.get(buf.readInt());
+                int count = buf.readInt();
+                Int2ObjectMap<FluidStack> rFluids = new Int2ObjectArrayMap<>(count);
+                Int2IntMap rCapabilities = new Int2IntArrayMap(count);
+                for (int i = 0; i < count; i++) {
+                    int slot = buf.readInt();
+                    FluidStack fluid = FluidStack.loadFluidStackFromNBT(ByteBufUtils.readTag(buf));
+                    rFluids.put(slot, fluid);
+                    rCapabilities.put(slot, buf.readInt());
+                }
+                fluids.put(type, rFluids);
+                capabilities.put(type, rCapabilities);
             }
-            fluids.put(type, rFluids);
-            capabilities.put(type, rCapabilities);
-        }
+            isValid = true;
+        } catch (Exception ignore) {}
     }
 
     @Override
@@ -112,18 +116,20 @@ public class GuiFluidNetwork implements IMessage {
         @Override
         synchronized public IMessage onMessage(GuiFluidNetwork message, MessageContext ctx) {
             synchronized (this) {
-                Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>> fluids = new HashMap<>();
-                message.fluids.keySet().forEach(type -> {
-                    Int2ObjectMap<FluidStack> rFluids = message.fluids.get(type);
-                    Int2IntMap rCapabilities = message.capabilities.get(type);
-                    fluids.put(type, new Int2ObjectArrayMap<>(rFluids.size()));
-                    rFluids.keySet().forEach(slot -> {
-                        FluidStack fluidStack = rFluids.get(slot);
-                        int capability = rCapabilities.get(slot);
-                        fluids.get(type).put(slot, ImmutablePair.of(fluidStack, capability));
+                if (message.isValid) {
+                    Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>> fluids = new HashMap<>();
+                    message.fluids.keySet().forEach(type -> {
+                        Int2ObjectMap<FluidStack> rFluids = message.fluids.get(type);
+                        Int2IntMap rCapabilities = message.capabilities.get(type);
+                        fluids.put(type, new Int2ObjectArrayMap<>(rFluids.size()));
+                        rFluids.keySet().forEach(slot -> {
+                            FluidStack fluidStack = rFluids.get(slot);
+                            int capability = rCapabilities.get(slot);
+                            fluids.get(type).put(slot, ImmutablePair.of(fluidStack, capability));
+                        });
                     });
-                });
-                com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
+                    com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
+                }
             }
             return null;
         }
