@@ -72,7 +72,8 @@ public class TileTest extends BaseTileEntity {
 
     @Override
     public String getTitle() {
-        return ElementCore.Blocks.test.getLocalizedName();
+//        return ElementCore.Blocks.test.getLocalizedName();
+        return "";
     }
 
     @Override

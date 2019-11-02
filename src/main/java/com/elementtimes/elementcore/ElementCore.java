@@ -44,7 +44,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.4";
+    static final String VERSION = "0.2.5";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
@@ -125,10 +125,10 @@ public class ElementCore {
         @ModBlock.Tooltip("ITileEnergy 测试")
         public static Block energy = new EnergyBox();
 
-        @ModBlock(creativeTabKey = "main")
-        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.common.block.tileentity.TileTest")
-        @ModBlock.StateMapperCustom
-        @ModBlock.StateMap
-        public static Block test = new BaseClosableMachine<>(TileTest.class, ElementCore.INSTANCE);
+//        @ModBlock(creativeTabKey = "main")
+//        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.common.block.tileentity.TileTest")
+//        @ModBlock.StateMapperCustom
+//        @ModBlock.StateMap
+//        public static Block test = new BaseClosableMachine<>(TileTest.class, ElementCore.INSTANCE);
     }
 }

@@ -59,6 +59,8 @@ public class IngredientPart<T> {
      */
     public float probability = 1.0f;
 
+    public List<String> tooltips = new ArrayList<>();
+
     public IngredientPart(Function5.Match<T> matcher, Function5.Match<T> accept, Function5.StackGetter<T> getter, Supplier<List<T>> allViableValues) {
         this.getter = getter;
         this.matcher = matcher;
@@ -70,6 +72,16 @@ public class IngredientPart<T> {
 
     public IngredientPart<T> withProbability(float probability) {
         this.probability = probability;
+        return this;
+    }
+
+    public IngredientPart<T> withStrings(String... strings) {
+        Collections.addAll(tooltips, strings);
+        return this;
+    }
+
+    public IngredientPart<T> withStrings(Collection<String> strings) {
+        tooltips.addAll(strings);
         return this;
     }
 

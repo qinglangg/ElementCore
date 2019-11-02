@@ -206,7 +206,7 @@ public interface IGuiProvider {
         }
 
         public GuiSize withProcess(int x, int y) {
-            return withEnergy(x, y, 0, height, 24, 17);
+            return withProcess(x, y, 0, height, 24, 17);
         }
     }
 
