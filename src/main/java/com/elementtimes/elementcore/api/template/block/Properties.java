@@ -1,9 +1,9 @@
 package com.elementtimes.elementcore.api.template.block;
 
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.properties.PropertyBool;
-import net.minecraft.block.properties.PropertyDirection;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.state.BooleanProperty;
+import net.minecraft.state.DirectionProperty;
+import net.minecraft.state.Property;
+import net.minecraft.util.Direction;
 
 /**
  * 方块属性集
@@ -11,7 +11,7 @@ import net.minecraft.util.EnumFacing;
  */
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class Properties {
-    public static final PropertyBool IS_RUNNING = PropertyBool.create("running");
-    public static final PropertyBool IS_BURNING = PropertyBool.create("burning");
-    public static final IProperty<EnumFacing> FACING = PropertyDirection.create("facing", EnumFacing.Plane.HORIZONTAL);
+    public static final BooleanProperty IS_RUNNING = BooleanProperty.create("running");
+    public static final BooleanProperty IS_BURNING = BooleanProperty.create("burning");
+    public static final Property<Direction> FACING = DirectionProperty.create("facing", Direction.Plane.HORIZONTAL);
 }

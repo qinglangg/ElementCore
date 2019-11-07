@@ -1,26 +1,34 @@
 package com.elementtimes.elementcore.api.utils;
 
+import com.elementtimes.elementcore.api.ECUtils;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import net.minecraft.block.Blocks;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * 物品/物品栈有关方法
  * @author lq2007
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
+@SuppressWarnings({"unused"})
 public class ItemUtils {
 
     private static ItemUtils u = null;
@@ -32,36 +40,12 @@ public class ItemUtils {
     }
 
     /**
-     * 获取适用于某一物品的所有附魔
-     * @param itemStack 要查找的物品
-     * @return 所有可被附魔到该物品的附魔
-     */
-    public List<Enchantment> getSuitableEnchantments(ItemStack itemStack) {
-        return GameRegistry.findRegistry(Enchantment.class).getValuesCollection().stream()
-                .filter(enchantment -> enchantment.canApply(itemStack))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 为某一物品附魔所有非诅咒的最大等级
-     * @param itemStack 要附魔的物品
-     */
-    public void addMaxEnchantments(ItemStack itemStack) {
-        EnchantmentHelper.setEnchantments(
-                getSuitableEnchantments(itemStack).stream()
-                        .filter(enchantment -> !enchantment.isCurse())
-                        .map(enchantment -> new ImmutablePair <>(enchantment, enchantment.getMaxLevel()))
-                        .collect(Collectors.toMap(ImmutablePair::getKey, ImmutablePair::getValue)),
-                itemStack
-        );
-    }
-
-    /**
      * 将一个物品容器中的物品转化为 ItemStack 列表
      * @param itemHandler 物品容器
+     * @param ignore 忽略的物品位置
      * @return 物品列表
      */
-    public List<ItemStack> toList(IItemHandler itemHandler, IntSet ignore) {
+    public List<ItemStack> collect(IItemHandler itemHandler, IntSet ignore) {
         List<ItemStack> input = new ArrayList<>(itemHandler.getSlots());
         for (int i = 0; i < itemHandler.getSlots(); i++) {
             if (!ignore.contains(i)) {
@@ -72,13 +56,26 @@ public class ItemUtils {
     }
 
     /**
+     * 将一个物品容器中的物品转化为 ItemStack 列表
+     * @param itemHandler 物品容器
+     * @return 物品列表
+     */
+    public List<ItemStack> collect(IItemHandler itemHandler) {
+        List<ItemStack> input = new ArrayList<>(itemHandler.getSlots());
+        for (int i = 0; i < itemHandler.getSlots(); i++) {
+            input.add(i, itemHandler.getStackInSlot(i));
+        }
+        return input;
+    }
+
+    /**
      * 将物品列表转化为 NBT 列表
      * @param items 物品列表
      * @return NBT 列表
      */
-    public NBTTagList toNBTList(List<ItemStack> items) {
-        NBTTagList list = new NBTTagList();
-        items.forEach(item -> list.appendTag(item.writeToNBT(new NBTTagCompound())));
+    public ListNBT save(List<ItemStack> items) {
+        ListNBT list = new ListNBT();
+        items.forEach(item -> list.add(item.write(new CompoundNBT())));
         return list;
     }
 
@@ -87,52 +84,52 @@ public class ItemUtils {
      * @param list NBT 列表
      * @return 物品列表
      */
-    public List<ItemStack> fromNBTList(NBTTagList list) {
-        int count = list.tagCount();
+    public List<ItemStack> read(ListNBT list) {
+        int count = list.size();
         List<ItemStack> itemStacks = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            itemStacks.add(new ItemStack(list.getCompoundTagAt(i)));
+            itemStacks.add(ItemStack.read(list.getCompound(i)));
         }
         return itemStacks;
     }
 
     /**
-     * 将 IItemHandler 写入 NBTTagCompound
+     * 将 IItemHandler 写入 CompoundNBT
      * @param handler IItemHandler
      * @param key key
-     * @param nbtTagCompound 待存储 NBTTagCompound
-     * @return nbtTagCompound
+     * @param compound 待存储 CompoundNBT
+     * @return compound
      */
-    public NBTTagCompound writeToNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
+    public CompoundNBT write(IItemHandler handler, String key, CompoundNBT compound) {
         if (handler.getSlots() != 0) {
             if (handler instanceof INBTSerializable) {
-                nbtTagCompound.setTag(key, ((INBTSerializable) handler).serializeNBT());
+                compound.put(key, ((INBTSerializable) handler).serializeNBT());
             } else {
-                NBTTagList list = new NBTTagList();
+                ListNBT list = new ListNBT();
                 for (int i = 0; i < handler.getSlots(); i++) {
-                    list.appendTag(handler.getStackInSlot(i).serializeNBT());
+                    list.add(handler.getStackInSlot(i).serializeNBT());
                 }
-                nbtTagCompound.setTag(key, list);
+                compound.put(key, list);
             }
         }
-        return nbtTagCompound;
+        return compound;
     }
 
     /**
-     * 从 NBTTagCompound 恢复 IItemHandler
+     * 从 CompoundNBT 恢复 IItemHandler
      * @param handler IItemHandler
      * @param key key
-     * @param nbtTagCompound 待存储 NBTTagCompound
+     * @param compound 待存储 CompoundNBT
      */
-    public void readFromNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
+    public void read(IItemHandler handler, String key, CompoundNBT compound) {
         if (handler instanceof INBTSerializable) {
             //noinspection unchecked
-            ((INBTSerializable) handler).deserializeNBT(nbtTagCompound.getTag(key));
+            ((INBTSerializable) handler).deserializeNBT(compound.get(key));
         } else {
-            NBTTagList list = (NBTTagList) nbtTagCompound.getTag(key);
-            int count = Math.min(list.tagCount(), handler.getSlots());
+            ListNBT list = compound.getList(key, Constants.NBT.TAG_COMPOUND);
+            int count = Math.min(list.size(), handler.getSlots());
             for (int i = 0; i < count; i++) {
-                ItemStack stack = new ItemStack(list.getCompoundTagAt(i));
+                ItemStack stack = ItemStack.read(list.getCompound(i));
                 if (handler instanceof IItemHandlerModifiable) {
                     ((IItemHandlerModifiable) handler).setStackInSlot(i, stack);
                 } else {
@@ -143,7 +140,15 @@ public class ItemUtils {
         }
     }
 
-    public boolean isItemRawEqual(ItemStack is1, ItemStack is2) {
+    /**
+     * 比较两个物品栈的物品是否相同
+     * 不比较 NBT 和 damage
+     * 主要用于当 ItemStack 物品数量为 0 时返回 AIR 无法比较物品是否相同的问题
+     * @param is1 物品栈1
+     * @param is2 物品栈2
+     * @return 是否相同
+     */
+    public boolean isEqual(ItemStack is1, ItemStack is2) {
         if (is1 == is2) {
             return true;
         }
@@ -158,5 +163,74 @@ public class ItemUtils {
             return equal;
         }
         return is1.isItemEqual(is2);
+    }
+
+    /**
+     * 比较两个物品的 ItemTags 是否有相同项
+     * @param i1 物品1
+     * @param i2 物品2
+     * @return 是否等效
+     */
+    public boolean isEquivalent(Item i1, Item i2) {
+        if (i1 == i2) {
+            return true;
+        }
+        for (ResourceLocation tagName : i1.getTags()) {
+            Tag<Item> tag = ItemTags.getCollection().getOrCreate(tagName);
+            if (i2.isIn(tag)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 根据物品 RegisterName 获取已注册或 Tag 物品
+     * @param name RegisterName
+     * @return RegisterName
+     */
+    public Item getItem(String name) {
+        return getItem(new ResourceLocation(name.toLowerCase()));
+    }
+
+    /**
+     * 根据物品 RegisterName 获取已注册或 Tag 物品
+     * @return RegisterName
+     */
+    public Item getItem(ResourceLocation name) {
+        if (name.equals(ForgeRegistries.BLOCKS.getKey(Blocks.AIR))) {
+            return Items.AIR;
+        } else {
+            Item item = ForgeRegistries.ITEMS.getValue(name);
+            if (item == Items.AIR) {
+                return ECUtils.tag.findItems(name).getAllElements().stream().findFirst().orElse(item);
+            }
+            return item;
+        }
+    }
+
+    public ItemStack addAllEnchantment(ItemStack itemStack) {
+        ItemStack stack = itemStack.copy();
+        bindAllEnchantment(stack);
+        return stack;
+    }
+
+    public void bindAllEnchantment(ItemStack itemStack) {
+        Map<Enchantment, Integer> collect = EnchantmentHelper.getEnchantments(itemStack).keySet().stream()
+                .collect(Collectors.toMap(enchantment -> enchantment, Enchantment::getMaxLevel));
+        EnchantmentHelper.setEnchantments(collect, itemStack);
+    }
+
+    public ItemStack addBestEnchantment(ItemStack itemStack) {
+        ItemStack stack = itemStack.copy();
+        bindBestEnchantment(stack);
+        return stack;
+    }
+
+    public void bindBestEnchantment(ItemStack itemStack) {
+        Map<Enchantment, Integer> collect = EnchantmentHelper.getEnchantments(itemStack).keySet().stream()
+                .filter(entry -> !entry.isCurse())
+                .collect(Collectors.toMap(enchantment -> enchantment, Enchantment::getMaxLevel));
+        EnchantmentHelper.setEnchantments(collect, itemStack);
     }
 }

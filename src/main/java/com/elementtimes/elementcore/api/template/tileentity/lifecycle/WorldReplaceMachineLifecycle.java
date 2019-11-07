@@ -1,23 +1,23 @@
 package com.elementtimes.elementcore.api.template.tileentity.lifecycle;
 
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
-import com.elementtimes.elementcore.api.utils.FluidUtils;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 用于替换世界中的方块的机器生命周期
@@ -26,8 +26,8 @@ import java.util.function.Function;
 public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
 
     private BaseTileEntity mMachine;
-    private Function<IBlockState, IBlockState> mReplacer;
-    private Function<IBlockState, ImmutablePair<Integer, Object>> mCollector;
+    private Function<BlockState, BlockState> mReplacer;
+    private Function<BlockState, ImmutablePair<Integer, Object>> mCollector;
     private int mWorkCycle;
     private int mRadius, mDepth;
     private List<BlockPos> mBlockPos = null;
@@ -36,14 +36,14 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
     private int mFindPtr = 0;
 
     private BlockPos mReplacePos = null;
-    private IBlockState mReplaceBs = null;
+    private BlockState mReplaceBs = null;
     private Pair<Integer, Object> mReplaceCollect = null;
 
     /**
      * 替换方块
      * @param machine 机器 TileEntity
-     * @param replacer 获取替换的方块。返回 IBlockState 本身或 null 都不会替换
-     * @param collector 根据替换的 IBlockState 收集产物。
+     * @param replacer 获取替换的方块。返回 BlockState 本身或 null 都不会替换
+     * @param collector 根据替换的 BlockState 收集产物。
      *                  该函数返回一个 Pair，left[Integer] 代表输出物品/流体槽位，right[Object]代表输出类型。
      *                  Object 为 Item/Block/ItemStack 时，代表输出到物品槽，数量为 1 或 ItemStack 的数量
      *                  Object 为 Fluid/FluidStack 时，代表输出到流体槽，数量为 Fluid.BUCKET 或 FluidStack 的数量
@@ -53,8 +53,8 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
      * @param depth 扫描的深度，扫描深度范围为从机器下一格算起，到机器 pos.y-depth 的位置
      */
     public WorldReplaceMachineLifecycle(BaseTileEntity machine,
-                                        Function<IBlockState, IBlockState> replacer,
-                                        Function<IBlockState, ImmutablePair<Integer, Object>> collector,
+                                        Function<BlockState, BlockState> replacer,
+                                        Function<BlockState, ImmutablePair<Integer, Object>> collector,
                                         int workCycle,
                                         int radius, int depth) {
         mMachine = machine;
@@ -68,13 +68,9 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
     @Override
     public void onTickStart() {
         if (mBlockPos == null) {
-            Iterable<BlockPos> allInBox = BlockPos.getAllInBox(
+            mBlockPos = BlockPos.getAllInBox(
                     mMachine.getPos().down().east(mRadius).north(mRadius),
-                    mMachine.getPos().down(mDepth).west(mRadius).south(mRadius));
-            mBlockPos = new ArrayList<>();
-            for (BlockPos pos : allInBox) {
-                mBlockPos.add(pos);
-            }
+                    mMachine.getPos().down(mDepth).west(mRadius).south(mRadius)).collect(Collectors.toList());
         }
 
         if (mIntervalCount >= mWorkCycle) {
@@ -92,7 +88,7 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
             World world = mMachine.getWorld();
             for (; mFindPtr < mBlockPos.size(); mFindPtr++) {
                 mReplacePos = mBlockPos.get(mFindPtr);
-                IBlockState replaceBsOri = world.getBlockState(mReplacePos);
+                BlockState replaceBsOri = world.getBlockState(mReplacePos);
                 mReplaceBs = mReplacer.apply(replaceBsOri);
                 if (mReplaceBs != null && mReplaceBs != replaceBsOri) {
                     mReplaceCollect = mCollector.apply(replaceBsOri);
@@ -110,7 +106,7 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
             Object right = mReplaceCollect.getRight();
             if (right != null) {
                 if (right instanceof Fluid) {
-                    markOutput(new FluidStack((Fluid) right, Fluid.BUCKET_VOLUME), mReplaceCollect.getLeft());
+                    markOutput(new FluidStack((Fluid) right, 1000), mReplaceCollect.getLeft());
                 } else if (right instanceof FluidStack) {
                     markOutput((FluidStack) right, mReplaceCollect.getLeft());
                 } else if (right instanceof Item) {
@@ -132,7 +128,7 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
         int size = capture.fluidOutputs.size();
         if (size <= slot) {
             for (; size <= slot; size++) {
-                capture.fluidOutputs.add(size, FluidUtils.EMPTY);
+                capture.fluidOutputs.add(size, new FluidStack(Fluids.EMPTY, 0));
             }
         }
         capture.fluidOutputs.set(slot, fluid);

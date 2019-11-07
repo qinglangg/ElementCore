@@ -11,20 +11,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-@SuppressWarnings("unused")
 public @interface ModPotion {
-    /**
-     * RegistryName
-     * 默认 变量名
-     * @return RegistryName
-     */
     String value() default "";
-
-    /**
-     * PotionName
-     * 默认 变量名
-     * @return PotionName
-     */
-    String name() default "";
-//    String creativeTabClass() default "com.elementtimes.tutorial.common.creativetabs.ElementTimesTabs$Main";
 }

@@ -2,7 +2,7 @@ package com.elementtimes.elementcore.api.template.capability.item;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -31,12 +31,12 @@ public class ItemHandlerVisitor implements IItemHandler {
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
-        return new NBTTagCompound();
+    public CompoundNBT serializeNBT() {
+        return new CompoundNBT();
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) { }
+    public void deserializeNBT(CompoundNBT nbt) { }
 
     private int select(int slot) {
         // check
@@ -240,12 +240,12 @@ public class ItemHandlerVisitor implements IItemHandler {
         }
 
         @Override
-        public NBTTagCompound serializeNBT() {
-            return new NBTTagCompound();
+        public CompoundNBT serializeNBT() {
+            return new CompoundNBT();
         }
 
         @Override
-        public void deserializeNBT(NBTTagCompound nbt) { }
+        public void deserializeNBT(CompoundNBT nbt) { }
 
         @Override
         public void setStackInSlot(int slot, @Nonnull ItemStack stack) { }

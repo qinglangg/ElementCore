@@ -1,10 +1,11 @@
 package com.elementtimes.elementcore.api.template.tileentity.lifecycle;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
+import com.elementtimes.elementcore.api.ECUtils;
 import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
-import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
+import com.elementtimes.elementcore.api.template.capability.fluid.vanilla.interfaces.IFluidHandler;
 import com.elementtimes.elementcore.api.template.capability.item.IItemHandler;
 import com.elementtimes.elementcore.api.template.capability.item.ItemHandler;
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
@@ -12,7 +13,6 @@ import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipe
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -29,9 +29,9 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
 
     private MachineRecipeCapture recipe;
     private final IItemHandler inputItems;
-    private final ITankHandler inputTanks;
+    private final IFluidHandler inputTanks;
     private final IItemHandler outputItems;
-    private final ITankHandler outputTanks;
+    private final IFluidHandler outputTanks;
     private final Int2IntMap mBindInputToOutputMap = new Int2IntOpenHashMap();
 
     public RecipeMachineLifecycle(final BaseTileEntity machine) {
@@ -214,14 +214,14 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
         for (int i = 0; i < max; i++) {
             if (recipe.fluidInputs.size() > i) {
                 FluidStack fluid = recipe.fluidInputs.get(i);
-                if (fluid != null && fluid.amount > 0) {
+                if (fluid != null && fluid.getAmount() > 0) {
                     int amountInput = recipe.fluidInputAmounts[i];
                     if (amountInput > 0) {
                         int amount;
                         if (machine.getEnergyUnprocessed() == 0) {
                             amount = amountInput;
                         } else {
-                            float amountFloat = fluid.amount * a;
+                            float amountFloat = fluid.getAmount() * a;
                             amount = (int) amountFloat;
                             if (amount == 0) {
                                 amount++;
@@ -230,14 +230,14 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
                         amount = Math.min(amount, amountInput);
                         if (amount > 0) {
                             if (simulate) {
-                                FluidStack drain = inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), false);
-                                if (drain == null || drain.amount < amount) {
+                                FluidStack drain = inputTanks.drainNotFilter(i, fluid.getFluid(), amount, false);
+                                if (drain == null || drain.getAmount() < amount) {
                                     return false;
                                 }
                             } else {
-                                FluidStack stack = inputTanks.drainIgnoreCheck(i, new FluidStack(fluid, amount), true);
+                                FluidStack stack = inputTanks.drainNotFilter(i, fluid.getFluid(), amount, true);
                                 if (stack != null) {
-                                    recipe.fluidInputAmounts[i] -= stack.amount;
+                                    recipe.fluidInputAmounts[i] -= stack.getAmount();
                                 }
                             }
                         }
@@ -247,10 +247,10 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
 
             if (recipe.fluidOutputs.size() > i) {
                 final FluidStack fluid = recipe.fluidOutputs.get(i);
-                if (fluid != null && fluid.amount > 0) {
+                if (fluid != null && fluid.getAmount() > 0) {
                     int amountOutput = recipe.fluidOutputAmounts[i];
                     if (amountOutput > 0) {
-                        float amountFloat = fluid.amount * a;
+                        float amountFloat = fluid.getAmount() * a;
                         int amount = (int) amountFloat;
                         if (amount == 0 || amountFloat - amount > 0) {
                             amount++;
@@ -258,12 +258,12 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
                         amount = Math.min(amount, amountOutput);
                         if (amount > 0) {
                             if (simulate) {
-                                int fill = outputTanks.fillIgnoreCheck(i, new FluidStack(fluid, amount), false);
+                                int fill = outputTanks.fillNotFilter(i, fluid.getFluid(), amount, false);
                                 if (fill < amount) {
                                     return false;
                                 }
                             } else {
-                                int amountFill = outputTanks.fillIgnoreCheck(i, new FluidStack(fluid.getFluid(), amount), true);
+                                int amountFill = outputTanks.fillNotFilter(i, fluid.getFluid(), amount, true);
                                 if (amountFill > 0) {
                                     recipe.fluidOutputAmounts[i] -= amountFill;
                                 }
@@ -288,12 +288,12 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
      *
      * @return 通常意味着可以进行下一次合成。
      */
-    protected boolean isRecipeCanWork(@Nullable MachineRecipeCapture recipeCapture, net.minecraftforge.items.IItemHandler itemHandler, ITankHandler tankHandler) {
+    protected boolean isRecipeCanWork(@Nullable MachineRecipeCapture recipeCapture, net.minecraftforge.items.IItemHandler itemHandler, IFluidHandler tankHandler) {
         if (recipeCapture == null) {
             return false;
         }
         if (itemHandler.getSlots() < recipeCapture.inputs.size()
-                || tankHandler.size() < recipeCapture.fluidInputs.size()) {
+                || tankHandler.getSize() < recipeCapture.fluidInputs.size()) {
             return false;
         }
 
@@ -306,15 +306,15 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
                     return false;
                 }
             } else {
-                return ECUtils.item.isItemRawEqual(item, itemHandler.getStackInSlot(i));
+                return ECUtils.item.isEqual(item, itemHandler.getStackInSlot(i));
             }
         }
 
         // fluids
         for (int i = 0; i < recipeCapture.fluidInputs.size(); i++) {
             FluidStack fluid = recipeCapture.fluidInputs.get(i);
-            FluidStack drain = tankHandler.drainIgnoreCheck(i, fluid, false);
-            if (!fluid.isFluidEqual(drain) || fluid.amount > drain.amount) {
+            FluidStack drain = tankHandler.drainNotFilter(i, fluid.getFluid(), fluid.getAmount(), false);
+            if (fluid.getAmount() > drain.getAmount()) {
                 return false;
             }
         }
@@ -330,9 +330,9 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
      * @return 匹配的合成表
      */
     @Nullable
-    protected MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
-        List<ItemStack> items = ECUtils.item.toList(input, machine.getRecipeSlotIgnore());
-        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler);
+    protected MachineRecipeCapture getNextRecipe(IItemHandler input, IFluidHandler tankHandler) {
+        List<ItemStack> items = ECUtils.item.collect(input, machine.getRecipeSlotIgnore());
+        List<FluidStack> fluids = ECUtils.fluid.collect(tankHandler);
         MachineRecipeCapture[] captures = machine.getRecipes().matchInput(items, fluids);
         if (captures.length == 0) {
             return null;

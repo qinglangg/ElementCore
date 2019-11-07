@@ -1,32 +1,29 @@
 package com.elementtimes.elementcore.api.template.gui.client;
 
+import com.elementtimes.elementcore.api.template.capability.fluid.FluidTankInfo;
 import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
-import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
-import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
+import com.elementtimes.elementcore.common.network.GuiDataNetwork;
+import com.mojang.blaze3d.platform.GlStateManager;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * GuiContainer
  * @author luqin2007
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
-@SideOnly(Side.CLIENT)
-public class BaseGuiContainer extends GuiContainer {
+@OnlyIn(Dist.CLIENT)
+public class BaseGuiContainer extends ContainerScreen<BaseContainer> {
 
     /**
      * 机器的 BaseContainer，内含其 TileEntity
@@ -34,24 +31,22 @@ public class BaseGuiContainer extends GuiContainer {
     protected BaseContainer container;
 
     // gui 数据
-    protected Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>> fluids;
-    protected HandlerInfoMachineLifecycle.EnergyInfo energy;
+    protected GuiDataNetwork mGuiData = null;
 
     public BaseGuiContainer(BaseContainer container) {
-        super(container);
+        super(container, container.player.inventory, container.provider.getDisplayName());
         this.container = container;
         xSize = container.size.width;
         ySize = container.size.height;
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    public void render(int mouseX, int mouseY, float partialTicks) {
         int gui = container.provider.getGuiId();
         synchronized (this) {
-            fluids = GuiDataFromServer.FLUIDS.get(gui);
-            energy = GuiDataFromServer.ENERGIES.get(gui);
+            mGuiData = GuiDataNetwork.DATA.get(gui);
         }
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        super.render(mouseX, mouseY, partialTicks);
         renderHoveredToolTip(mouseX, mouseY);
         renderHoveredFluid(mouseX, mouseY);
         renderHoveredEnergy(mouseX, mouseY);
@@ -59,19 +54,23 @@ public class BaseGuiContainer extends GuiContainer {
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        GlStateManager.color(1.0F, 1.0F, 1.0F);
-        this.mc.getTextureManager().bindTexture(container.provider.getBackground());
-        this.drawTexturedModalRect(getGuiLeft(), getGuiTop(), 0, 0, this.xSize, this.ySize);
-        // 能量
-        if (energy != null) {
+        GlStateManager.color3f(1.0F, 1.0F, 1.0F);
+        Objects.requireNonNull(this.minecraft).getTextureManager().bindTexture(container.provider.getBackground());
+        // 取代 drawTexturedModalRect
+        blit(getGuiLeft(), getGuiTop(), 0, 0, xSize, ySize);
+        if (mGuiData != null) {
+            // 能量
             for (IGuiProvider.Size energyGui : container.size.energy) {
                 renderGuiEnergy(energyGui);
             }
-        }
-        // 进度
-        short processValue = container.getEnergyProcessed();
-        for (IGuiProvider.Size process : container.size.process) {
-            renderGuiProcess(process, processValue);
+            // 进度
+            float processValue = 1f;
+            if (mGuiData.total != 0) {
+                processValue = ((float) mGuiData.process) / mGuiData.total;
+            }
+            for (IGuiProvider.Size process : container.size.process) {
+                renderGuiProcess(process, processValue);
+            }
         }
     }
 
@@ -79,39 +78,41 @@ public class BaseGuiContainer extends GuiContainer {
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         super.drawGuiContainerForegroundLayer(mouseX, mouseY);
         String name = container.getName();
-        this.fontRenderer.drawString(name,
-                (container.size.width - fontRenderer.getStringWidth(name)) / 2,
+        this.font.drawString(name,
+                (container.size.width - font.getStringWidth(name)) / 2,
                 container.provider.getSize().titleOffsetY, 0x404040);
         // 流体
-        if (fluids != null) {
-            renderGuiFluid();
-        }
+        renderGuiFluid();
     }
 
     private void renderGuiFluid() {
-        GlStateManager.color(1.0F, 1.0F, 1.0F);
+        GlStateManager.color3f(1.0F, 1.0F, 1.0F);
         for (IGuiProvider.FluidSlotInfo slotInfo : container.provider.getFluids()) {
-            SideHandlerType type = slotInfo.type;
             int slot = slotInfo.slotId;
-            Int2ObjectMap<ImmutablePair<FluidStack, Integer>> typedFluids = fluids.get(type);
+            Int2ObjectMap<FluidTankInfo> typedFluids;
+            switch (slotInfo.type) {
+                case INPUT:
+                    typedFluids = mGuiData.fluidInputs;
+                    break;
+                case OUTPUT:
+                    typedFluids = mGuiData.fluidOutputs;
+                    break;
+                default:
+                    typedFluids = mGuiData.fluidOthers;
+            }
             if (typedFluids != null) {
-                ImmutablePair<FluidStack, Integer> fluidPair = typedFluids.get(slot);
-                if (fluidPair != null) {
-                    float total = fluidPair.right;
-                    FluidStack fluidStack = fluidPair.left;
-                    if (fluidStack == null) {
-                        fluidStack = new FluidStack(FluidRegistry.WATER, 0);
-                    }
-                    ResourceLocation stillTexture = fluidStack.getFluid().getStill();
-                    ResourceLocation stillTexture2 = new ResourceLocation(stillTexture.getResourceDomain(), "textures/" + stillTexture.getResourcePath() + ".png");
-                    mc.getTextureManager().bindTexture(stillTexture2);
+                FluidTankInfo tank = typedFluids.get(slot);
+                if (tank != null) {
+                    // TODO: 获取 Fluid 材质
+                    ResourceLocation texture = tank.fluid.getRegistryName();
+                    minecraft.getTextureManager().bindTexture(texture);
                     if (slotInfo.isHorizontal) {
-                        int w = (int) (slotInfo.w * fluidStack.amount / total);
-                        this.drawTexturedModalRect(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
+                        int w = (int) (slotInfo.w * tank.amount / tank.capacity);
+                        this.blit(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
                     } else {
-                        int h = (int) (slotInfo.h * fluidStack.amount / total);
+                        int h = (int) (slotInfo.h * tank.amount / tank.capacity);
                         int y = slotInfo.y + slotInfo.h - h;
-                        this.drawTexturedModalRect(slotInfo.x, y, 0, 0, slotInfo.w, h);
+                        this.blit(slotInfo.x, y, 0, 0, slotInfo.w, h);
                     }
                 }
             }
@@ -119,40 +120,46 @@ public class BaseGuiContainer extends GuiContainer {
     }
 
     private void renderGuiEnergy(IGuiProvider.Size energyGui) {
-        int textureWidth = energy.capacity == 0 ? 0 : (int) (((float) energyGui.w) * energy.stored / energy.capacity);
-        this.drawTexturedModalRect(getGuiLeft() + energyGui.x, getGuiTop() + energyGui.y, energyGui.u, energyGui.v, textureWidth, energyGui.h);
+        int textureWidth = mGuiData.capacity == 0 ? 0 : (int) (((float) energyGui.w) * mGuiData.stored / mGuiData.capacity);
+        this.blit(getGuiLeft() + energyGui.x, getGuiTop() + energyGui.y, energyGui.u, energyGui.v, textureWidth, energyGui.h);
     }
 
-    private void renderGuiProcess(IGuiProvider.Size process, short processValue) {
-        int arrowWidth = process.w * processValue / Short.MAX_VALUE;
-        this.drawTexturedModalRect(getGuiLeft() + process.x,
+    private void renderGuiProcess(IGuiProvider.Size process, float processValue) {
+        int arrowWidth = (int) (process.w * processValue);
+        this.blit(getGuiLeft() + process.x,
                 getGuiTop() + process.y,
                 process.u, process.v, arrowWidth, process.h);
     }
 
     private void renderHoveredFluid(int mouseX, int mouseY) {
-        if (fluids != null) {
-            for (IGuiProvider.FluidSlotInfo fluidPosition : container.getFluidPositions()) {
-                if (mouseIn(mouseX, mouseY, fluidPosition.x, fluidPosition.y, fluidPosition.w, fluidPosition.h)) {
-                    ImmutablePair<FluidStack, Integer> pair = fluids.get(fluidPosition.type).get(fluidPosition.slotId);
-                    if (pair != null && pair.right > 0) {
-                        FluidStack fluidStack = pair.left;
-                        int total = pair.right;
-                        List<String> texts = new ArrayList<>(2);
-                        texts.add(fluidStack.getLocalizedName());
-                        texts.add(fluidStack.amount + "/" + total);
-                        drawHoveringText(texts, mouseX, mouseY);
-                    }
+        for (IGuiProvider.FluidSlotInfo fluidPosition : container.getFluidPositions()) {
+            if (mouseIn(mouseX, mouseY, fluidPosition.x, fluidPosition.y, fluidPosition.w, fluidPosition.h)) {
+                Int2ObjectMap<FluidTankInfo> typedFluids;
+                switch (fluidPosition.type) {
+                    case INPUT:
+                        typedFluids = mGuiData.fluidInputs;
+                        break;
+                    case OUTPUT:
+                        typedFluids = mGuiData.fluidOutputs;
+                        break;
+                    default:
+                        typedFluids = mGuiData.fluidOthers;
                 }
+                FluidTankInfo tank = typedFluids.get(fluidPosition.slotId);
+                List<String> texts = new ArrayList<>(2);
+                // TODO: 流体名称
+                texts.add(I18n.format(tank.fluid.getRegistryName().toString()));
+                texts.add(tank.amount + "/" + tank.capacity);
+                renderTooltip(texts, mouseX, mouseY);
             }
         }
     }
 
     private void renderHoveredEnergy(int mouseX, int mouseY) {
-        if (energy != null) {
+        if (mGuiData != null) {
             for (IGuiProvider.Size energyPosition : container.size.energy) {
                 if (mouseIn(mouseX, mouseY, energyPosition.x, energyPosition.y, energyPosition.w, energyPosition.h)) {
-                    drawHoveringText(Collections.singletonList(energy.stored + "/" + energy.capacity), mouseX, mouseY);
+                    renderTooltip(Collections.singletonList(mGuiData.stored + "/" + mGuiData.capacity), mouseX, mouseY);
                 }
             }
         }
@@ -165,10 +172,5 @@ public class BaseGuiContainer extends GuiContainer {
                 && mx <= (x + w)
                 && my >= y
                 && my <= (y + h);
-    }
-
-    @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 }

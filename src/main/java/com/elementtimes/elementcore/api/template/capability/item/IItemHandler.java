@@ -1,7 +1,7 @@
 package com.elementtimes.elementcore.api.template.capability.item;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
  * Mod 中使用的物品存储 IItemHandler 接口
  * @author luqin2007
  */
-public interface IItemHandler extends net.minecraftforge.items.IItemHandler, IItemHandlerModifiable, INBTSerializable<NBTTagCompound> {
+public interface IItemHandler extends net.minecraftforge.items.IItemHandler, IItemHandlerModifiable, INBTSerializable<CompoundNBT> {
 
     /**
      * 更改某一槽位允许存储物品的数量
@@ -39,6 +39,7 @@ public interface IItemHandler extends net.minecraftforge.items.IItemHandler, IIt
      * @param stack 物品
      * @return 是否可存入
      */
+    @Override
     boolean isItemValid(int slot, @Nonnull ItemStack stack);
 
     /**

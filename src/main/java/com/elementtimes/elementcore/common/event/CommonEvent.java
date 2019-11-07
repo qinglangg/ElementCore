@@ -1,13 +1,14 @@
 package com.elementtimes.elementcore.common.event;
 
-import com.elementtimes.elementcore.ElementCore;
+import com.elementtimes.elementcore.common.CoreElements;
+import com.elementtimes.elementcore.common.item.DebugStick;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.EntityStruckByLightningEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 @Mod.EventBusSubscriber
 public class CommonEvent {
@@ -15,20 +16,22 @@ public class CommonEvent {
     @SubscribeEvent
     public static void onLighting(EntityStruckByLightningEvent event) {
         Entity entity = event.getEntity();
-        if (entity instanceof EntityItem) {
-            ItemStack item = ((EntityItem) entity).getItem();
-            if (item.getItem() == ElementCore.Items.debugger) {
-                int metadata = item.getMetadata();
+        if (entity instanceof ItemEntity) {
+            ItemStack item = ((ItemEntity) entity).getItem();
+            if (item.getItem() == CoreElements.itemDebugger) {
                 ItemStack drop;
-                if (metadata == 0b0000) {
-                    drop = new ItemStack(ElementCore.Items.debugger, 1, 0b0001);
-                } else if (metadata == 0b0001) {
-                    drop = new ItemStack(ElementCore.Items.debugger, 1, 0b0010);
+                String[] typeAndServer = DebugStick.getTypeAndServer(item);
+                if (DebugStick.TYPE_DEBUG.equals(typeAndServer[0])) {
+                    if (DebugStick.SIDE_SERVER.equals(typeAndServer[1])) {
+                        drop = DebugStick.STACK_DEBUG_CLIENT.get();
+                    } else {
+                        drop = DebugStick.STACK_TOOL_SERVER.get();
+                    }
                 } else {
-                    drop = new ItemStack(ElementCore.Items.debugger, 1, 0b0000);
+                    drop = DebugStick.STACK_DEBUG_SERVER.get();
                 }
                 InventoryHelper.spawnItemStack(entity.world, entity.posX, entity.posY, entity.posZ, drop);
-                entity.setDead();
+                entity.remove();
                 event.setCanceled(true);
             }
         }

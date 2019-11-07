@@ -1,14 +1,24 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
+import com.elementtimes.elementcore.api.ECUtils;
+import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.Slot;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.ContainerType;
+import net.minecraft.inventory.container.INamedContainerProvider;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -16,7 +26,7 @@ import java.util.List;
  * @author luqin2007
  */
 @SuppressWarnings("unused")
-public interface IGuiProvider {
+public interface IGuiProvider extends INamedContainerProvider {
 
     Slot[] ITEM_NULL = new Slot[0];
     FluidSlotInfo[] FLUID_NULL = new FluidSlotInfo[0];
@@ -34,22 +44,20 @@ public interface IGuiProvider {
     GuiSize getSize();
 
     /**
-     * 获取显示文字
-     * @return 文字
-     */
-    String getTitle();
-
-    /**
      * 获取所有打开该机器gui的玩家，用于向他们同步信息
      * @return 所有打开该机器 gui 的玩家
      */
-    List<EntityPlayerMP> getOpenedPlayers();
+    List<PlayerEntity> getOpenedPlayers();
 
     /**
      * 获取 GUI 类型， 根据此打开对应的 GUI
      * @return GUI 类型
      */
     int getGuiId();
+
+    <T extends Container> ContainerType<T> getContainerType();
+
+    TileEntity getTileEntity();
 
     /**
      * 创建物品槽位
@@ -77,7 +85,13 @@ public interface IGuiProvider {
     /**
      * GUI 关闭时调用
      */
-    default void onGuiClosed(EntityPlayer player) {}
+    default void onGuiClosed(PlayerEntity player) {}
+
+    @Nullable
+    @Override
+    default Container createMenu(int id, PlayerInventory inventory, PlayerEntity player) {
+        return new BaseContainer(getTileEntity(), this, player);
+    }
 
     class FluidSlotInfo {
         final public int slotId, x, y, w, h;
@@ -206,7 +220,7 @@ public interface IGuiProvider {
         }
 
         public GuiSize withProcess(int x, int y) {
-            return withProcess(x, y, 0, height, 24, 17);
+            return withEnergy(x, y, 0, height, 24, 17);
         }
     }
 

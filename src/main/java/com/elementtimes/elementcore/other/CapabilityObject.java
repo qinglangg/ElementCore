@@ -2,8 +2,7 @@ package com.elementtimes.elementcore.other;
 
 import net.minecraftforge.common.capabilities.Capability;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.Callable;
 
 /**
  * 对于 Capability 的包装类
@@ -11,49 +10,13 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class CapabilityObject {
 
-    public final Class typeInterfaceClass, typeImplementationClass, storageClass;
+    public final Class typeInterfaceClass;
+    public final Capability.IStorage storage;
+    public final Callable defSupplier;
 
-    private Capability.IStorage mStorage = null;
-
-    public CapabilityObject(Class typeInterfaceClass, Class typeImplementationClass, Class storageClass) {
-        this.typeImplementationClass = typeImplementationClass;
+    public CapabilityObject(Class typeInterfaceClass, Capability.IStorage storage, Callable defSupplier) {
+        this.storage = storage;
         this.typeInterfaceClass = typeInterfaceClass;
-        this.storageClass = storageClass;
-    }
-
-    public Object newInstance() {
-        try {
-            Constructor constructor = typeImplementationClass.getConstructor();
-            if (constructor == null) {
-                constructor = typeImplementationClass.getDeclaredConstructor();
-                if (constructor != null) {
-                    constructor.setAccessible(true);
-                }
-            }
-            if (constructor != null) {
-                return constructor.newInstance();
-            }
-            return null;
-        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-            return null;
-        }
-    }
-
-    public Capability.IStorage storageInstance() {
-        if (mStorage == null) {
-            try {
-                Constructor constructor = storageClass.getConstructor();
-                if (constructor == null) {
-                    constructor = storageClass.getDeclaredConstructor();
-                    if (constructor != null) {
-                        constructor.setAccessible(true);
-                    }
-                }
-                if (constructor != null) {
-                    mStorage = (Capability.IStorage) constructor.newInstance();
-                }
-            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
-        }
-        return mStorage;
+        this.defSupplier = defSupplier;
     }
 }

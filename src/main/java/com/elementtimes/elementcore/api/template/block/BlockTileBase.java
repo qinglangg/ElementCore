@@ -1,117 +1,123 @@
 package com.elementtimes.elementcore.api.template.block;
 
 import com.elementtimes.elementcore.api.template.block.interfaces.IDismantleBlock;
+import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
-import net.minecraft.block.BlockContainer;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.network.NetworkHooks;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.util.function.Supplier;
 
 /**
  * 需要带有 TileEntity 的方块时继承此类
- *
+ * 15 25
  * @author KSGFK create in 2019/2/17
  */
-@SuppressWarnings("WeakerAccess")
-public class BlockTileBase<T extends TileEntity> extends BlockContainer implements IDismantleBlock {
+public class BlockTileBase<T extends TileEntity> extends Block implements IDismantleBlock {
 
-    private Class<T> mEntityClass;
-    private int mGui;
-    private Object mMod;
+    private Supplier<TileEntity> mTileEntityCreator;
 
-    private BlockTileBase(Material materialIn, int gui, Object mod) {
-        super(materialIn);
-        setHardness(15.0F);
-        setResistance(25.0F);
-        mGui = gui;
-        mMod = mod;
+    private BlockTileBase(Block.Properties properties) {
+        super(properties);
+        mTileEntityCreator = null;
     }
 
-    public BlockTileBase(Class<T> entityClass, Object mod) {
-        this(Material.IRON, 0, mod);
-        this.mEntityClass = entityClass;
+    public BlockTileBase(Block.Properties properties, Supplier<TileEntity> teCreator) {
+        this(properties);
+        mTileEntityCreator = teCreator;
+    }
+
+    public BlockTileBase(Block.Properties properties, TileEntityType<T> type) {
+        this(properties);
+        mTileEntityCreator = type::create;
+    }
+
+    public BlockTileBase(Block.Properties properties, Class<T> teClass) {
+        this(properties);
+        for (Constructor<?> c : teClass.getDeclaredConstructors()) {
+            if (c.getParameterCount() == 0) {
+                mTileEntityCreator = createCreator(c);
+                break;
+            } else if (c.getParameterCount() == 1 && Block.class.isAssignableFrom(c.getParameterTypes()[0])) {
+                mTileEntityCreator = createCreator(c, this);
+                break;
+            }
+        }
+    }
+
+    private Supplier<TileEntity> createCreator(Constructor c, Object... params) {
+        if (!Modifier.isPublic(c.getModifiers())) {
+            c.setAccessible(true);
+        }
+        final Constructor fc = c;
+        mTileEntityCreator = () -> {
+            try {
+                return (TileEntity) fc.newInstance(params);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+                return null;
+            }
+        };
+        return mTileEntityCreator;
+    }
+
+    @Override
+    public boolean hasTileEntity(BlockState state) {
+        return true;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(@SuppressWarnings("NullableProblems") World worldIn, int meta) {
-        try {
-            if (mEntityClass != null) {
-                for (Constructor<?> constructor : mEntityClass.getDeclaredConstructors()) {
-                    constructor.setAccessible(true);
-                    if (constructor.getParameterCount() == 0) {
-                        return (TileEntity) constructor.newInstance();
-                    }
-                }
-            }
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-            return null;
+    public TileEntity createTileEntity(BlockState state, IBlockReader world) {
+        if (mTileEntityCreator != null) {
+            return mTileEntityCreator.get();
         }
         return null;
     }
 
+    @Nonnull
     @Override
-    @SuppressWarnings("deprecation")
-    public boolean isFullCube(IBlockState state) {
-        return false;
+    public BlockRenderType getRenderType(BlockState state) {
+        return BlockRenderType.MODEL;
     }
 
     @Override
-    @SuppressWarnings("NullableProblems")
-    public EnumBlockRenderType getRenderType(IBlockState state) {//渲染类型设为普通方块
-        return EnumBlockRenderType.MODEL;
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public boolean isOpaqueCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state,
-                                    EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
-                                    float hitX, float hitY, float hitZ) {
-        if (!worldIn.isRemote) {
-            TileEntity e = worldIn.getTileEntity(pos);
-            if (e instanceof IGuiProvider) {
-                playerIn.openGui(mMod, ((IGuiProvider) e).getGuiId(), worldIn, pos.getX(), pos.getY(), pos.getZ());
-            } else {
-                playerIn.openGui(mMod, mGui, worldIn, pos.getX(), pos.getY(), pos.getZ());
+    public boolean onBlockActivated(BlockState state, World worldIn, BlockPos pos,
+                                    PlayerEntity player, Hand handIn, BlockRayTraceResult hit) {
+        TileEntity te = worldIn.getTileEntity(pos);
+        if (te instanceof IGuiProvider) {
+            BaseContainer.TE = te;
+            BaseContainer.GUI = (IGuiProvider) te;
+            if (!worldIn.isRemote) {
+                ServerPlayerEntity sp = (ServerPlayerEntity) player;
+                NetworkHooks.openGui(sp, (INamedContainerProvider) te);
             }
         }
         return true;
     }
 
     @Override
-    public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state,
-                                EntityLivingBase placer, ItemStack stack) {
+    public void onBlockPlacedBy(World worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
         IDismantleBlock.super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
     }
-
-//    @Override
-//    @SuppressWarnings("NullableProblems")
-//    // 不知道要不要删除。使用这个结果是无法用稿子敲下来
-//    public void harvestBlock(World worldIn, EntityPlayer player, BlockPos pos, IBlockState state, @Nullable TileEntity te, ItemStack stack) {
-//        if (worldIn.isRemote) return;
-//        worldIn.setBlockToAir(pos);
-//        TileEntity tile = worldIn.getTileEntity(pos);
-//        if (tile != null) {
-//            worldIn.removeTileEntity(pos);
-//        }
-//    }
 }

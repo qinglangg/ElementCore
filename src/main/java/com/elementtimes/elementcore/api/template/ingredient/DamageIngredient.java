@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.template.ingredient;
 
+import com.elementtimes.elementcore.api.template.ingredient.list.DamageItemList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.item.Item;
@@ -9,6 +10,7 @@ import net.minecraft.util.NonNullList;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 /**
  * 用于多物品耐久匹配的配方。
@@ -20,71 +22,9 @@ import javax.annotation.Nullable;
  */
 @SuppressWarnings("unused")
 public class DamageIngredient extends Ingredient {
-    private NonNullList<ItemStack> tools;
-    private IntList itemIds = null;
-    private ItemStack[] array = null;
-    private int lastSizeA = -1, lastSizeL = -1;
 
     public DamageIngredient(Item[] items, int damageCount) {
-        super(0);
-        tools = NonNullList.create();
-        for (Item item : items) {
-            ItemStack itemStack = new ItemStack(item);
-            tools.add(itemStack.copy());
-            if (item.isDamageable() && damageCount > 0) {
-                for (int i = 1; i < item.getMaxDamage(itemStack) - damageCount + 1; i++) {
-                    ItemStack stack = itemStack.copy();
-                    stack.setItemDamage(i);
-                    tools.add(stack);
-                }
-            }
-        }
-    }
-
-    @Override
-    @Nonnull
-    public ItemStack[] getMatchingStacks() {
-        if (array == null || lastSizeA != tools.size()) {
-            NonNullList<ItemStack> lst = NonNullList.create();
-            lst.addAll(tools);
-            array = lst.toArray(new ItemStack[0]);
-            lastSizeA = tools.size();
-        }
-        return array;
-    }
-
-    @Override
-    @Nonnull
-    public IntList getValidItemStacksPacked() {
-        if (itemIds == null || lastSizeL != tools.size()) {
-            itemIds = new IntArrayList(tools.size());
-
-            for (ItemStack itemstack : tools) {
-                int id = Item.REGISTRY.getIDForObject(itemstack.getItem()) << 16 | itemstack.getItemDamage() & 65535;
-                itemIds.add(id);
-            }
-            lastSizeL = tools.size();
-        }
-
-        return itemIds;
-    }
-
-    @Override
-    public boolean apply(@Nullable ItemStack input) {
-        if (input != null && !input.isEmpty()) {
-            for (ItemStack target : tools) {
-                if (target.isItemEqual(input)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    @Override
-    protected void invalidate() {
-        itemIds = null;
-        array = null;
+        super(Arrays.stream(items).map(item -> new DamageItemList(item, damageCount)));
     }
 
     @Override

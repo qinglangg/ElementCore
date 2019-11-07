@@ -1,8 +1,9 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Direction;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.items.CapabilityItemHandler;
@@ -17,160 +18,119 @@ import javax.annotation.Nullable;
 public interface ITileHandler {
 
     interface All extends ITileEnergyHandler, ITileItemHandler, ITileFluidHandler {
-        @Override
-        default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return ITileEnergyHandler.super.hasCapability(capability, facing)
-                    || ITileItemHandler.super.hasCapability(capability, facing)
-                    || ITileFluidHandler.super.hasCapability(capability, facing);
-        }
 
-        @Nullable
         @Override
-        default <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+        default <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
             if (capability == CapabilityEnergy.ENERGY) {
                 return ITileEnergyHandler.super.getCapability(capability, facing);
             }
             if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
                 return ITileItemHandler.super.getCapability(capability, facing);
             }
-            if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
+            if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || capability == com.elementtimes.elementcore.api.template.capability.fluid.vanilla.CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
                 return ITileFluidHandler.super.getCapability(capability, facing);
             }
-            return null;
+            return LazyOptional.empty();
         }
 
         @Override
-        default NBTTagCompound serializeNBT() {
-            return writeToNBT(new NBTTagCompound());
+        default void read(@Nonnull CompoundNBT compound) {
+            ITileItemHandler.super.read(compound);
+            ITileEnergyHandler.super.read(compound);
+            ITileFluidHandler.super.read(compound);
         }
 
+        @Nonnull
         @Override
-        default void deserializeNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.deserializeNBT(nbtTagCompound);
-            ITileEnergyHandler.super.deserializeNBT(nbtTagCompound);
-            ITileFluidHandler.super.deserializeNBT(nbtTagCompound);
-        }
-
-        @Override
-        default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-            nbtTagCompound = ITileItemHandler.super.writeToNBT(nbtTagCompound);
-            nbtTagCompound = ITileEnergyHandler.super.writeToNBT(nbtTagCompound);
-            nbtTagCompound = ITileFluidHandler.super.writeToNBT(nbtTagCompound);
-            return nbtTagCompound;
+        default CompoundNBT write(@Nonnull CompoundNBT compound) {
+            compound = ITileItemHandler.super.write(compound);
+            compound = ITileEnergyHandler.super.write(compound);
+            compound = ITileFluidHandler.super.write(compound);
+            return compound;
         }
     }
 
     interface ItemAndEnergy extends ITileEnergyHandler, ITileFluidHandler {
-        @Override
-        default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return ITileEnergyHandler.super.hasCapability(capability, facing)
-                    || ITileFluidHandler.super.hasCapability(capability, facing);
-        }
 
-        @Nullable
         @Override
-        default <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+        default <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
             if (capability == CapabilityEnergy.ENERGY) {
                 return ITileEnergyHandler.super.getCapability(capability, facing);
             }
-            if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
+            if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || capability == com.elementtimes.elementcore.api.template.capability.fluid.vanilla.CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
                 return ITileFluidHandler.super.getCapability(capability, facing);
             }
-            return null;
+            return LazyOptional.empty();
         }
 
         @Override
-        default NBTTagCompound serializeNBT() {
-            return writeToNBT(new NBTTagCompound());
+        default void read(@Nonnull CompoundNBT compound) {
+            ITileFluidHandler.super.read(compound);
+            ITileEnergyHandler.super.read(compound);
         }
 
+        @Nonnull
         @Override
-        default void deserializeNBT(NBTTagCompound nbtTagCompound) {
-            ITileEnergyHandler.super.deserializeNBT(nbtTagCompound);
-            ITileFluidHandler.super.deserializeNBT(nbtTagCompound);
-        }
-
-        @Override
-        default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-            ITileEnergyHandler.super.writeToNBT(nbtTagCompound);
-            ITileFluidHandler.super.writeToNBT(nbtTagCompound);
-            return nbtTagCompound;
+        default CompoundNBT write(@Nonnull CompoundNBT compound) {
+            compound = ITileEnergyHandler.super.write(compound);
+            compound = ITileFluidHandler.super.write(compound);
+            return compound;
         }
     }
 
     interface FluidAndEnergy extends ITileEnergyHandler, ITileItemHandler {
-        @Override
-        default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return ITileEnergyHandler.super.hasCapability(capability, facing)
-                    || ITileItemHandler.super.hasCapability(capability, facing);
-        }
 
-        @Nullable
         @Override
-        default <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+        default <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
             if (capability == CapabilityEnergy.ENERGY) {
                 return ITileEnergyHandler.super.getCapability(capability, facing);
             }
             if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
                 return ITileItemHandler.super.getCapability(capability, facing);
             }
-            return null;
+            return LazyOptional.empty();
         }
 
         @Override
-        default NBTTagCompound serializeNBT() {
-            return writeToNBT(new NBTTagCompound());
+        default void read(@Nonnull CompoundNBT compound) {
+            ITileItemHandler.super.read(compound);
+            ITileEnergyHandler.super.read(compound);
         }
 
+        @Nonnull
         @Override
-        default void deserializeNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.deserializeNBT(nbtTagCompound);
-            ITileEnergyHandler.super.deserializeNBT(nbtTagCompound);
-        }
-
-        @Override
-        default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.writeToNBT(nbtTagCompound);
-            ITileEnergyHandler.super.writeToNBT(nbtTagCompound);
-            return nbtTagCompound;
+        default CompoundNBT write(@Nonnull CompoundNBT compound) {
+            compound = ITileItemHandler.super.write(compound);
+            compound = ITileEnergyHandler.super.write(compound);
+            return compound;
         }
     }
 
     interface ItemAndFluid extends ITileItemHandler, ITileFluidHandler {
-        @Override
-        default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return ITileItemHandler.super.hasCapability(capability, facing)
-                    || ITileFluidHandler.super.hasCapability(capability, facing);
-        }
 
-        @Nullable
         @Override
-        default <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+        default <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
             if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
                 return ITileItemHandler.super.getCapability(capability, facing);
             }
             if (capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
                 return ITileFluidHandler.super.getCapability(capability, facing);
             }
-            return null;
+            return LazyOptional.empty();
         }
 
         @Override
-        default NBTTagCompound serializeNBT() {
-            return writeToNBT(new NBTTagCompound());
+        default void read(@Nonnull CompoundNBT compound) {
+            ITileItemHandler.super.read(compound);
+            ITileFluidHandler.super.read(compound);
         }
 
+        @Nonnull
         @Override
-        default void deserializeNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.deserializeNBT(nbtTagCompound);
-            ITileFluidHandler.super.deserializeNBT(nbtTagCompound);
-        }
-
-        @Override
-        default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-            ITileItemHandler.super.writeToNBT(nbtTagCompound);
-            ITileFluidHandler.super.writeToNBT(nbtTagCompound);
-            return nbtTagCompound;
+        default CompoundNBT write(@Nonnull CompoundNBT compound) {
+            compound = ITileItemHandler.super.write(compound);
+            compound = ITileFluidHandler.super.write(compound);
+            return compound;
         }
     }
 }

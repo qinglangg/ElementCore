@@ -1,7 +1,8 @@
 package com.elementtimes.elementcore.api.template.capability.fluid;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
@@ -140,16 +141,20 @@ public class TankHandlerVisitor implements ITankHandler {
     }
 
     @Override
-    public FluidStack drain(int slot, FluidStack resource, boolean doDrain) {
+    public int drain(int slot, FluidStack resource, boolean doDrain) {
         final int i = select(slot);
         if (i >= 0) {
             return mSelectHandler.get(i).drain(mSelectSlot.getInt(i), resource, doDrain);
         }
-        return null;
+        return 0;
     }
 
     @Override
     public FluidStack drainIgnoreCheck(int slot, FluidStack resource, boolean doDrain) {
+        final int i = select(slot);
+        if (i >= 0) {
+            return mSelectHandler.get(i).drainIgnoreCheck(mSelectSlot.getInt(i), resource, doDrain);
+        }
         return null;
     }
 
@@ -177,10 +182,10 @@ public class TankHandlerVisitor implements ITankHandler {
     }
 
     @Override
-    public FluidStack getFluid(int slot, boolean copy) {
+    public FluidStack getFluid(int slot) {
         final int i = select(slot);
         if (i >= 0) {
-            return mSelectHandler.get(i).getFluid(slot, copy);
+            return mSelectHandler.get(i).getFluid(slot);
         }
         return null;
     }
@@ -192,6 +197,22 @@ public class TankHandlerVisitor implements ITankHandler {
             return mSelectHandler.get(i).getCapacity(slot);
         }
         return 0;
+    }
+
+    @Override
+    public void setSlot(int slot, Fluid fluid, int amount) {
+        final int i = select(slot);
+        if (i >= 0) {
+            mSelectHandler.get(i).setSlot(slot, fluid, amount);
+        }
+    }
+
+    @Override
+    public void setSlot(int slot, int amount) {
+        final int i = select(slot);
+        if (i >= 0) {
+            mSelectHandler.get(i).setSlot(slot, amount);
+        }
     }
 
     @Nullable
@@ -212,12 +233,12 @@ public class TankHandlerVisitor implements ITankHandler {
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
-        return new NBTTagCompound();
+    public CompoundNBT serializeNBT() {
+        return new CompoundNBT();
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) { }
+    public void deserializeNBT(CompoundNBT nbt) { }
 
     private class Readonly implements ITankHandler {
 
@@ -248,8 +269,8 @@ public class TankHandlerVisitor implements ITankHandler {
         }
 
         @Override
-        public FluidStack drain(int slot, FluidStack resource, boolean doDrain) {
-            return null;
+        public int drain(int slot, FluidStack resource, boolean doDrain) {
+            return 0;
         }
 
         @Override
@@ -274,14 +295,12 @@ public class TankHandlerVisitor implements ITankHandler {
         }
 
         @Override
-        public NBTTagCompound serializeNBT() {
-            return new NBTTagCompound();
+        public CompoundNBT serializeNBT() {
+            return new CompoundNBT();
         }
 
         @Override
-        public void deserializeNBT(NBTTagCompound nbt) {
-
-        }
+        public void deserializeNBT(CompoundNBT nbt) { }
 
         @Override
         public int size() {
@@ -289,7 +308,7 @@ public class TankHandlerVisitor implements ITankHandler {
         }
 
         @Override
-        public FluidStack getFluid(int slot, boolean copy) {
+        public FluidStack getFluid(int slot) {
             return TankHandlerVisitor.this.getFluid(slot);
         }
 
@@ -297,5 +316,16 @@ public class TankHandlerVisitor implements ITankHandler {
         public int getCapacity(int slot) {
             return TankHandlerVisitor.this.getCapacity(slot);
         }
+
+        @Override
+        public void setSlot(int slot, Fluid fluid, int amount) {
+
+        }
+
+        @Override
+        public void setSlot(int slot, int amount) {
+
+        }
+
     }
 }

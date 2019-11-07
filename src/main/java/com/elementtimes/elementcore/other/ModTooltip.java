@@ -4,6 +4,8 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.*;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
@@ -17,7 +19,6 @@ import java.util.Objects;
 public class ModTooltip {
 
     private final String tooltip;
-    private final int[] metadata;
     private final int[] count;
     private final String[][] nbtOr;
     private final String[][] nbtAnd;
@@ -30,22 +31,19 @@ public class ModTooltip {
         final int split = tooltip.indexOf("->");
         if (split < 0) {
             this.tooltip = tooltip;
-            metadata = new int[0];
             count = new int[0];
             nbtOr = new String[0][];
             nbtAnd = new String[0][];
         } else if (split == 0) {
             this.tooltip = tooltip.substring(2);
-            metadata = new int[0];
             count = new int[0];
             nbtOr = new String[0][];
             nbtAnd = new String[0][];
-        } else if (split > 0 && (tooltip.startsWith("@n") || tooltip.startsWith("@c") || tooltip.startsWith("@m"))) {
+        } else if (split > 0 && (tooltip.startsWith("@n") || tooltip.startsWith("@c"))) {
             String conditionStr = tooltip.substring(0, split);
             this.tooltip = tooltip.substring(split + 2);
             final String[] conditions = conditionStr.split("@");
             count = buildConditions(conditions, "c");
-            metadata = buildConditions(conditions, "m");
             nbtAnd = buildConditions(conditions, true);
             nbtOr = buildConditions(conditions, false);
         } else {
@@ -65,24 +63,22 @@ public class ModTooltip {
         }
 
         if (stack.getItem() == item) {
-            if (metadata.length == 0 || ArrayUtils.contains(metadata, stack.getMetadata())) {
-                if (count.length == 0 || ArrayUtils.contains(count, stack.getCount())) {
-                    boolean checkNbt = false;
-                    NBTBase nbt;
-                    for (String[] strings : nbtOr) {
-                        checkNbt |= checkNbt(stack, strings);
-                        if (checkNbt) {
-                            break;
-                        }
+            if (count.length == 0 || ArrayUtils.contains(count, stack.getCount())) {
+                boolean checkNbt = false;
+                INBT nbt;
+                for (String[] strings : nbtOr) {
+                    checkNbt |= checkNbt(stack, strings);
+                    if (checkNbt) {
+                        break;
                     }
-                    for (String[] strings : nbtAnd) {
-                        checkNbt &= checkNbt(stack, strings);
-                        if (!checkNbt) {
-                            return false;
-                        }
-                    }
-                    return true;
                 }
+                for (String[] strings : nbtAnd) {
+                    checkNbt &= checkNbt(stack, strings);
+                    if (!checkNbt) {
+                        return false;
+                    }
+                }
+                return true;
             }
         }
         return false;
@@ -90,22 +86,21 @@ public class ModTooltip {
 
     public String buildTooltip(ItemStack itemStack) {
         return getNbt(itemStack, tooltip
-                .replace("@c", String.valueOf(itemStack.getCount()))
-                .replace("@m", String.valueOf(itemStack.getMetadata())));
+                .replace("@c", String.valueOf(itemStack.getCount())));
     }
 
-    public void addTooltip(ItemStack itemStack, List<String> tooltips) {
+    public void addTooltip(ItemStack itemStack, List<ITextComponent> tooltips) {
         if (match(itemStack)) {
-            tooltips.add(buildTooltip(itemStack));
+            tooltips.add(new StringTextComponent(buildTooltip(itemStack)));
         }
     }
 
     private boolean checkNbt(ItemStack itemStack, String[] strings) {
-        NBTBase nbt = itemStack.getTagCompound();
+        INBT nbt = itemStack.getTag();
         for (int i = 0; i < strings.length - 1; i++) {
             String value = strings[i];
-            if (nbt instanceof NBTTagCompound && ((NBTTagCompound) nbt).hasKey(value)) {
-                nbt = ((NBTTagCompound) nbt).getTag(value);
+            if (nbt instanceof CompoundNBT && ((CompoundNBT) nbt).contains(value)) {
+                nbt = ((CompoundNBT) nbt).get(value);
             } else {
                 return false;
             }
@@ -114,7 +109,7 @@ public class ModTooltip {
     }
 
     private String getNbt(ItemStack itemStack, String tooltip) {
-        if (itemStack.getTagCompound() == null) {
+        if (itemStack.getTag() == null) {
             return tooltip;
         }
         int left = tooltip.indexOf("@n{");
@@ -134,11 +129,11 @@ public class ModTooltip {
             tooltip = tooltip.substring(right + 1);
             // find
             String[] paths = tooltip.substring(left + 3, right).split(".");
-            NBTBase nbt = itemStack.getTagCompound();
+            INBT nbt = itemStack.getTag();
             boolean error = false;
             for (String path : paths) {
-                if (nbt instanceof NBTTagCompound && ((NBTTagCompound) nbt).hasKey(path)) {
-                    nbt = ((NBTTagCompound) nbt).getTag(path);
+                if (nbt instanceof CompoundNBT && ((CompoundNBT) nbt).contains(path)) {
+                    nbt = ((CompoundNBT) nbt).get(path);
                 } else {
                     error = true;
                     break;
@@ -155,20 +150,20 @@ public class ModTooltip {
         return builder.toString();
     }
 
-    private String nbtToString(NBTBase nbt) {
+    private String nbtToString(INBT nbt) {
         String n;
-        if (nbt instanceof NBTTagByte) {
-            n = String.valueOf(((NBTTagByte) nbt).getByte());
-        } else if (nbt instanceof NBTTagDouble) {
-            n = String.valueOf(((NBTTagDouble) nbt).getDouble());
-        } else if (nbt instanceof NBTTagFloat) {
-            n = String.valueOf(((NBTTagFloat) nbt).getFloat());
-        } else if (nbt instanceof NBTTagInt) {
-            n = String.valueOf(((NBTTagInt) nbt).getInt());
-        } else if (nbt instanceof NBTTagLong) {
-            n = String.valueOf(((NBTTagLong) nbt).getLong());
-        } else if (nbt instanceof NBTTagShort) {
-            n = String.valueOf(((NBTTagShort) nbt).getShort());
+        if (nbt instanceof ByteNBT) {
+            n = String.valueOf(((ByteNBT) nbt).getByte());
+        } else if (nbt instanceof DoubleNBT) {
+            n = String.valueOf(((DoubleNBT) nbt).getDouble());
+        } else if (nbt instanceof FloatNBT) {
+            n = String.valueOf(((FloatNBT) nbt).getFloat());
+        } else if (nbt instanceof IntNBT) {
+            n = String.valueOf(((IntNBT) nbt).getInt());
+        } else if (nbt instanceof LongNBT) {
+            n = String.valueOf(((LongNBT) nbt).getLong());
+        } else if (nbt instanceof ShortNBT) {
+            n = String.valueOf(((ShortNBT) nbt).getShort());
         } else {
             n = nbt.toString();
         }

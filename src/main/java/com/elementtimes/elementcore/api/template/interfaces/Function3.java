@@ -1,6 +1,6 @@
 package com.elementtimes.elementcore.api.template.interfaces;
 
-import net.minecraftforge.fluids.Fluid;
+import net.minecraft.fluid.Fluid;
 
 /**
  * 有三个输入，一个输出的函数

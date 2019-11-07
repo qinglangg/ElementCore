@@ -1,9 +1,9 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import com.elementtimes.elementcore.api.template.interfaces.Function5;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
-import net.minecraftforge.fluids.FluidStack;
 
 import java.util.List;
 import java.util.function.Function;

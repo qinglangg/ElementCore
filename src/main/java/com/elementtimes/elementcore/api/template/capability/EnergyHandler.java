@@ -1,6 +1,6 @@
 package com.elementtimes.elementcore.api.template.capability;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
@@ -14,7 +14,7 @@ import net.minecraftforge.energy.IEnergyStorage;
  * @author KSGFK create in 2019/3/9
  */
 @SuppressWarnings("unused")
-public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBTTagCompound> {
+public class EnergyHandler extends EnergyStorage implements INBTSerializable<CompoundNBT> {
 
     private int transfer = Integer.MAX_VALUE;
 
@@ -97,37 +97,37 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
-        NBTTagCompound nbt = new NBTTagCompound();
-        nbt.setInteger("capacity", capacity);
-        nbt.setInteger("receive", maxReceive);
-        nbt.setInteger("extract", maxExtract);
-        nbt.setInteger("energy", energy);
-        nbt.setInteger("transfer", transfer);
+    public CompoundNBT serializeNBT() {
+        CompoundNBT nbt = new CompoundNBT();
+        nbt.putInt("capacity", capacity);
+        nbt.putInt("receive", maxReceive);
+        nbt.putInt("extract", maxExtract);
+        nbt.putInt("energy", energy);
+        nbt.putInt("transfer", transfer);
         return nbt;
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey("capacity")) {
-            capacity = nbt.getInteger("capacity");
+    public void deserializeNBT(CompoundNBT nbt) {
+        if (nbt.contains("capacity")) {
+            capacity = nbt.getInt("capacity");
         }
 
-        if (nbt.hasKey("receive")) {
-            maxReceive = nbt.getInteger("receive");
+        if (nbt.contains("receive")) {
+            maxReceive = nbt.getInt("receive");
         }
 
-        if (nbt.hasKey("extract")) {
-            maxExtract = nbt.getInteger("extract");
+        if (nbt.contains("extract")) {
+            maxExtract = nbt.getInt("extract");
         }
 
-        if (nbt.hasKey("energy")) {
-            energy = nbt.getInteger("energy");
+        if (nbt.contains("energy")) {
+            energy = nbt.getInt("energy");
         }
         energy = Math.min(capacity, energy);
 
-        if (nbt.hasKey("transfer")) {
-            transfer = nbt.getInteger("transfer");
+        if (nbt.contains("transfer")) {
+            transfer = nbt.getInt("transfer");
         }
     }
 

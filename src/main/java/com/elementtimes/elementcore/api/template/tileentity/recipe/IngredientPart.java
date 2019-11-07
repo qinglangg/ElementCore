@@ -1,17 +1,19 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
+import com.elementtimes.elementcore.api.ECUtils;
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import com.elementtimes.elementcore.api.template.interfaces.Function5;
-import com.elementtimes.elementcore.api.utils.FluidUtils;
 import net.minecraft.block.Block;
-import net.minecraft.init.Items;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.item.crafting.Ingredient;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.Tag;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
 import net.minecraftforge.items.ItemHandlerHelper;
-import net.minecraftforge.oredict.OreIngredient;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -25,8 +27,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unused", "FieldCanBeLocal", "WeakerAccess", "unchecked"})
 public class IngredientPart<T> {
 
-    private static String SYMBOL_ITEM_ALL = "[all]";
-    private static String SYMBOL_ITEM_ORE = "[ore]";
+    private static String SYMBOL_ITEM_ORE = "[tag]";
     private static String SYMBOL_ITEM_ID = "[id]";
     protected static final Random RAND = new Random(System.currentTimeMillis());
 
@@ -86,7 +87,7 @@ public class IngredientPart<T> {
     }
 
     public static IngredientPart<ItemStack> forItem(Ingredient ingredient, int count) {
-        Function5.Match<ItemStack> match = (recipe, slot, inputItems, inputFluids, input) -> ingredient.apply(input);
+        Function5.Match<ItemStack> match = (recipe, slot, inputItems, inputFluids, input) -> ingredient.test(input);
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) -> {
             if (RAND.nextFloat() > probability) {
                 return ItemStack.EMPTY;
@@ -107,7 +108,7 @@ public class IngredientPart<T> {
                         .collect(Collectors.toList());
         Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> {
             for (ItemStack stack : ingredient.getMatchingStacks()) {
-                if (ECUtils.item.isItemRawEqual(stack, input)) {
+                if (ECUtils.item.isEqual(stack, input)) {
                     return true;
                 }
             }
@@ -126,7 +127,7 @@ public class IngredientPart<T> {
         Function5.StackGetter<ItemStack> get = (recipe, items, fluids, slot, probability) ->
                 RAND.nextFloat() > probability ? ItemStack.EMPTY : itemStack.copy();
         Supplier<List<ItemStack>> allViableValues = () -> Collections.singletonList(itemStack);
-        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> ECUtils.item.isItemRawEqual(input, itemStack);
+        Function5.Match<ItemStack> accept = (recipe, slot, inputItems, inputFluids, input) -> ECUtils.item.isEqual(input, itemStack);
         return new IngredientPart<>(match, accept, get, allViableValues);
     }
 
@@ -147,26 +148,27 @@ public class IngredientPart<T> {
     public static IngredientPart<ItemStack> forItem(Block block, int count) {
         return forItem(Item.getItemFromBlock(block), count);
     }
+
+    public static IngredientPart<ItemStack> forItem(ResourceLocation tagName, int count) {
+        Tag<Item> tag = ItemTags.getCollection().getOrCreate(tagName);
+        return forItem(Ingredient.fromTag(tag), count);
+    }
     
-    public static IngredientPart<ItemStack> forItem(String nameOrOreName, int count) {
-        if (nameOrOreName.startsWith(SYMBOL_ITEM_ID)) {
-            String name = nameOrOreName.substring(4);
-            Item item = Item.getByNameOrId(name);
+    public static IngredientPart<ItemStack> forItem(String nameOrTag, int count) {
+        if (nameOrTag.startsWith(SYMBOL_ITEM_ID)) {
+            String name = nameOrTag.substring(4);
+            Item item = Registry.ITEM.getOrDefault(new ResourceLocation(name.toLowerCase()));
             return IngredientPart.forItem(item, count);
-        } else if (nameOrOreName.startsWith(SYMBOL_ITEM_ORE)) {
-            String name = nameOrOreName.substring(5);
-            Ingredient ingredient = new OreIngredient(name);
+        } else if (nameOrTag.startsWith(SYMBOL_ITEM_ORE)) {
+            String name = nameOrTag.substring(5);
+            Tag<Item> tag = ItemTags.getCollection().getOrCreate(new ResourceLocation(name.toLowerCase()));
+            Ingredient ingredient = Ingredient.fromTag(tag);
             return IngredientPart.forItem(ingredient, count);
-        } else if (nameOrOreName.startsWith(SYMBOL_ITEM_ALL)) {
-            String name = nameOrOreName.substring(5);
-            Item item = Item.getByNameOrId(name);
-            Ingredient ingredientOre = new OreIngredient(name);
-            Ingredient ingredientItem = Ingredient.fromItem(item == null ? Items.AIR : item);
-            return IngredientPart.forItem(Ingredient.merge(Arrays.asList(ingredientItem, ingredientOre)), count);
         } else {
-            Item item = Item.getByNameOrId(nameOrOreName);
+            Item item = ECUtils.item.getItem(nameOrTag);
             if (item == null || item == Items.AIR) {
-                return IngredientPart.forItem(new OreIngredient(nameOrOreName), count);
+                ResourceLocation name = new ResourceLocation(nameOrTag.toLowerCase());
+                return IngredientPart.forItem(Ingredient.fromTag(ItemTags.getCollection().getOrCreate(name)), count);
             }
 			return IngredientPart.forItem(item, count);
         }
@@ -177,7 +179,7 @@ public class IngredientPart<T> {
     }
 
     public static IngredientPart<FluidStack> forFluid(FluidStack fluidStack) {
-        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && input.containsFluid(fluidStack);
+        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && input.contains(fluidStack);
         Function5.StackGetter<FluidStack> get = (recipe, items, fluids, slot, probability) ->
                 RAND.nextFloat() > probability ? null : fluidStack.copy();
         Supplier<List<FluidStack>> allViableValues = () -> Collections.singletonList(fluidStack);
@@ -186,7 +188,7 @@ public class IngredientPart<T> {
     }
 
     public static IngredientPart<FluidStack> forFluid(Fluid fluid, int amount) {
-        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && fluid == input.getFluid() && amount <= input.amount;
+        Function5.Match<FluidStack> match = (recipe, slot, inputItems, inputFluids, input) -> input != null && fluid == input.getFluid() && amount <= input.getAmount();
         Function5.StackGetter<FluidStack> get = (recipe, items, fluids, slot, probability) ->
                 RAND.nextFloat() > probability ? null : new FluidStack(fluid, amount);
         Supplier<List<FluidStack>> allViableValues = () -> Collections.singletonList(new FluidStack(fluid, amount));
@@ -259,6 +261,6 @@ public class IngredientPart<T> {
     public static IngredientPart<FluidStack> EMPTY_FLUID = new IngredientPart<>(
             (recipe, slot, inputItems, inputFluids, input) -> true,
             (recipe, slot, inputItems, inputFluids, input) -> false,
-            (recipe, items, fluids, slot, probability) -> FluidUtils.EMPTY,
-            () -> Collections.singletonList(FluidUtils.EMPTY));
+            (recipe, items, fluids, slot, probability) -> FluidStack.EMPTY,
+            () -> Collections.singletonList(FluidStack.EMPTY));
 }

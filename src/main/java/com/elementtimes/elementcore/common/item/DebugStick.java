@@ -1,30 +1,25 @@
 package com.elementtimes.elementcore.common.item;
 
+import com.elementtimes.elementcore.ElementCore;
+import com.elementtimes.elementcore.common.CoreElements;
 import net.minecraft.block.Block;
-import net.minecraft.client.util.SearchTree;
-import net.minecraft.client.util.SearchTreeManager;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.effect.EntityLightningBolt;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.effect.LightningBoltEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.*;
 import net.minecraft.nbt.*;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
+import net.minecraft.util.text.*;
+import net.minecraft.world.ServerWorld;
 import net.minecraft.world.World;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
+import java.util.function.Supplier;
 
 /**
  * 大小锤子
@@ -33,131 +28,197 @@ import java.util.Arrays;
  */
 public class DebugStick extends Item {
 
+    public static final String TYPE = "type";
+    public static final String TYPE_DEBUG = "debug";
+    public static final String TYPE_TOOL = "tool";
+    public static final String SIDE = "side";
+    public static final String SIDE_SERVER = "server";
+    public static final String SIDE_CLIENT = "client";
+
+    public static final Supplier<ItemStack> STACK_DEBUG_SERVER = () -> {
+        ItemStack stack = new ItemStack(CoreElements.itemDebugger);
+        stack.getOrCreateTag().putString(TYPE, TYPE_DEBUG);
+        stack.getOrCreateTag().putString(SIDE, SIDE_SERVER);
+        return stack;
+    };
+
+    public static final Supplier<ItemStack> STACK_DEBUG_CLIENT = () -> {
+        ItemStack stack = new ItemStack(CoreElements.itemDebugger);
+        stack.getOrCreateTag().putString(TYPE, TYPE_DEBUG);
+        stack.getOrCreateTag().putString(SIDE, SIDE_CLIENT);
+        return stack;
+    };
+
+    public static final Supplier<ItemStack> STACK_TOOL_SERVER = () -> {
+        ItemStack stack = new ItemStack(CoreElements.itemDebugger);
+        stack.getOrCreateTag().putString(TYPE, TYPE_TOOL);
+        stack.getOrCreateTag().putString(SIDE, SIDE_SERVER);
+        return stack;
+    };
+
+    public DebugStick() {
+        super(new Properties().group(CoreElements.main).rarity(Rarity.EPIC));
+    }
+
     @Override
-    public void getSubItems(@Nonnull CreativeTabs tab, @Nonnull NonNullList<ItemStack> items) {
-        super.getSubItems(tab, items);
-        if (items.removeIf(is -> is.getItem() == this)) {
-            items.add(new ItemStack(this, 1, 0b0000));
-            items.add(new ItemStack(this, 1, 0b0001));
-            items.add(new ItemStack(this, 1, 0b0010));
+    @Nonnull
+    public ItemStack getDefaultInstance() {
+        return STACK_DEBUG_SERVER.get();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void fillItemGroup(@Nonnull ItemGroup group, @Nonnull NonNullList<ItemStack> items) {
+        if (isInGroup(group)) {
+            items.add(STACK_DEBUG_SERVER.get());
+            items.add(STACK_DEBUG_CLIENT.get());
+            items.add(STACK_TOOL_SERVER.get());
         }
     }
 
     @Override
     @Nonnull
-    @SuppressWarnings({"deprecation"})
-        public String getItemStackDisplayName(@Nonnull ItemStack stack) {
-        if (stack.getMetadata() == 0b0000) {
-            return TextFormatting.RED + I18n.translateToLocal("item.elementcore.debugstick.server.name");
-        } else if (stack.getMetadata() == 0b0001) {
-            return TextFormatting.BLUE + I18n.translateToLocal("item.elementcore.debugstick.client.name");
-        } else if (stack.getMetadata() == 0b0010) {
-            return TextFormatting.YELLOW + I18n.translateToLocal("item.elementcore.debugstick.tool.name");
-        }
-        return super.getItemStackDisplayName(stack);
-    }
-
-    @Override
-    public ItemStack onItemUseFinish(ItemStack stack, World worldIn, EntityLivingBase entityLiving) {
-        System.out.println(stack);
-        return super.onItemUseFinish(stack, worldIn, entityLiving);
-    }
-
-    @Nonnull
-    @Override
-    public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        final ItemStack heldItem = player.getHeldItem(hand);
-        switch (heldItem.getMetadata()) {
-            case 0b0000:
-                if (!worldIn.isRemote) {
-                    debug(worldIn, pos, player);
+    public ITextComponent getDisplayName(@Nonnull ItemStack stack) {
+        String[] typeAndServer = getTypeAndServer(stack);
+        TranslationTextComponent text = new TranslationTextComponent("item.elementcore.debugstick." + typeAndServer[0] + "." + typeAndServer[1]);
+        Style style = text.getStyle();
+        switch (typeAndServer[0]) {
+            case TYPE_DEBUG:
+                switch (typeAndServer[1]) {
+                    case SIDE_SERVER:
+                        style.setColor(TextFormatting.RED);
+                        break;
+                    case SIDE_CLIENT:
+                        style.setColor(TextFormatting.BLUE);
+                        break;
+                    default:
+                        style.setColor(TextFormatting.GRAY);
                 }
                 break;
-            case 0b0001:
-                if (worldIn.isRemote) {
-                    debug(worldIn, pos, player);
-                }
-                break;
-            case 0b0010:
-                if (!worldIn.isRemote) {
-                    onAction(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
+            case TYPE_TOOL:
+                switch (typeAndServer[1]) {
+                    case SIDE_SERVER:
+                        style.setColor(TextFormatting.YELLOW);
+                        break;
+                    case SIDE_CLIENT:
+                    default:
+                        style.setColor(TextFormatting.GRAY);
                 }
                 break;
             default:
+                style.setColor(TextFormatting.GRAY);
         }
-        return super.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
+
+        return text;
     }
 
-    private void debug(World worldIn, BlockPos pos, EntityPlayer player) {
+    @Override
+    @Nonnull
+    public ActionResultType onItemUse(ItemUseContext context) {
+        String[] typeAndServer = getTypeAndServer(context.getItem());
+        World world = context.getWorld();
+        if (world.isRemote == SIDE_CLIENT.equals(typeAndServer[1])) {
+            switch (typeAndServer[0]) {
+                case TYPE_DEBUG:
+                    debug(world, context.getPos(), context.getPlayer());
+                    break;
+                case TYPE_TOOL:
+                    lighting(world, context.getPos());
+                    break;
+                default:
+            }
+        }
+        return super.onItemUse(context);
+    }
+
+    private void debug(World worldIn, BlockPos pos, PlayerEntity player) {
         Block block = worldIn.getBlockState(pos).getBlock();
         TileEntity te = worldIn.getTileEntity(pos);
         if (block == Blocks.AIR) {
             // 空气
-            player.sendMessage(new TextComponentTranslation("chat.elementcore.debug.noblock", pos.getX(), pos.getY(), pos.getZ()));
+            player.sendMessage(new TranslationTextComponent("chat.elementcore.debug.noblock", pos.getX(), pos.getY(), pos.getZ()));
         } else {
             debugTe(te, block, player);
         }
     }
 
-    private void debugTe(TileEntity te, Block block, EntityPlayer player) {
+    private void debugTe(TileEntity te, Block block, PlayerEntity player) {
         if (te == null) {
             // 无 te
-            player.sendMessage(new TextComponentTranslation("chat.elementcore.debug.noblockte", new ItemStack(block).getDisplayName()));
+            player.sendMessage(new TranslationTextComponent("chat.elementcore.debug.noblockte", new ItemStack(block).getDisplayName()));
         } else {
-            NBTTagCompound nbt = te.writeToNBT(new NBTTagCompound());
-            if (nbt.getKeySet().isEmpty()) {
+            CompoundNBT nbt = te.write(new CompoundNBT());
+            if (nbt.isEmpty()) {
                 // 无 nbt
-                player.sendMessage(new TextComponentTranslation("chat.elementcore.debug.nonbt", new ItemStack(block).getDisplayName()));
+                player.sendMessage(new TranslationTextComponent("chat.elementcore.debug.nonbt", new ItemStack(block).getDisplayName()));
             } else {
-                player.sendMessage(new TextComponentString(block.getLocalizedName()));
+                player.sendMessage(block.getNameTextComponent());
                 sendDebugChat(player, "", nbt, 0);
-                player.sendMessage(new TextComponentString("============================================================"));
+                player.sendMessage(new StringTextComponent("============================================================"));
             }
         }
     }
 
-    private void sendDebugChat(EntityPlayer player, String lastKey, NBTBase nbt, int level) {
+    private void sendDebugChat(PlayerEntity player, String lastKey, INBT nbt, int level) {
         StringBuilder space = new StringBuilder();
         for (int i = 1; i < level; i++) {
             space.append("    ");
         }
-        if (nbt instanceof NBTTagCompound) {
-            player.sendMessage(new TextComponentString(space.toString() + lastKey));
-            ((NBTTagCompound) nbt).getKeySet().forEach(key -> sendDebugChat(player, key, ((NBTTagCompound) nbt).getTag(key), level + 1));
+        if (nbt instanceof CompoundNBT) {
+            player.sendMessage(new StringTextComponent(space.toString() + lastKey));
+            ((CompoundNBT) nbt).keySet().forEach(key -> sendDebugChat(player, key, ((CompoundNBT) nbt).get(key), level + 1));
         } else {
-            if (nbt instanceof NBTTagList) {
-                for (int i = 0; i < ((NBTTagList) nbt).tagCount(); i++) {
-                    sendDebugChat(player, lastKey + "[" + i + "]", ((NBTTagList) nbt).get(i), level);
+            if (nbt instanceof CollectionNBT) {
+                for (int i = 0; i < ((CollectionNBT) nbt).size(); i++) {
+                    sendDebugChat(player, lastKey + "[" + i + "]", (INBT) ((CollectionNBT) nbt).get(i), level);
                 }
-            } else if (nbt instanceof NBTTagByte) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagByte) nbt).getByte()));
-            } else if (nbt instanceof NBTTagDouble) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagDouble) nbt).getDouble()));
-            } else if (nbt instanceof NBTTagFloat) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagFloat) nbt).getDouble()));
-            } else if (nbt instanceof NBTTagInt) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagInt) nbt).getDouble()));
-            } else if (nbt instanceof NBTTagLong) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagLong) nbt).getDouble()));
-            } else if (nbt instanceof NBTTagShort) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagShort) nbt).getDouble()));
-            } else if (nbt instanceof NBTTagByteArray) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + Arrays.toString(((NBTTagByteArray) nbt).getByteArray())));
-            } else if (nbt instanceof NBTTagIntArray) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + Arrays.toString(((NBTTagIntArray) nbt).getIntArray())));
-            } else if (nbt instanceof NBTTagString) {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + ((NBTTagString) nbt).getString()));
+            } else if (nbt instanceof ByteNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((ByteNBT) nbt).getByte()));
+            } else if (nbt instanceof DoubleNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((DoubleNBT) nbt).getDouble()));
+            } else if (nbt instanceof FloatNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((FloatNBT) nbt).getDouble()));
+            } else if (nbt instanceof IntNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((IntNBT) nbt).getInt()));
+            } else if (nbt instanceof LongNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((LongNBT) nbt).getLong()));
+            } else if (nbt instanceof ShortNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + ((ShortNBT) nbt).getShort()));
+            } else if (nbt instanceof StringNBT) {
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + nbt.getString()));
             } else {
-                player.sendMessage(new TextComponentString(space.toString() + lastKey + " = " + nbt.toString()));
+                player.sendMessage(new StringTextComponent(space.toString() + lastKey + " = " + nbt.toString()));
             }
         }
     }
 
-    private void onAction(EntityPlayer player,
-                          World worldIn, BlockPos pos,
-                          EnumHand hand, EnumFacing facing,
-                          float hitX, float hitY, float hitZ) {
-        EntityLightningBolt lightningBolt = new EntityLightningBolt(worldIn, pos.getX(), pos.getY(), pos.getZ(), false);
-        worldIn.addWeatherEffect(lightningBolt);
+    private void lighting(World worldIn, BlockPos pos) {
+        if (worldIn instanceof ServerWorld) {
+            LightningBoltEntity bolt = new LightningBoltEntity(worldIn, pos.getX(), pos.getY(), pos.getZ(), false);
+            ((ServerWorld) worldIn).addLightningBolt(bolt);
+        }
+    }
+
+    public static String[] getTypeAndServer(ItemStack stack) {
+        String type;
+        String side;
+        if (stack.hasTag()) {
+            CompoundNBT tag = stack.getTag();
+            assert tag != null;
+            if (tag.contains(TYPE)) {
+                type = tag.getString(TYPE);
+            } else {
+                type = TYPE_DEBUG;
+            }
+            if (tag.contains(SIDE)) {
+                side = tag.getString(SIDE);
+            } else {
+                side = SIDE_SERVER;
+            }
+        } else {
+            type = TYPE_DEBUG;
+            side = SIDE_SERVER;
+        }
+        return new String[] {type, side};
     }
 }
