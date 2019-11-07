@@ -1,19 +1,22 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
+import com.elementtimes.elementcore.api.ECUtils;
 import com.elementtimes.elementcore.api.template.block.Properties;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
+import com.elementtimes.elementcore.api.template.interfaces.INbtReadable;
+import net.minecraft.block.BlockState;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.INBTSerializable;
 
+import javax.annotation.Nonnull;
+
 /**
  * 与机器每 tick 执行的工作有关的接口
  * @author luqin
  */
-public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMachineLifecycle.IMachineLifecycleManager {
+public interface IMachineTickable extends IMachineLifecycle.IMachineLifecycleManager, INbtReadable {
 
     String TICKABLE = "_tickable_";
     String TICKABLE_IS_PAUSE = "_tickable_pause_";
@@ -117,10 +120,11 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
      * @param old 旧的 IBlockState
      * @return 新的 IBlockState
      */
-    default IBlockState updateState(IBlockState old) {
-        if (old.getPropertyKeys().contains(Properties.IS_RUNNING)) {
-            if (old.getValue(Properties.IS_RUNNING) != isWorking()) {
-                return old.withProperty(Properties.IS_RUNNING, isWorking());
+    default BlockState updateState(BlockState old) {
+        if (old.getProperties().contains(Properties.IS_RUNNING)) {
+            boolean working = isWorking();
+            if (old.get(Properties.IS_RUNNING) != working) {
+                return old.with(Properties.IS_RUNNING, working);
             }
         }
         return old;
@@ -164,7 +168,7 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
             }
             onTickFinish();
 
-            IBlockState newState = updateState(world.getBlockState(pos));
+            BlockState newState = updateState(world.getBlockState(pos));
             ECUtils.block.setBlockState(world, pos, newState, tileEntity);
             tileEntity.markDirty();
         } else {
@@ -173,37 +177,34 @@ public interface IMachineTickable extends INBTSerializable<NBTTagCompound>, IMac
     }
 
     @Override
-    default NBTTagCompound serializeNBT() {
-        return writeToNBT(new NBTTagCompound());
-    }
+    default void read(@Nonnull CompoundNBT compound) {
+        if (compound.contains(TICKABLE)) {
+            CompoundNBT tickable = compound.getCompound(TICKABLE);
 
-    @Override
-    default void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey(TICKABLE)) {
-            NBTTagCompound tickable = nbt.getCompoundTag(TICKABLE);
-
-            if (tickable.hasKey(TICKABLE_IS_PAUSE)) {
+            if (tickable.contains(TICKABLE_IS_PAUSE)) {
                 setPause(tickable.getBoolean(TICKABLE_IS_PAUSE));
             }
 
             setWorking(false);
 
-            if (tickable.hasKey(TICKABLE_PROCESSED)) {
-                setEnergyProcessed(tickable.getInteger(TICKABLE_PROCESSED));
+            if (tickable.contains(TICKABLE_PROCESSED)) {
+                setEnergyProcessed(tickable.getInt(TICKABLE_PROCESSED));
             }
 
-            if (tickable.hasKey(TICKABLE_UNPROCESSED)) {
-                setEnergyUnprocessed(tickable.getInteger(TICKABLE_UNPROCESSED));
+            if (tickable.contains(TICKABLE_UNPROCESSED)) {
+                setEnergyUnprocessed(tickable.getInt(TICKABLE_UNPROCESSED));
             }
         }
     }
 
-    default NBTTagCompound writeToNBT(NBTTagCompound nbt) {
-        NBTTagCompound tickable = new NBTTagCompound();
-        tickable.setBoolean(TICKABLE_IS_PAUSE, isWorking() || isPause());
-        tickable.setInteger(TICKABLE_PROCESSED, getEnergyProcessed());
-        tickable.setInteger(TICKABLE_UNPROCESSED, getEnergyUnprocessed());
-        nbt.setTag(TICKABLE, tickable);
-        return nbt;
+    @Nonnull
+    @Override
+    default CompoundNBT write(@Nonnull CompoundNBT compound) {
+        CompoundNBT tickable = new CompoundNBT();
+        tickable.putBoolean(TICKABLE_IS_PAUSE, isWorking() || isPause());
+        tickable.putInt(TICKABLE_PROCESSED, getEnergyProcessed());
+        tickable.putInt(TICKABLE_UNPROCESSED, getEnergyUnprocessed());
+        compound.put(TICKABLE, tickable);
+        return compound;
     }
 }

@@ -1,12 +1,12 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
+import com.elementtimes.elementcore.api.ECUtils;
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagIntArray;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.IntArrayNBT;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,7 +18,7 @@ import java.util.List;
  * 主要是考虑到能量消耗可能因配置文件或其他原因随时更改，且能量准确值在确定消耗前用处不大
  * @author luqin2007
  */
-public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
+public class MachineRecipeCapture implements INBTSerializable<CompoundNBT> {
     public MachineRecipe recipe;
     public List<ItemStack> inputs;
     public List<ItemStack> outputs;
@@ -41,7 +41,7 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
      * @param nbt NBT 数据
      * @return 恢复的合成表
      */
-    public static MachineRecipeCapture fromNbt(NBTTagCompound nbt) {
+    public static MachineRecipeCapture fromNbt(CompoundNBT nbt) {
         MachineRecipeCapture capture = new MachineRecipeCapture();
         capture.deserializeNBT(nbt);
         return capture;
@@ -79,7 +79,7 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
             IngredientPart<FluidStack> part = recipe.fluidInputs.get(i);
             FluidStack fluid = part.getter.apply(recipe, input, fluids, i, part.probability);
             fluidInputs.add(i, fluid);
-            fluidInputAmounts[i] = fluid.amount;
+            fluidInputAmounts[i] = fluid.getAmount();
         }
 
         this.fluidOutputs = new ArrayList<>(recipe.fluidOutputs.size());
@@ -88,39 +88,39 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
             IngredientPart<FluidStack> part = recipe.fluidOutputs.get(i);
             FluidStack fluid = part.getter.apply(recipe, input, fluids, i, part.probability);
             fluidOutputs.add(i, fluid);
-            fluidOutputAmounts[i] = fluid.amount;
+            fluidOutputAmounts[i] = fluid.getAmount();
         }
 
         this.energy = recipe.energy.applyAsInt(this);
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
-        NBTTagCompound nbtRecipe = new NBTTagCompound();
-        nbtRecipe.setTag(NBT_RECIPE_ITEM_INPUT, ECUtils.item.toNBTList(inputs));
-        nbtRecipe.setTag(NBT_RECIPE_FLUID_INPUT, ECUtils.fluid.saveToNbt(fluidInputs));
-        nbtRecipe.setTag(NBT_RECIPE_FLUID_INPUT_AMOUNT, new NBTTagIntArray(fluidInputAmounts));
-        nbtRecipe.setTag(NBT_RECIPE_ITEM_OUTPUT, ECUtils.item.toNBTList(outputs));
-        nbtRecipe.setTag(NBT_RECIPE_FLUID_OUTPUT, ECUtils.fluid.saveToNbt(fluidOutputs));
-        nbtRecipe.setTag(NBT_RECIPE_FLUID_OUTPUT_AMOUNT, new NBTTagIntArray(fluidOutputAmounts));
-        nbtRecipe.setInteger(NBT_RECIPE_ENERGY, energy);
+    public CompoundNBT serializeNBT() {
+        CompoundNBT nbtRecipe = new CompoundNBT();
+        nbtRecipe.put(NBT_RECIPE_ITEM_INPUT, ECUtils.item.save(inputs));
+        nbtRecipe.put(NBT_RECIPE_FLUID_INPUT, ECUtils.fluid.save(fluidInputs));
+        nbtRecipe.put(NBT_RECIPE_FLUID_INPUT_AMOUNT, new IntArrayNBT(fluidInputAmounts));
+        nbtRecipe.put(NBT_RECIPE_ITEM_OUTPUT, ECUtils.item.save(outputs));
+        nbtRecipe.put(NBT_RECIPE_FLUID_OUTPUT, ECUtils.fluid.save(fluidOutputs));
+        nbtRecipe.put(NBT_RECIPE_FLUID_OUTPUT_AMOUNT, new IntArrayNBT(fluidOutputAmounts));
+        nbtRecipe.putInt(NBT_RECIPE_ENERGY, energy);
         return nbtRecipe;
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
-        this.inputs = !nbt.hasKey(NBT_RECIPE_ITEM_INPUT) ? Collections.emptyList()
-                : ECUtils.item.fromNBTList((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_INPUT));
-        this.outputs = !nbt.hasKey(NBT_RECIPE_ITEM_OUTPUT) ? Collections.emptyList()
-                : ECUtils.item.fromNBTList((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_OUTPUT));
-        this.fluidInputs = !nbt.hasKey(NBT_RECIPE_FLUID_INPUT) ? Collections.emptyList()
-                : ECUtils.fluid.readFromNbt((NBTTagList) nbt.getTag(NBT_RECIPE_FLUID_INPUT));
-        this.fluidOutputs = !nbt.hasKey(NBT_RECIPE_FLUID_OUTPUT) ? Collections.emptyList()
-                : ECUtils.fluid.readFromNbt((NBTTagList) nbt.getTag(NBT_RECIPE_FLUID_OUTPUT));
-        this.fluidInputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_INPUT_AMOUNT) ? ECUtils.array.newArray(fluidInputs.size(), 0)
+    public void deserializeNBT(CompoundNBT nbt) {
+        this.inputs = !nbt.contains(NBT_RECIPE_ITEM_INPUT) ? Collections.emptyList()
+                : ECUtils.item.read(nbt.getList(NBT_RECIPE_ITEM_INPUT, Constants.NBT.TAG_COMPOUND));
+        this.outputs = !nbt.contains(NBT_RECIPE_ITEM_OUTPUT) ? Collections.emptyList()
+                : ECUtils.item.read(nbt.getList(NBT_RECIPE_ITEM_OUTPUT, Constants.NBT.TAG_COMPOUND));
+        this.fluidInputs = !nbt.contains(NBT_RECIPE_FLUID_INPUT) ? Collections.emptyList()
+                : ECUtils.fluid.read(nbt.getList(NBT_RECIPE_FLUID_INPUT, Constants.NBT.TAG_COMPOUND));
+        this.fluidOutputs = !nbt.contains(NBT_RECIPE_FLUID_OUTPUT) ? Collections.emptyList()
+                : ECUtils.fluid.read(nbt.getList(NBT_RECIPE_FLUID_OUTPUT, Constants.NBT.TAG_COMPOUND));
+        this.fluidInputAmounts = !nbt.contains(NBT_RECIPE_FLUID_INPUT_AMOUNT) ? ECUtils.array.newArray(fluidInputs.size(), 0)
                 : nbt.getIntArray(NBT_RECIPE_FLUID_INPUT_AMOUNT);
-        this.fluidOutputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_OUTPUT_AMOUNT) ? ECUtils.array.newArray(fluidOutputs.size(), 0)
+        this.fluidOutputAmounts = !nbt.contains(NBT_RECIPE_FLUID_OUTPUT_AMOUNT) ? ECUtils.array.newArray(fluidOutputs.size(), 0)
                 : nbt.getIntArray(NBT_RECIPE_FLUID_OUTPUT_AMOUNT);
-        this.energy = nbt.getInteger(NBT_RECIPE_ENERGY);
+        this.energy = nbt.getInt(NBT_RECIPE_ENERGY);
     }
 }

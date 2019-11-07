@@ -1,17 +1,5 @@
 {
-  "forge_marker": 1,
-  "defaults": {
-    "model": "cube_all",
-    "textures": {
-      "all": "elementcore:blocks/energy"
-    }
-  },
   "variants": {
-    "inventory": [
-      {}
-    ],
-    "normal": [
-      {}
-    ]
+    "": { "model": "elementcore:block/energy" }
   }
 }

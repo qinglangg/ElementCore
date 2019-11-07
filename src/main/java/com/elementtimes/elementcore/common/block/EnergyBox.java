@@ -1,17 +1,21 @@
 package com.elementtimes.elementcore.common.block;
 
-import com.elementtimes.elementcore.ElementCore;
+import com.elementtimes.elementcore.api.annotation.ModTileEntity;
 import com.elementtimes.elementcore.api.template.block.BlockTileBase;
 import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileEnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.EnergyGeneratorLifecycle;
-import net.minecraft.block.ITileEntityProvider;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ITickable;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
+import com.elementtimes.elementcore.common.CoreElements;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.material.Material;
+import net.minecraft.client.renderer.texture.ITickable;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.world.IBlockReader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -20,24 +24,30 @@ import javax.annotation.Nullable;
  * 创造能量盒
  * @author luqin2007
  */
-public class EnergyBox extends BlockTileBase<EnergyBox.TileEntity> implements ITileEntityProvider {
+public class EnergyBox extends BlockTileBase<EnergyBox.EnergyBoxTileEntity> {
 
     public EnergyBox() {
-        super(TileEntity.class, ElementCore.instance());
+        super(Block.Properties.create(Material.IRON), EnergyBoxTileEntity.class);
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(@Nonnull World worldIn, int meta) {
-        return new TileEntity();
+    public TileEntity createTileEntity(BlockState state, IBlockReader world) {
+        return new EnergyBoxTileEntity();
     }
 
-    public static class TileEntity extends net.minecraft.tileentity.TileEntity implements ITileEnergyHandler, ITickable {
+    public static class EnergyBoxTileEntity extends TileEntity implements ITileEnergyHandler, ITickable {
 
         private EnergyHandler mEnergyHandler;
         private EnergyGeneratorLifecycle mLifecycle;
 
-        public TileEntity() {
+        @ModTileEntity.TileEntityType("energy_box")
+        static final TileEntityType<EnergyBoxTileEntity> TYPE = TileEntityType.Builder
+                .create(EnergyBoxTileEntity::new, CoreElements.blockEnergy)
+                .build(null);
+
+        EnergyBoxTileEntity() {
+            super(TYPE);
             mEnergyHandler = new EnergyHandler(-1, Integer.MAX_VALUE, Integer.MAX_VALUE);
             mLifecycle = new EnergyGeneratorLifecycle<>(this);
         }
@@ -48,40 +58,26 @@ public class EnergyBox extends BlockTileBase<EnergyBox.TileEntity> implements IT
         }
 
         @Override
-        public SideHandlerType getEnergyType(EnumFacing facing) {
+        public SideHandlerType getEnergyType(Direction facing) {
             return SideHandlerType.ALL;
         }
 
         @Override
-        public void update() {
+        public void tick() {
             mLifecycle.onTickFinish();
         }
 
         @Override
-        public void readFromNBT(NBTTagCompound compound) {
-            super.readFromNBT(compound);
-            ITileEnergyHandler.super.deserializeNBT(compound);
+        public void read(@Nonnull CompoundNBT nbt) {
+            ITileEnergyHandler.super.read(nbt);
+            super.deserializeNBT(nbt);
         }
 
-        @Override
         @Nonnull
-        public NBTTagCompound writeToNBT(NBTTagCompound compound) {
-            compound = super.writeToNBT(compound);
-            compound = ITileEnergyHandler.super.writeToNBT(compound);
-            return compound;
-        }
-
-        @Nullable
         @Override
-        public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
-            T energy = ITileEnergyHandler.super.getCapability(capability, facing);
-            return energy != null ? energy : super.getCapability(capability, facing);
-        }
-
-        @Override
-        public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return ITileEnergyHandler.super.hasCapability(capability, facing)
-                    || super.hasCapability(capability, facing);
+        public CompoundNBT write(@Nonnull CompoundNBT nbt) {
+            ITileEnergyHandler.super.write(nbt);
+            return nbt;
         }
     }
 }

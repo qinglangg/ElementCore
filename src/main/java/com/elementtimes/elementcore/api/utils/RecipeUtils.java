@@ -1,20 +1,20 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
+import com.google.common.collect.Maps;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.Item;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.ContainerType;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.CraftingManager;
-import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.tags.Tag;
+import net.minecraft.util.IItemProvider;
 import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -22,7 +22,6 @@ import java.util.Map;
  * annotation 包以后怕是会独立出去，所以尽量不会依赖包外的东西
  * @author luqin2007
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
 public class RecipeUtils {
 
     private static RecipeUtils u = null;
@@ -33,82 +32,12 @@ public class RecipeUtils {
         return u;
     }
 
-    private InventoryCrafting tempCrafting = new InventoryCrafting(new Container() {
-        @Override
-        public boolean canInteractWith(@Nonnull EntityPlayer playerIn) { return false; }
+    private CraftingInventory tempCrafting = new CraftingInventory(new Container(ContainerType.CRAFTING, 0) {
         @Override
         public void onCraftMatrixChanged(IInventory inventoryIn) { }
+        @Override
+        public boolean canInteractWith(@Nonnull PlayerEntity playerIn) { return false; }
     }, 3, 3);
-
-    private static final String INGREDIENT_START_ORE = "[ore]";
-    private static final String INGREDIENT_START_NAME = "[id]";
-
-    /**
-     * 根据传入的名字获取物品
-     * 匹配 domain:registry:metadata
-     * 可只写 registry，相当于 minecraft:registry:0
-     * @param name 物品名
-     * @return 物品栈
-     */
-    public ItemStack getFromItemName(String name) {
-        String[] split = name.split(":");
-        Item item;
-        int damage = 0;
-        if (split.length == 1) {
-            item = Item.getByNameOrId("minecraft:" + name);
-        } else if (split.length == 2) {
-            item = Item.getByNameOrId(name);
-        } else {
-            try {
-                item = Item.getByNameOrId(split[0] + ":" + split[1]);
-                damage = Integer.parseInt(split[2]);
-            } catch (Exception e) {
-                item = Item.getByNameOrId(name);
-            }
-        }
-        ItemStack stack = item == null ? ItemStack.EMPTY : new ItemStack(item);
-        stack.setItemDamage(damage);
-        return stack;
-    }
-
-    /**
-     * 根据传入的 Object 对象获取 Ingredient
-     *  String
-     *      以 [ore] 开头，强制使用矿辞
-     *      以 [id] 开头，强制使用 registryName
-     *      否则，先测试矿辞，当矿辞中不包含任何内容时，使用 registryName
-     *  非 String，调用 CraftingHelper.getIngredient(object) 获取
-     * @param obj 对象
-     * @return Ingredient
-     */
-    public Ingredient getIngredient(Object obj) {
-        try {
-            if (obj instanceof String) {
-                String oreOrName = (String) obj;
-                // [ore] 开头 强制矿辞
-                if (oreOrName.startsWith(INGREDIENT_START_ORE)) {
-                    oreOrName = oreOrName.substring(5);
-                    return CraftingHelper.getIngredient(oreOrName);
-                }
-                // [id] 开头 强制 RegistryName
-                if (oreOrName.startsWith(INGREDIENT_START_NAME)) {
-                    oreOrName = oreOrName.substring(4);
-                    return Ingredient.fromStacks(getFromItemName(oreOrName));
-                }
-                // 否则 先测试矿辞 失败则使用 RegistryName
-                Ingredient ingredient = CraftingHelper.getIngredient(oreOrName);
-                ItemStack[] matchingStacks = ingredient.getMatchingStacks();
-                if (matchingStacks.length == 0) {
-                    return Ingredient.fromStacks(getFromItemName(oreOrName));
-                }
-                return ingredient;
-            }
-			return CraftingHelper.getIngredient(obj);
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            return Ingredient.EMPTY;
-        }
-    }
 
     /**
      * 测试合成表
@@ -120,28 +49,34 @@ public class RecipeUtils {
         for (int i = 0; i < input.size(); i++) {
             tempCrafting.setInventorySlotContents(i, input.get(i));
         }
-        ItemStack resultEntry = CraftingManager.findMatchingResult(tempCrafting, world).copy();
+        for (IRecipe recipe : world.getRecipeManager().getRecipes()) {
+            if (recipe.matches(tempCrafting, world)) {
+                tempCrafting.clear();
+                return recipe.getRecipeOutput();
+            }
+        }
         tempCrafting.clear();
-        return resultEntry;
+        return ItemStack.EMPTY;
     }
 
     /**
      * 获取单物品输入的输出
-     * @param oreName 输入矿辞名
+     * @param tag 矿辞
      * @return 输出
      */
-    public Map<ItemStack, ItemStack> collectOneBlockCraftingResult(World world, String oreName) {
-        ItemStack[] inputItems = CraftingHelper.getIngredient(oreName).getMatchingStacks();
-        Map<ItemStack, ItemStack> results = new HashMap<>(inputItems.length);
-        for (ItemStack inputItem : inputItems) {
-            ItemStack result;
-            ItemStack i = ItemHandlerHelper.copyStackWithSize(inputItem, 1);
-            if (!i.isEmpty()) {
-                result = getCraftingResult(world, NonNullList.withSize(1, i));
+    public Map<ItemStack, ItemStack> getCraftingResult(World world, Tag tag) {
+        Map<ItemStack, ItemStack> results = Maps.newHashMap();
+        for (Object element : tag.getAllElements()) {
+            ItemStack stack;
+            if (element instanceof IItemProvider) {
+                stack = new ItemStack((IItemProvider) element);
+            } else if (element instanceof Fluid) {
+                stack = new ItemStack(((Fluid) element).getFilledBucket());
             } else {
-                result = ItemStack.EMPTY;
+                stack = ItemStack.EMPTY;
             }
-            results.put(inputItem, result);
+            ItemStack result = getCraftingResult(world, NonNullList.withSize(1, stack));
+            results.put(stack, result);
         }
         return results;
     }

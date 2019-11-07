@@ -3,10 +3,11 @@ package com.elementtimes.elementcore.api.template.capability.item;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagIntArray;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.IntArrayNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.NonNullList;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
@@ -49,23 +50,23 @@ public class ItemHandler extends ItemStackHandler implements IItemHandler {
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
+    public CompoundNBT serializeNBT() {
         unbindAll();
-        NBTTagCompound nbt = super.serializeNBT();
-        NBTTagList slotCount = new NBTTagList();
+        CompoundNBT nbt = super.serializeNBT();
+        ListNBT slotCount = new ListNBT();
         mSlotSize.int2IntEntrySet().forEach(entry ->
-                slotCount.appendTag(new NBTTagIntArray(new int[]{entry.getIntKey(), entry.getIntValue()})));
-        nbt.setTag("_bind_slot_count_", slotCount);
+                slotCount.add(new IntArrayNBT(new int[]{entry.getIntKey(), entry.getIntValue()})));
+        nbt.put("_bind_slot_count_", slotCount);
         return nbt;
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
+    public void deserializeNBT(CompoundNBT nbt) {
         unbindAll();
         super.deserializeNBT(nbt);
-        NBTTagList slotCounts = (NBTTagList) nbt.getTag("_bind_slot_count_");
+        ListNBT slotCounts = nbt.getList("_bind_slot_count_", Constants.NBT.TAG_INT_ARRAY);
         slotCounts.forEach(nbtArray -> {
-            int[] slotCount = ((NBTTagIntArray) nbtArray).getIntArray();
+            int[] slotCount = ((IntArrayNBT) nbtArray).getIntArray();
             mSlotSize.put(slotCount[0], slotCount[1]);
         });
     }

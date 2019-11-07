@@ -1,7 +1,8 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.item.crafting.IRecipe;
 
 import java.util.List;
 import java.util.function.ToIntFunction;
@@ -59,7 +60,7 @@ public class MachineRecipe {
                 }
 
                 if (i < fluidInputs.size()) {
-                    if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fluids.get(i))) {
+                    if (fluids.get(i) != null && fluids.get(i).getAmount() > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fluids.get(i))) {
                         result = false;
                         break;
                     }

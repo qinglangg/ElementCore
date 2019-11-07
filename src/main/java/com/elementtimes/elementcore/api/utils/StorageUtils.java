@@ -1,6 +1,6 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraft.world.World;
+import net.minecraft.world.ServerWorld;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,7 +24,7 @@ public class StorageUtils {
      * @return 存档目录
      */
     @Nonnull
-    public File saveDir(World world, @Nullable String childDir) {
+    public File saveDir(ServerWorld world, @Nullable String childDir) {
         File root = world.getSaveHandler().getWorldDirectory();
         return childDir == null ? root : new File(root, childDir);
     }

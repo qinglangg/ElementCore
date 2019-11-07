@@ -1,8 +1,8 @@
 package com.elementtimes.elementcore.api.template.interfaces;
 
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipe;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
 
 import java.util.List;
 

@@ -76,7 +76,7 @@ public class ReflectUtils {
             logger.warn("You want to find an EMPTY class.");
         } else {
             try {
-                Class<?> aClass = Class.forName(className);
+                Class<?> aClass = Thread.currentThread().getContextClassLoader().loadClass(className);
                 return create(aClass, params, type, logger);
             } catch (ClassNotFoundException e) {
                 logger.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
@@ -105,20 +105,9 @@ public class ReflectUtils {
                 })
                 .findFirst();
         if (constructorOpt.isPresent()) {
-            Constructor constructor = constructorOpt.get();
-            if (!constructor.isAccessible()) {
-                constructor.setAccessible(true);
-            }
-            try {
-                T instance = (T) constructor.newInstance(params);
-                return Optional.of(instance);
-            } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-                e.printStackTrace();
-                return Optional.empty();
-            }
-        } else {
-            return create(aClass, type, logger);
+            return create(constructorOpt.get(), type, logger);
         }
+        return Optional.empty();
     }
 
     /**
@@ -134,7 +123,7 @@ public class ReflectUtils {
             logger.warn("You want to find an EMPTY class.");
         } else {
             try {
-                Class<?> aClass = Class.forName(className);
+                Class<?> aClass = Thread.currentThread().getContextClassLoader().loadClass(className);
                 return create(aClass, type, logger);
             } catch (ClassNotFoundException e) {
                 logger.warn("Class {} is not exist. Please make sure the class is exist and the ClassLoader can reload the class", className);
@@ -153,7 +142,7 @@ public class ReflectUtils {
         if (logger == null) {
             logger = LogManager.getLogger();
         }
-        constructor.setAccessible(true);
+        setAccessible(constructor);
         try {
             Object o = constructor.newInstance();
             if (type.isAssignableFrom(o.getClass())) {
@@ -177,7 +166,7 @@ public class ReflectUtils {
      */
     public <T> Optional<T> get(@Nonnull Field field, @Nullable Object object, @Nullable T defaultValue, boolean setIfNull, Class<? extends T> type, Logger logger) {
         T obj = null;
-        field.setAccessible(true);
+        setAccessible(field);
         boolean isStatic = Modifier.isStatic(field.getModifiers());
         // 成员本身值
         try {
@@ -217,7 +206,7 @@ public class ReflectUtils {
      */
     public <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, Class<? extends T> type, Logger logger) {
         Object obj = null;
-        method.setAccessible(true);
+        setAccessible(method);
         boolean isStatic = Modifier.isStatic(method.getModifiers());
         // 成员本身值
         try {
@@ -248,7 +237,7 @@ public class ReflectUtils {
      * @param method 方法签名
      */
     public void invoke(@Nonnull Method method, @Nullable Object object, Logger logger) {
-        method.setAccessible(true);
+        setAccessible(method);
         boolean isStatic = Modifier.isStatic(method.getModifiers());
         // 成员本身值
         try {
@@ -279,13 +268,11 @@ public class ReflectUtils {
             // final
             if (Modifier.isFinal(modifiers)) {
                 fieldModifiers = field.getClass().getDeclaredField("modifiers");
-                fieldModifiers.setAccessible(true);
+                setAccessible(fieldModifiers);
                 fieldModifiers.setInt(field, modifiers & ~Modifier.FINAL);
             }
             // private/public
-            if (!Modifier.isPublic(modifiers)) {
-                field.setAccessible(true);
-            }
+            setAccessible(field);
             if (Modifier.isStatic(modifiers)) {
                 field.set(null, value);
             } else {
@@ -325,7 +312,7 @@ public class ReflectUtils {
                 if (object == null) {
                     // 尝试初始化实例
                     Constructor constructor = clazz.getConstructor();
-                    constructor.setAccessible(true);
+                    setAccessible(constructor);
                     object = constructor.newInstance();
                 }
                 return get(clazz.getField(fieldName), object, null, false, type, logger);
@@ -341,6 +328,40 @@ public class ReflectUtils {
         return Optional.empty();
     }
 
+    /**
+     * 获取类成员
+     * 优先获取静态成员
+     *
+     * @param clazz 成员所在类
+     * @param object 类实例
+     * @param <T> 成员类型
+     * @return 尝试获取成员的结果
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> getField(@Nonnull Class clazz, Class<? extends T> type, @Nullable Object object, Logger logger) {
+        try {
+            for (Field field : clazz.getFields()) {
+                if (type.isAssignableFrom(field.getType())) {
+                    setAccessible(field);
+                    T obj = (T) field.get(object);
+                    return Optional.ofNullable(obj);
+                }
+            }
+            for (Field field : clazz.getDeclaredFields()) {
+                if (type.isAssignableFrom(field.getType())) {
+                    setAccessible(field);
+                    T obj = (T) field.get(object);
+                    return Optional.ofNullable(obj);
+                }
+            }
+            return Optional.empty();
+        } catch (IllegalAccessException e) {
+            logger.warn("Cannot get type {} from {}", type.getSimpleName(), clazz.getCanonicalName());
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
     public Optional<Object> getFromFieldOrMethod(Class clazz, String name) {
         Object obj = null;
         try {
@@ -349,7 +370,7 @@ public class ReflectUtils {
         if (obj == null) {
             try {
                 Field f = clazz.getDeclaredField(name);
-                f.setAccessible(true);
+                setAccessible(f);
                 obj = f.get(null);
             } catch (IllegalAccessException | NoSuchFieldException ignored) { }
         }
@@ -361,7 +382,7 @@ public class ReflectUtils {
         if (obj == null) {
             try {
                 Method method = clazz.getDeclaredMethod(name);
-                method.setAccessible(true);
+                setAccessible(method);
                 obj = method.invoke(null);
             } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
         }
@@ -375,7 +396,7 @@ public class ReflectUtils {
             if (obj == null) {
                 try {
                     Method method = clazz.getDeclaredMethod(funcName);
-                    method.setAccessible(true);
+                    setAccessible(method);
                     obj = method.invoke(null);
                 } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
             }
@@ -389,10 +410,31 @@ public class ReflectUtils {
 
     public void setFinalField(Object object, Field field, Object newValue) throws NoSuchFieldException, IllegalAccessException {
         final Field modifiersField = field.getClass().getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
+        setAccessible(modifiersField);
         final int modifiers = field.getModifiers();
         modifiersField.setInt(field, modifiers & ~Modifier.FINAL);
         field.set(object, newValue);
         modifiersField.setInt(field, modifiers);
+    }
+
+    public boolean checkMethodTypeAndParameters(Method method, Class returnType, Class... parameterTypes) {
+        if (returnType.isAssignableFrom(method.getReturnType())) {
+            Class<?>[] parameters = method.getParameterTypes();
+            if (parameters.length == parameterTypes.length) {
+                for (int i = 0; i < parameters.length; i++) {
+                    if (!parameterTypes[i].isAssignableFrom(parameters[i])) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void setAccessible(AccessibleObject obj) {
+        if (!obj.isAccessible()) {
+            obj.setAccessible(true);
+        }
     }
 }

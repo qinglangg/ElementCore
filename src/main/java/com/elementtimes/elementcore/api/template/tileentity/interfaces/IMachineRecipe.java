@@ -1,25 +1,20 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
-import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
+import com.elementtimes.elementcore.api.template.interfaces.INbtReadable;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeHandler;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * 提供合成表及一系列方法
  * @author luqin2007
  */
-public interface IMachineRecipe extends INBTSerializable<NBTTagCompound> {
+public interface IMachineRecipe extends INbtReadable {
 
     String NBT_RECIPE = "_recipe_";
 
@@ -50,26 +45,23 @@ public interface IMachineRecipe extends INBTSerializable<NBTTagCompound> {
      */
     void setWorkingRecipe(MachineRecipeCapture capture);
 
+    @Nonnull
     @Override
-    default NBTTagCompound serializeNBT() {
-        return writeToNBT(new NBTTagCompound());
+    default CompoundNBT write(@Nonnull CompoundNBT compound) {
+        MachineRecipeCapture recipe = getWorkingRecipe();
+        if (recipe != null) {
+            CompoundNBT nbt = recipe.serializeNBT();
+            compound.put(NBT_RECIPE, nbt);
+        }
+        return compound;
     }
 
     @Override
-    default void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey(NBT_RECIPE) && getRecipes() != null) {
-            NBTTagCompound recipe = nbt.getCompoundTag(NBT_RECIPE);
+    default void read(@Nonnull CompoundNBT compound) {
+        if (compound.contains(NBT_RECIPE) && getRecipes() != null) {
+            CompoundNBT recipe = compound.getCompound(NBT_RECIPE);
             MachineRecipeCapture capture = MachineRecipeCapture.fromNbt(recipe);
             setWorkingRecipe(capture);
         }
-    }
-
-    default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-        MachineRecipeCapture recipe = getWorkingRecipe();
-        if (recipe != null) {
-            NBTTagCompound nbt = recipe.serializeNBT();
-            nbtTagCompound.setTag(NBT_RECIPE, nbt);
-        }
-        return nbtTagCompound;
     }
 }

@@ -1,7 +1,5 @@
 package com.elementtimes.elementcore.api.annotation;
 
-import net.minecraft.entity.EnumCreatureType;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -36,7 +34,6 @@ public @interface ModEntity {
     int eggColorSecondary() default 0x000000;
     // 是否在世界生成
     boolean canSpawn() default false;
-    EnumCreatureType spawnType() default EnumCreatureType.CREATURE;
     int spawnWeight() default 0; // weight 权重越高越可能优先生成
     int spawnMin() default 0;
     int spawnMax() default 0;

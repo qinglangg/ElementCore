@@ -1,0 +1,9 @@
+{
+  "parent": "block/orientable_with_bottom",
+  "textures": {
+    "top": "elementcore:block/machine/top",
+    "bottom": "elementcore:block/machine/top",
+    "front": "elementcore:block/machine/off",
+    "side": "elementcore:block/machine/side"
+  }
+}

@@ -1,13 +1,18 @@
 package com.elementtimes.elementcore.api.template.capability.fluid;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import com.elementtimes.elementcore.api.utils.FluidUtils;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerConcatenate;
 
+import javax.annotation.Nullable;
 import java.util.function.BiPredicate;
 
 /**
@@ -18,6 +23,7 @@ import java.util.function.BiPredicate;
  *
  * @author luqin2007
  */
+@SuppressWarnings("WeakerAccess")
 public class TankHandler extends FluidHandlerConcatenate implements ITankHandler {
 
     public static final TankHandler EMPTY = new TankHandler(TankHandler.FALSE, TankHandler.FALSE, 0);
@@ -72,30 +78,30 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     }
 
     @Override
-    public NBTTagCompound serializeNBT() {
-        NBTTagCompound tag = new NBTTagCompound();
-        NBTTagList fluids = new NBTTagList();
+    public CompoundNBT serializeNBT() {
+        CompoundNBT tag = new CompoundNBT();
+        ListNBT fluids = new ListNBT();
         for (IFluidHandler handler : subHandlers) {
-            NBTTagCompound nbt = new NBTTagCompound();
+            CompoundNBT nbt = new CompoundNBT();
             if (handler != null) {
                 FluidTank tank = (FluidTank) handler;
-                nbt.setTag("_tank_", tank.writeToNBT(new NBTTagCompound()));
-                nbt.setInteger("_capacity_", tank.getCapacity());
+                nbt.put("_tank_", tank.writeToNBT(new CompoundNBT()));
+                nbt.putInt("_capacity_", tank.getCapacity());
             }
-            fluids.appendTag(nbt);
+            fluids.add(nbt);
         }
-        tag.setTag("_fluids_", fluids);
+        tag.put("_fluids_", fluids);
         return tag;
     }
 
     @Override
-    public void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey("_fluids_")) {
-            NBTTagList list = (NBTTagList) nbt.getTag("_fluids_");
-            for (int i = 0; i < Math.min(subHandlers.length, list.tagCount()); i++) {
-                NBTTagCompound nbtFluid = (NBTTagCompound) list.get(i);
-                FluidTank tank = new FluidTank(nbtFluid.getInteger("_capacity_"));
-                tank.readFromNBT(nbtFluid.getCompoundTag("_tank_"));
+    public void deserializeNBT(CompoundNBT nbt) {
+        if (nbt.contains("_fluids_")) {
+            ListNBT list = nbt.getList("_fluids_", Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < Math.min(subHandlers.length, list.size()); i++) {
+                CompoundNBT nbtFluid = (CompoundNBT) list.get(i);
+                FluidTank tank = new FluidTank(nbtFluid.getInt("_capacity_"));
+                tank.readFromNBT(nbtFluid.getCompound("_tank_"));
                 subHandlers[i] = tank;
             }
         }
@@ -112,13 +118,13 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     }
 
     @Override
-    public FluidStack drain(int slot, FluidStack resource, boolean doDrain) {
-        return subHandlers[slot].drain(resource, doDrain);
+    public int drain(int slot, FluidStack resource, boolean doDrain) {
+        return subHandlers[slot].drain(resource, doDrain).amount;
     }
 
     @Override
     public FluidStack drainIgnoreCheck(int slot, FluidStack resource, boolean doDrain) {
-       return ((FluidTank) subHandlers[slot]).drainInternal(resource, doDrain);
+        return ((FluidTank) subHandlers[slot]).drainInternal(resource, doDrain);
     }
 
     @Override
@@ -137,17 +143,26 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     }
 
     @Override
-    public FluidStack getFluid(int slot, boolean copy) {
+    public FluidStack getFluid(int slot) {
         FluidStack fluid = ((IFluidTank) subHandlers[slot]).getFluid();
-        if (fluid == null || !copy) {
-            return fluid;
-        } else {
-            return fluid.copy();
-        }
+        return fluid == null ? null : fluid.copy();
     }
 
     @Override
     public int getCapacity(int slot) {
         return ((IFluidTank) subHandlers[slot]).getCapacity();
+    }
+
+    @Override
+    public void setSlot(int slot, Fluid fluid, int amount) {
+        ((FluidTank) subHandlers[slot]).setFluid(new FluidStack(fluid, amount));
+    }
+
+    @Override
+    public void setSlot(int slot, int amount) {
+        FluidStack fluid = ((FluidTank) subHandlers[slot]).getFluid();
+        if (fluid != null) {
+            ((FluidTank) subHandlers[slot]).setFluid(new FluidStack(fluid, amount));
+        }
     }
 }

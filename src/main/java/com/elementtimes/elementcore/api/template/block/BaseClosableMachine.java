@@ -1,15 +1,22 @@
 package com.elementtimes.elementcore.api.template.block;
 
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.EntityLivingBase;
+import com.elementtimes.elementcore.api.ECUtils;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.state.StateContainer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import java.util.Objects;
+import java.util.function.Supplier;
 
 import static com.elementtimes.elementcore.api.template.block.Properties.FACING;
 import static com.elementtimes.elementcore.api.template.block.Properties.IS_RUNNING;
@@ -21,37 +28,42 @@ import static com.elementtimes.elementcore.api.template.block.Properties.IS_RUNN
 @SuppressWarnings("unused")
 public class BaseClosableMachine<T extends TileEntity> extends BlockTileBase<T> {
 
-    public BaseClosableMachine(Class<T> entityClass, Object mod) {
-        super(entityClass, mod);
-        setDefaultState(getDefaultState().withProperty(FACING, EnumFacing.NORTH).withProperty(IS_RUNNING, false));
+    public BaseClosableMachine(Block.Properties properties, Supplier<TileEntity> teCreator) {
+        super(properties, teCreator);
+        setDefaultState(getStateContainer().getBaseState().with(FACING, Direction.NORTH).with(IS_RUNNING, false));
+    }
+
+    public BaseClosableMachine(Block.Properties properties, TileEntityType<T> type) {
+        super(properties, type);
+        setDefaultState(getStateContainer().getBaseState().with(FACING, Direction.NORTH).with(IS_RUNNING, false));
+    }
+
+    public BaseClosableMachine(Block.Properties properties, Class<T> teClass) {
+        super(properties, teClass);
+        setDefaultState(getStateContainer().getBaseState().with(FACING, Direction.NORTH).with(IS_RUNNING, false));
     }
 
     @Override
-    @Nonnull
-    protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this, FACING, IS_RUNNING);
-    }
-
-    @Override
-    public int getMetaFromState(IBlockState state) {
-        int facing = state.getValue(FACING).getHorizontalIndex() & 0b0011;
-        int burning = state.getValue(IS_RUNNING) ? 0b0100 : 0b0000;
-        return facing | burning;
-    }
-
-    @Override
-    @SuppressWarnings({"NullableProblems", "deprecation"})
-    public IBlockState getStateFromMeta(int meta) {
-        EnumFacing facing = EnumFacing.getHorizontal(meta & 0b0011);
-        boolean running = (meta & 0b0100) == 0b0100;
-        return super.getStateFromMeta(meta).withProperty(FACING, facing).withProperty(IS_RUNNING, running);
-    }
-
-    @Override
-    public void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state, EntityLivingBase placer, ItemStack stack) {
+    public void onBlockPlacedBy(World worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.onBlockPlacedBy(worldIn, pos, state, placer, stack);
-        IBlockState s = worldIn.getBlockState(pos);
-        IBlockState s2 = s.withProperty(FACING, placer.getHorizontalFacing());
-        worldIn.setBlockState(pos, s2);
+        BlockState s2 = placer == null
+                ? worldIn.getBlockState(pos)
+                : worldIn.getBlockState(pos).with(FACING, placer.getHorizontalFacing());
+        TileEntity te = worldIn.getTileEntity(pos);
+        ECUtils.block.setBlockState(worldIn, pos, s2, te);
+    }
+
+    @Override
+    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+        super.fillStateContainer(builder);
+        builder.add(FACING, IS_RUNNING);
+    }
+
+    @Nullable
+    @Override
+    public BlockState getStateForPlacement(BlockItemUseContext context) {
+        return Objects.requireNonNull(super.getStateForPlacement(context))
+                .with(FACING, context.getPlacementHorizontalFacing())
+                .with(IS_RUNNING, false);
     }
 }

@@ -1,9 +1,9 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.state.Property;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -23,47 +23,47 @@ public class BlockUtils {
         return u;
     }
 
-    public <T extends Comparable<T>> IBlockState checkAndSetState(IBlockState state, IProperty<T> property, T value) {
-        if (value != state.getValue(property)) {
-            return state.withProperty(property, value);
+    public <T extends Comparable<T>> BlockState checkAndSetState(BlockState state, Property<T> property, T value) {
+        if (value != state.get(property)) {
+            return state.with(property, value);
         }
         return state;
     }
 
-    public void setBlockState(World world, BlockPos pos, IBlockState newState, @Nullable TileEntity tileEntity) {
-        IBlockState oldState = world.getBlockState(pos);
+    public void setBlockState(World world, BlockPos pos, BlockState newState, @Nullable TileEntity tileEntity) {
+        BlockState oldState = world.getBlockState(pos);
         if (oldState != newState) {
             world.setBlockState(pos, newState, 3);
             if (tileEntity != null) {
                 tileEntity.validate();
                 world.setTileEntity(pos, tileEntity);
             }
-            world.markBlockRangeForRenderUpdate(pos, pos);
+            world.markForRerender(pos);
         }
     }
 
-    public EnumFacing getPosFacing(BlockPos before, BlockPos pos) {
+    public Direction getPosFacing(BlockPos before, BlockPos pos) {
         // face
-        EnumFacing facing = null;
+        Direction facing = null;
         int dx = pos.getX() - before.getX();
         if (dx > 0) {
-            facing = EnumFacing.EAST;
+            facing = Direction.EAST;
         } else if (dx < 0) {
-            facing = EnumFacing.WEST;
+            facing = Direction.WEST;
         }
         int dy = pos.getY() - before.getY();
         if (dy > 0 && facing == null) {
-            facing = EnumFacing.UP;
+            facing = Direction.UP;
         } else if (dy < 0 && facing == null) {
-            facing = EnumFacing.DOWN;
+            facing = Direction.DOWN;
         } else if (dy != 0) {
             return null;
         }
         int dz = pos.getZ() - before.getZ();
         if (dz > 0 && facing == null) {
-            facing = EnumFacing.SOUTH;
+            facing = Direction.SOUTH;
         } else if (dz < 0 && facing == null) {
-            facing = EnumFacing.NORTH;
+            facing = Direction.NORTH;
         } else if (dz != 0) {
             return null;
         }

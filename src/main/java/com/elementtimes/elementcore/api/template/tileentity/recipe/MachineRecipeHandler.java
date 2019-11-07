@@ -1,10 +1,11 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
+import com.elementtimes.elementcore.api.ECUtils;
+import com.elementtimes.elementcore.api.template.fluid.FluidStack;
 import net.minecraft.block.Block;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -86,9 +87,9 @@ public class MachineRecipeHandler {
     public MachineRecipeHandler add(int energy, Fluid input1, Fluid input2, Fluid output) {
         return newRecipe()
                 .addCost(energy)
-                .addFluidInput(IngredientPart.forFluid(input1, Fluid.BUCKET_VOLUME))
-                .addFluidInput(IngredientPart.forFluid(input2, Fluid.BUCKET_VOLUME))
-                .addFluidOutput(IngredientPart.forFluid(output, Fluid.BUCKET_VOLUME))
+                .addFluidInput(IngredientPart.forFluid(input1, ECUtils.fluid.getFilledAmount(input1)))
+                .addFluidInput(IngredientPart.forFluid(input2, ECUtils.fluid.getFilledAmount(input2)))
+                .addFluidOutput(IngredientPart.forFluid(output, ECUtils.fluid.getFilledAmount(output)))
                 .endAdd();
     }
 
@@ -194,7 +195,7 @@ public class MachineRecipeHandler {
         return newRecipe()
                 .addCost(energy)
                 .addItemInput(IngredientPart.forItem(input, 1))
-                .addFluidOutput(IngredientPart.forFluid(output, Fluid.BUCKET_VOLUME))
+                .addFluidOutput(IngredientPart.forFluid(output, ECUtils.fluid.getFilledAmount(output)))
                 .endAdd();
     }
 
@@ -202,15 +203,15 @@ public class MachineRecipeHandler {
         return newRecipe()
                 .addCost(energy)
                 .addItemInput(IngredientPart.forItem(input, 1))
-                .addFluidOutput(IngredientPart.forFluid(output, Fluid.BUCKET_VOLUME))
+                .addFluidOutput(IngredientPart.forFluid(output, ECUtils.fluid.getFilledAmount(output)))
                 .endAdd();
     }
 
     public MachineRecipeHandler add(int energy, Fluid input, Fluid output) {
         return newRecipe()
                 .addCost(energy)
-                .addFluidInput(IngredientPart.forFluid(input, Fluid.BUCKET_VOLUME))
-                .addFluidOutput(IngredientPart.forFluid(output, Fluid.BUCKET_VOLUME))
+                .addFluidInput(IngredientPart.forFluid(input, ECUtils.fluid.getFilledAmount(input)))
+                .addFluidOutput(IngredientPart.forFluid(output, ECUtils.fluid.getFilledAmount(output)))
                 .endAdd();
     }
 

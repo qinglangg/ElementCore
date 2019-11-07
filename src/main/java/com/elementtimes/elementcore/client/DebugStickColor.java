@@ -1,28 +1,46 @@
 package com.elementtimes.elementcore.client;
 
+import com.elementtimes.elementcore.common.item.DebugStick;
 import net.minecraft.client.renderer.color.IItemColor;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+
+import javax.annotation.Nonnull;
 
 /**
  * 调试棒着色器
  * @author luqin2007
  */
 @SuppressWarnings("unused")
-@SideOnly(Side.CLIENT)
+@OnlyIn(Dist.CLIENT)
 public class DebugStickColor implements IItemColor {
+
     @Override
-    public int colorMultiplier(ItemStack stack, int tintIndex) {
-        if (stack.getMetadata() == 0b0000) {
-            // RED
-            return 0xFFFF0000;
-        } else if (stack.getMetadata() == 0b0001) {
-            // BLUE
-            return 0xFF0000FF;
-        } else {
-            // YELLOW
-            return 0xFFFFFF00;
+    @SuppressWarnings("ConstantConditions")
+    public int getColor(@Nonnull ItemStack stack, int tintIndex) {
+        String[] typeAndServer = DebugStick.getTypeAndServer(stack);
+        switch (typeAndServer[0]) {
+            case DebugStick.TYPE_DEBUG:
+                switch (typeAndServer[1]) {
+                    case DebugStick.SIDE_SERVER:
+                        return TextFormatting.RED.getColor();
+                    case DebugStick.SIDE_CLIENT:
+                        return TextFormatting.BLUE.getColor();
+                    default:
+                        return TextFormatting.GRAY.getColor();
+                }
+            case DebugStick.TYPE_TOOL:
+                switch (typeAndServer[1]) {
+                    case DebugStick.SIDE_SERVER:
+                        return TextFormatting.YELLOW.getColor();
+                    case DebugStick.SIDE_CLIENT:
+                    default:
+                        return TextFormatting.GRAY.getColor();
+                }
+            default:
+                return TextFormatting.GRAY.getColor();
         }
     }
 }

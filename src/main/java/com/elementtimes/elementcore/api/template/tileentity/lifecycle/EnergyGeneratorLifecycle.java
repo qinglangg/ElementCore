@@ -4,7 +4,7 @@ import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileEnergyHandler;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 
 /**
  * 发电机的生命周期
@@ -21,7 +21,7 @@ public class EnergyGeneratorLifecycle <T extends TileEntity & ITileEnergyHandler
     @Override
     public void onTickFinish() {
         if (mTe.getWorld() != null) {
-            for (EnumFacing value : EnumFacing.values()) {
+            for (Direction value : Direction.values()) {
                 EnergyHandler.EnergyProxy proxy = ((ITileEnergyHandler) mTe).getEnergyProxy(value);
                 ((ITileEnergyHandler) mTe).sendEnergy(proxy.getEnergyStored(), value.getOpposite(),
                         mTe.getWorld().getTileEntity(mTe.getPos().offset(value)), proxy);

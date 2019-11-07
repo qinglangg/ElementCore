@@ -1,15 +1,15 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
 import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
+import com.elementtimes.elementcore.api.template.interfaces.INbtReadable;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.IEnergyStorage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
  * 与能量有关的接口
  * @author luqin2007
  */
-public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializable<NBTTagCompound> {
+public interface ITileEnergyHandler extends ICapabilityProvider, INbtReadable {
 
     String NBT_ENERGY = "_energy_";
 
@@ -33,7 +33,7 @@ public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializabl
      * @param facing 方向
      * @return 类型
      */
-    SideHandlerType getEnergyType(EnumFacing facing);
+    SideHandlerType getEnergyType(Direction facing);
 
     /**
      * 获取某种能量代理
@@ -71,7 +71,7 @@ public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializabl
      * @param facing 方向
      * @return 代理
      */
-    default EnergyHandler.EnergyProxy getEnergyProxy(EnumFacing facing) {
+    default EnergyHandler.EnergyProxy getEnergyProxy(Direction facing) {
         return getEnergyProxy(getEnergyType(facing));
     }
 
@@ -80,7 +80,7 @@ public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializabl
      * @param facing 面
      * @return 能量代理
      */
-    default EnergyHandler.EnergyProxy getEnergySender(EnumFacing facing) {
+    default EnergyHandler.EnergyProxy getEnergySender(Direction facing) {
         SideHandlerType type = getEnergyType(facing);
         if (type == SideHandlerType.IN_OUT || type == SideHandlerType.OUTPUT) {
             return getEnergyProxy(0, getEnergyTick());
@@ -110,45 +110,37 @@ public interface ITileEnergyHandler extends ICapabilityProvider, INBTSerializabl
      * @param te 发送面对应 TileEntity
      * @param proxy 使用的代理，将从其中提取能量
      */
-    default void sendEnergy(int count, @Nullable EnumFacing facing, @Nullable TileEntity te, @Nonnull EnergyHandler.EnergyProxy proxy) {
-        if (te != null && te.hasCapability(CapabilityEnergy.ENERGY, facing) && proxy.canExtract() && proxy.getEnergyStored() > 0) {
-            IEnergyStorage storage = te.getCapability(CapabilityEnergy.ENERGY, facing);
-            if (storage != null && storage.canReceive()) {
-                int extract = proxy.extractEnergy(count, true);
-                int receive = storage.receiveEnergy(extract, true);
-                if (receive > 0) {
-                    int r = storage.receiveEnergy(receive, false);
-                    proxy.extractEnergy(r, false);
+    default void sendEnergy(int count, @Nullable Direction facing, @Nullable TileEntity te, @Nonnull EnergyHandler.EnergyProxy proxy) {
+        if (te != null && proxy.canExtract() && proxy.getEnergyStored() > 0) {
+            te.getCapability(CapabilityEnergy.ENERGY, facing).ifPresent(storage -> {
+                if (storage.canReceive()) {
+                    int extract = proxy.extractEnergy(count, true);
+                    int receive = storage.receiveEnergy(extract, true);
+                    if (receive > 0) {
+                        int r = storage.receiveEnergy(receive, false);
+                        proxy.extractEnergy(r, false);
+                    }
                 }
-            }
+            });
         }
     }
 
     @Override
-    default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-        return capability == CapabilityEnergy.ENERGY && getEnergyType(facing) != SideHandlerType.NONE;
-    }
-
-    @Nullable
-    @Override
-    default <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
-        return capability.cast((T) getEnergyProxy(getEnergyType(facing)));
+    default <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
+        return LazyOptional.of(() -> (T) getEnergyProxy(getEnergyType(facing)));
     }
 
     @Override
-    default void deserializeNBT(NBTTagCompound nbt) {
-        if (nbt.hasKey(NBT_ENERGY)) {
-            getEnergyHandler().deserializeNBT(nbt.getCompoundTag(NBT_ENERGY));
+    default void read(@Nonnull CompoundNBT compound) {
+        if (compound.contains(NBT_ENERGY)) {
+            getEnergyHandler().deserializeNBT(compound.getCompound(NBT_ENERGY));
         }
     }
 
+    @Nonnull
     @Override
-    default NBTTagCompound serializeNBT() {
-        return writeToNBT(new NBTTagCompound());
-    }
-
-    default NBTTagCompound writeToNBT(NBTTagCompound nbtTagCompound) {
-        nbtTagCompound.setTag(NBT_ENERGY, getEnergyHandler().serializeNBT());
-        return nbtTagCompound;
+    default CompoundNBT write(@Nonnull CompoundNBT compound) {
+        compound.put(NBT_ENERGY, getEnergyHandler().serializeNBT());
+        return compound;
     }
 }

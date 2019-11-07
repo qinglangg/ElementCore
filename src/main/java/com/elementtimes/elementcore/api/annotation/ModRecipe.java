@@ -12,11 +12,12 @@ import java.lang.annotation.Target;
  * 若为数组或集合，且该数组或集合第一个元素为 IRecipe/Supplier<IRecipe>，则只会解析 IRecipe/Supplier<IRecipe>
  *     否则，会被当作一个合成表解析，第一个元素为返回物品，其余依次为合成槽位内的物品
  * 数组/列表值使用 CraftingHelper.getIngredient 解析
- * @see net.minecraftforge.common.crafting.CraftingHelper#getIngredient(Object)
+ * @deprecated json 加载。暂时没有写代码加载
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.METHOD})
+@Deprecated
 @SuppressWarnings("unused")
 public @interface ModRecipe {
 

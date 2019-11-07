@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "running=false,facing=west": { "model": "elementcore:block/machine", "y": 270 },
+    "running=false,facing=east": { "model": "elementcore:block/machine", "y": 90 },
+    "running=false,facing=north": { "model": "elementcore:block/machine" },
+    "running=false,facing=south": { "model": "elementcore:block/machine", "y": 180 },
+    "running=true,facing=west": { "model": "elementcore:block/machine_on", "y": 270 },
+    "running=true,facing=east": { "model": "elementcore:block/machine_on", "y": 90 },
+    "running=true,facing=north": { "model": "elementcore:block/machine_on" },
+    "running=true,facing=south": { "model": "elementcore:block/machine_on", "y": 180 }
+  }
+}
