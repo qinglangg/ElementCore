@@ -197,11 +197,4 @@ public class CreativeTabWrapper extends CreativeTabs {
     public int getSearchbarWidth() {
         return tab.getSearchbarWidth();
     }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    @Nonnull
-    public net.minecraft.util.ResourceLocation getBackgroundImage() {
-        return tab.getBackgroundImage();
-    }
 }

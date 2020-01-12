@@ -36,15 +36,22 @@ import javax.annotation.Nullable;
 
 /**
  * 元素核心
+ *
  * @author luqin2007
  */
 @SuppressWarnings({"unused"})
-@Mod(modid = ElementCore.MODID, name = "Element Core", version = ElementCore.VERSION)
+@Mod(
+        modid = ElementCore.MODID,
+        name = "Element Core",
+        version = ElementCore.VERSION,
+        updateJSON = ElementCore.UPDATE
+)
 public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.5";
+    static final String VERSION = "0.2.6";
+    static final String UPDATE = "https://github.com/luiqn2007/ElementCore/blob/1.12.2/update.json";
 
     public static ECModElements.Builder builder() {
         return ECModElements.builder();
