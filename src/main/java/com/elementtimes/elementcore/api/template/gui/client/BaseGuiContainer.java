@@ -73,6 +73,8 @@ public class BaseGuiContainer extends GuiContainer {
         for (IGuiProvider.Size process : container.size.process) {
             renderGuiProcess(process, processValue);
         }
+        // 其他
+        container.provider.onBackgroundRender(this, container, partialTicks, mouseX, mouseY);
     }
 
     @Override
@@ -86,6 +88,8 @@ public class BaseGuiContainer extends GuiContainer {
         if (fluids != null) {
             renderGuiFluid();
         }
+        // 其他
+        container.provider.onForegroundRender(this, container, mouseX, mouseY);
     }
 
     private void renderGuiFluid() {

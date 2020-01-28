@@ -14,8 +14,6 @@ import net.minecraftforge.items.SlotItemHandler;
 
 import javax.annotation.Nonnull;
 
-import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider.GuiSize;
-
 /**
  * 电炉
  * @author luqin2007

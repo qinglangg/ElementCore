@@ -50,7 +50,7 @@ public class ElementCore {
     private static ElementCore INSTANCE = null;
 
     static final String MODID = "elementcore";
-    static final String VERSION = "0.2.6";
+    static final String VERSION = "@version@";
     static final String UPDATE = "https://github.com/luiqn2007/ElementCore/blob/1.12.2/update.json";
 
     public static ECModElements.Builder builder() {

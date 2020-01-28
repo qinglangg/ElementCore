@@ -80,6 +80,7 @@ public abstract class BaseTileEntity extends TileEntity implements
         mInputFluids = new TankHandler(this::isFillValid, TankHandler.FALSE, fluidInput, inputCapacity);
         mOutputFluids = new TankHandler(TankHandler.FALSE, TankHandler.TRUE, fluidOutput, outputCapacity);
         mAllFluids = new TankHandlerVisitor(mInputFluids, mOutputFluids);
+        mRecipe = new MachineRecipeHandler(inputCount, outputCount, fluidInput, fluidOutput);
         addLifeCycle(new RecipeMachineLifecycle(this));
         addLifeCycle(new HandlerInfoMachineLifecycle.Builder(this)
                 .withPlayers(this::getOpenedPlayers)
@@ -149,6 +150,10 @@ public abstract class BaseTileEntity extends TileEntity implements
         setEnergyProcessed(0);
         setWorking(false);
         setPause(false);
+    }
+    @Override
+    public void update() {
+        update(this);
     }
 
     // recipes

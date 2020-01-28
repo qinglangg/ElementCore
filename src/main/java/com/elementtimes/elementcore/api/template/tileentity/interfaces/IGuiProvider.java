@@ -1,11 +1,13 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
+import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Slot;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nonnull;
@@ -78,6 +80,18 @@ public interface IGuiProvider {
      * GUI 关闭时调用
      */
     default void onGuiClosed(EntityPlayer player) {}
+
+    /**
+     * 在 {@link net.minecraft.client.gui.inventory.GuiContainer#drawGuiContainerBackgroundLayer(float, int, int)} 时触发
+     */
+    @SideOnly(Side.CLIENT)
+    default void onBackgroundRender(com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer gui, BaseContainer container, float partialTicks, int mouseX, int mouseY) { }
+
+    /**
+     * 在 {@link net.minecraft.client.gui.inventory.GuiContainer#drawGuiContainerForegroundLayer(int, int)} 时触发
+     */
+    @SideOnly(Side.CLIENT)
+    default void onForegroundRender(com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer gui, BaseContainer container, int mouseX, int mouseY) { }
 
     class FluidSlotInfo {
         final public int slotId, x, y, w, h;
