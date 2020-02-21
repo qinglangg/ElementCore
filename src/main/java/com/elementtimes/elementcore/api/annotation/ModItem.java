@@ -1,5 +1,7 @@
 package com.elementtimes.elementcore.api.annotation;
 
+import com.elementtimes.elementcore.api.annotation.part.Getter2;
+import com.elementtimes.elementcore.api.annotation.part.Method2;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.util.NonNullList;
@@ -16,19 +18,19 @@ import java.lang.annotation.Target;
  */
 @SuppressWarnings("unused")
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target(ElementType.FIELD)
 public @interface ModItem {
+
     /**
      * RegisterName，代表物品注册名
-     * 当该注解注解 Field 且物品 registerName 与属性名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
-     * 当该注解注解 Class 且物品 registerName 与类名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
+     * 当 registerName 与属性名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
      * @return registerName
      */
     String registerName() default "";
 
     /**
      * UnlocalizedName，用于获取物品显示名
-     * 当 unlocalizedName 与 registerName 相同时，可省略
+     * 当 unlocalizedName 与属性名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
      * @return unlocalizedName
      */
     String unlocalizedName() default "";
@@ -36,37 +38,32 @@ public @interface ModItem {
     String creativeTabKey() default "";
 
     /**
-     * 自定义 ItemStack 的 Tooltips
+     * 该物品将在合成表中合成后仍保留在合成表中
+     * 由于该注解位于物品注册前，故暂时不支持自定义保留物品（有点麻烦，懒）
+     * 等同于 setContainerItem(this) 方法
+     * 若需要自定义更多细节，需要重写该物品 Item 类的 getContainerItem 方法
+     *
+     * @see Item#setContainerItem(Item)
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    @interface Tooltip {
-        /**
-         * Tooltips
-         * 使用 @m 表示访问 metadata，@n 表示访问 NBT，@c 表示访问个数，-> 表示匹配检查
-         *  "@m3@c2@n{Tag}=3->stack3" 意味着只有在 metadata=3，count=2, getTagCompound中Tag值为3 时才会添加 "stack3" 字符串
-         *  "stack md=@m, c=@c, nbtName=@n{Stack.Name}" 表示添加
-         *      "stack md=[实际metadata值], c=[count 值], nbtName=[getTagCompound().getTag("Stack").getTag("Name")]"
-         *  字符串
-         * 可以有多个相同类型匹配，同一类型中默认匹配方式为 或，@n& 表示 NBT且，不同类型间使用 且
-         *  "@m3@m5@nTag=3@nTag=5@n&{Name}=aa->..." 表示 (meta=3 或 meta=5) 且 (Tag="3" 或 Tag="5" 且 Name="aa") 时匹配通过
-         * @return 物品 Tooltip
-         */
-        String[] value();
-    }
+    @Target(ElementType.FIELD)
+    @interface RetainInCrafting { }
 
     /**
-     * 着色器
+     * 设置物品拥有耐久度
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    @interface ItemColor {
+    @Target(ElementType.FIELD)
+    @interface Damageable {
         /**
-         * 物品染色
-         * 只要物品材质直接或间接继承自 item/generated 就能支持染色
-         * @return 物品染色所需 IItemColor 类全类名
+         * 最大耐久
          */
-        String value();
+        int value() default 0;
+
+        /**
+         * 是否不可修复
+         */
+        boolean noRepair() default false;
     }
 
     /**
@@ -74,7 +71,7 @@ public @interface ModItem {
      * 等价于
      *  setHasSubtypes(true);
      *  setMaxDamage(0);
-     *  setNoRepair()
+     *  setNoRepair();
      * 具体子类型信息需要自行重写 getSubItems 方法
      *
      * @see Item#setHasSubtypes(boolean)
@@ -83,7 +80,7 @@ public @interface ModItem {
      * @see Item#getSubItems(CreativeTabs, NonNullList)
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
+    @Target(ElementType.FIELD)
     @interface HasSubItem {
 
         /**
@@ -100,45 +97,60 @@ public @interface ModItem {
     }
 
     /**
-     * 有 ItemMeshDefinition
-     * 在注册 model 时会覆盖 HasSubItem 的效果
+     * 自定义 ItemStack 的 Tooltips
+     * 简单的增加 Tooltips，详细增加请使用 {@link com.elementtimes.elementcore.api.annotation.tools.ModTooltip}
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    @interface HasMeshDefinition {
-        /**
-         * ItemMeshDefinition 类全类名
-         * @return 全类名
-         */
-        String value();
+    @Target(ElementType.FIELD)
+    @interface Tooltip {
+        String[] value();
     }
 
     /**
-     * 该物品将在合成表中合成后仍保留在合成表中
-     * 由于该注解位于物品注册前，故暂时不支持自定义保留物品（有点麻烦，懒）
-     * 等同于 setContainerItem(this) 方法
-     * 若需要自定义更多细节，需要重写该物品 Item 类的 getContainerItem 方法
-     *
-     * @see Item#setContainerItem(Item)
+     * 简单的着色器
+     * 详细设置使用 {@link com.elementtimes.elementcore.api.annotation.tools.ModColor}
+     * 或 {@link com.elementtimes.elementcore.api.annotation.tools.ModColorObj}
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    @interface RetainInCrafting { }
+    @Target(ElementType.FIELD)
+    @interface ItemColor {
+        /**
+         * 简单的物品染色
+         * 只要物品材质直接或间接继承自 item/generated 就能支持染色
+         * @return 物品颜色
+         */
+        int value();
+    }
 
     /**
-     * 设置物品拥有耐久度
+     * ItemMeshDefinition
+     * 在注册 model 时会覆盖 HasSubItem 的效果
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    @interface Damageable {
+    @Target(ElementType.FIELD)
+    @interface MeshDefinitionObj {
         /**
-         * 最大耐久
+         * ItemMeshDefinition 实例
+         * @return 实例
          */
-        int value() default 0;
+        Getter2 value();
+    }
 
+    /**
+     * ItemMeshDefinition
+     * 在注册 model 时会覆盖 HasSubItem 的效果
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface MeshDefinitionFunc {
         /**
-         * 是否不可修复
+         * ItemMeshDefinition 方法
+         * 参数
+         *  ItemStack 物品栈
+         * 返回值
+         *  ModelResourceLocation 资源
+         * @return 方法
          */
-        boolean noRepair() default false;
+        Method2 value();
     }
 }

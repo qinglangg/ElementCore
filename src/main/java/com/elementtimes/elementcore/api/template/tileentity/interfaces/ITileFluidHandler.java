@@ -25,7 +25,7 @@ public interface ITileFluidHandler extends ICapabilityProvider, INBTSerializable
 
     ITankHandler getTanks(SideHandlerType type);
 
-    default SideHandlerType getTankType(EnumFacing facing) {
+    default SideHandlerType getTankType(@Nullable EnumFacing facing) {
         return SideHandlerType.ALL;
     }
 

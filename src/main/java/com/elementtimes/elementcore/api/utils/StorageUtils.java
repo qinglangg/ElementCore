@@ -6,6 +6,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 
+/**
+ * @author luqin2007
+ */
 public class StorageUtils {
 
     private static StorageUtils u = null;

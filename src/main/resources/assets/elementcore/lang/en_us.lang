@@ -3,10 +3,6 @@ itemGroup.elementcore.main=ElementCore
 # item
 item.elementcore.debugstick.client.name=Debug Stick(Client)
 item.elementcore.debugstick.server.name=Debug Stick(Server)
-item.elementcore.debugstick.tool.name=Debug Stick(Tool)
-# block
-tile.elementcore.energy.name=Creative Energy Box
-tile.elementcore.test.name=Test Machine
 # chat
 chat.elementcore.debug.noblock=There is no block at (%d, %d, %d)
 chat.elementcore.debug.noblockte=The block[%s] don't have a TileEntity

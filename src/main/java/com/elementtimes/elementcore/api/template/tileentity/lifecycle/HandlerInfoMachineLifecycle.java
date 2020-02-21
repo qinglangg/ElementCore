@@ -4,7 +4,6 @@ import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileEnergyHandler;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileFluidHandler;
-import com.elementtimes.elementcore.api.template.tileentity.interfaces.ITileItemHandler;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -12,8 +11,6 @@ import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,28 +31,21 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
     private Function<Object, List<EntityPlayerMP>> player;
     private BiConsumer<EntityPlayer, EnergyInfo> energy;
     private BiConsumer<EntityPlayer, FluidInfo> fluid;
-    private BiConsumer<EntityPlayer, ItemInfo> item;
 
     private HandlerInfoMachineLifecycle(ICapabilityProvider o, Function<Object, List<EntityPlayerMP>> player,
                                         BiConsumer<EntityPlayer, EnergyInfo> energy,
-                                        BiConsumer<EntityPlayer, FluidInfo> fluid,
-                                        BiConsumer<EntityPlayer, ItemInfo> item) {
+                                        BiConsumer<EntityPlayer, FluidInfo> fluid) {
         this.o = o;
         this.player = player;
         this.energy = energy;
         this.fluid = fluid;
-        this.item = item;
     }
 
     @Override
     public void onTickFinish() {
-        ItemInfo itemInfo = buildItemInfo();
         FluidInfo fluidInfo = buildFluidInfo();
         EnergyInfo energyInfo = buildEnergyInfo();
         for (EntityPlayerMP player : player.apply(o)) {
-            if (itemInfo != null && item != null) {
-                item.accept(player, itemInfo);
-            }
             if (fluidInfo != null && fluid != null) {
                 fluid.accept(player, fluidInfo);
             }
@@ -95,33 +85,10 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
         return null;
     }
 
-    private ItemInfo buildItemInfo() {
-        if (item != null) {
-            ItemInfo info = new ItemInfo();
-            if (o instanceof ITileItemHandler) {
-                ITileItemHandler ih = (ITileItemHandler) o;
-                for (SideHandlerType type : SideHandlerType.values()) {
-                    IItemHandler handler = ih.getItemHandler(type);
-                    if (handler.getSlots() > 0) {
-                        info.put(type, handler);
-                    }
-                }
-            } else {
-                IItemHandler handler = o.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
-                if (handler != null && handler.getSlots() > 0) {
-                    info.put(SideHandlerType.NONE, handler);
-                }
-            }
-            return info;
-        }
-        return null;
-    }
-
     public static class Builder {
         private ICapabilityProvider o;
         private BiConsumer<EntityPlayer, EnergyInfo> energy = null;
         private BiConsumer<EntityPlayer, FluidInfo> fluid = null;
-        private BiConsumer<EntityPlayer, ItemInfo> item = null;
         private Function<Object, List<EntityPlayerMP>> player;
 
         public Builder(ICapabilityProvider o) {
@@ -148,13 +115,8 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
             return this;
         }
 
-        public Builder withItemInfo(BiConsumer<EntityPlayer, ItemInfo> item) {
-            this.item = item;
-            return this;
-        }
-
         public HandlerInfoMachineLifecycle build() {
-            return new HandlerInfoMachineLifecycle(o, player, energy, fluid, item);
+            return new HandlerInfoMachineLifecycle(o, player, energy, fluid);
         }
     }
 
@@ -187,18 +149,6 @@ public class HandlerInfoMachineLifecycle implements IMachineLifecycle {
 
         public void put(SideHandlerType type, IFluidHandler handler) {
             this.fluids.put(type, handler);
-        }
-    }
-
-    public static class ItemInfo {
-        public final Map<SideHandlerType, IItemHandler> items;
-
-        public ItemInfo() {
-            this.items = new HashMap<>(6);
-        }
-
-        public void put(SideHandlerType type, IItemHandler handler) {
-            this.items.put(type, handler);
         }
     }
 }

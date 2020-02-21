@@ -87,7 +87,7 @@ public class FactoryMethod implements IRecipeFactory {
             primer.width = ((ShapedOreRecipe) recipe).getRecipeWidth();
             primer.height = ((ShapedOreRecipe) recipe).getRecipeHeight();
             primer.input = recipe.getIngredients();
-            primer.mirrored = ECUtils.reflect.getField(ShapedOreRecipe.class, "mirrored", recipe, boolean.class, LogManager.getLogger()).orElse(true);
+            primer.mirrored = ECUtils.reflect.get(ShapedOreRecipe.class, "mirrored", recipe, boolean.class, LogManager.getLogger()).orElse(true);
             return new ShapedOreRecipe(new ResourceLocation(recipe.getGroup()), recipe.getRecipeOutput(), primer) {
                 private ItemStack mStack = null;
                 @Nonnull

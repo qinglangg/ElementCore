@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.common;
 
+import com.elementtimes.elementcore.api.common.loader.CommonLoader;
 import net.minecraftforge.fml.common.ModContainer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,13 +18,13 @@ public class ECModContainer {
     public static final Map<String, ECModContainer> MODS = new LinkedHashMap<>();
 
     public final ModContainer mod;
-    public final Logger logger;
+    public Logger logger;
     public final ECModElements elements;
     private boolean debugEnable;
 
-    public ECModContainer(ModContainer mod, ECModElements container, boolean debugEnable) {
+    public ECModContainer(ModContainer mod, ECModElements container, boolean debugEnable, Logger logger) {
         this.mod = mod;
-        this.logger = LogManager.getLogger(mod.getName());
+        this.logger = logger == null ? LogManager.getLogger(mod.getName()) : logger;
         this.elements = container;
         this.debugEnable = debugEnable;
     }
@@ -52,17 +53,6 @@ public class ECModContainer {
         debugEnable = false;
     }
 
-    /**
-     * 发送 Warn 等级的 Log
-     * @param message Log 格式化信息 {}
-     * @param params Log 信息格式化成分
-     */
-    public void warn(String message, Object... params) {
-        if (isDebugMessageEnable()) {
-            logger.warn(message, params);
-        }
-    }
-
     @Override
     public int hashCode() {
         return Objects.hash(name(), id(), version());
@@ -74,5 +64,13 @@ public class ECModContainer {
                 && name().equals(((ECModContainer) obj).name())
                 && id().equals(((ECModContainer) obj).id())
                 && version().equals(((ECModContainer) obj).version());
+    }
+
+    public ECModElements elements() {
+        if (!elements.isLoaded) {
+            CommonLoader.load(elements);
+            elements.isLoaded = true;
+        }
+        return elements;
     }
 }

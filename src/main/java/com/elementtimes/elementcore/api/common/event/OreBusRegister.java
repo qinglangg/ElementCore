@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.common.event;
 
+import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.annotation.enums.GenType;
@@ -16,17 +17,18 @@ import java.util.List;
  */
 public class OreBusRegister {
 
-    private ECModElements mElements;
+    private ECModContainer mContainer;
 
-    public OreBusRegister(ECModElements elements) {
-        mElements = elements;
+    public OreBusRegister(ECModContainer container) {
+        mContainer = container;
     }
 
     @SubscribeEvent
     public void onGenerateOre(OreGenEvent.Post event) {
-        ECUtils.common.runWithModActive(mElements.container.mod, () -> {
+        ECUtils.common.runWithModActive(mContainer.mod, () -> {
             if (!event.getWorld().isRemote) {
-                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen == null ? null : mElements.blockWorldGen.get(GenType.Ore);
+                ECModElements elements = mContainer.elements();
+                final List<WorldGenerator> worldGenerators = elements.blockWorldGen.get(GenType.Ore);
                 if (worldGenerators != null) {
                     for (WorldGenerator generator: worldGenerators) {
                         if (TerrainGen.generateOre(event.getWorld(), event.getRand(), generator, event.getPos(), OreGenEvent.GenerateMinable.EventType.CUSTOM)) {

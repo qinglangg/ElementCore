@@ -14,9 +14,9 @@ import javax.annotation.Nullable;
  * 对 物品/流体/能量 接口的一个综合
  * @author luqin2007
  */
-public interface ITileHandler {
+public class ITileHandler {
 
-    interface All extends ITileEnergyHandler, ITileItemHandler, ITileFluidHandler {
+    public interface All extends ITileEnergyHandler, ITileItemHandler, ITileFluidHandler {
         @Override
         default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
             return ITileEnergyHandler.super.hasCapability(capability, facing)
@@ -60,7 +60,7 @@ public interface ITileHandler {
         }
     }
 
-    interface ItemAndEnergy extends ITileEnergyHandler, ITileFluidHandler {
+    public interface ItemAndEnergy extends ITileEnergyHandler, ITileFluidHandler {
         @Override
         default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
             return ITileEnergyHandler.super.hasCapability(capability, facing)
@@ -98,7 +98,7 @@ public interface ITileHandler {
         }
     }
 
-    interface FluidAndEnergy extends ITileEnergyHandler, ITileItemHandler {
+    public interface FluidAndEnergy extends ITileEnergyHandler, ITileItemHandler {
         @Override
         default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
             return ITileEnergyHandler.super.hasCapability(capability, facing)
@@ -136,7 +136,7 @@ public interface ITileHandler {
         }
     }
 
-    interface ItemAndFluid extends ITileItemHandler, ITileFluidHandler {
+    public interface ItemAndFluid extends ITileItemHandler, ITileFluidHandler {
         @Override
         default boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
             return ITileItemHandler.super.hasCapability(capability, facing)

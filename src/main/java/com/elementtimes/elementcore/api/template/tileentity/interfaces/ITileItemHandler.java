@@ -32,7 +32,7 @@ public interface ITileItemHandler extends ICapabilityProvider, INBTSerializable<
      * @return 种类
      */
     @Nonnull
-    default SideHandlerType getItemType(@Nonnull EnumFacing facing) {
+    default SideHandlerType getItemType(@Nullable EnumFacing facing) {
         return SideHandlerType.ALL;
     }
 

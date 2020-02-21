@@ -13,6 +13,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @SuppressWarnings("unused")
 public @interface ModPotion {
+
     /**
      * RegistryName
      * 默认 变量名
@@ -26,5 +27,4 @@ public @interface ModPotion {
      * @return PotionName
      */
     String name() default "";
-//    String creativeTabClass() default "com.elementtimes.tutorial.common.creativetabs.ElementTimesTabs$Main";
 }

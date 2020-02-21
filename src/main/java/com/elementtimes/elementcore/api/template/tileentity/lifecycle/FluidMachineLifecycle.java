@@ -6,6 +6,7 @@ import com.elementtimes.elementcore.api.template.capability.item.IItemHandler;
 import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
+import com.elementtimes.elementcore.api.utils.FluidUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.item.ItemStack;
@@ -151,7 +152,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
     @Override
     public void onTickStart() {
         insertEmptyContainers();
-        List<FluidStack> inputFluidList = ECUtils.fluid.toListNotNull(inputFluids);
+        List<FluidStack> inputFluidList = ECUtils.fluid.toListIndexed(inputFluids, FluidUtils.EMPTY);
         mInputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];
@@ -253,7 +254,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
     @Override
     public void onTickFinish() {
         insertFullContainers();
-        List<FluidStack> outputFluidList = ECUtils.fluid.toListNotNull(outputFluids);
+        List<FluidStack> outputFluidList = ECUtils.fluid.toListIndexed(outputFluids, FluidUtils.EMPTY);
         mOutputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];

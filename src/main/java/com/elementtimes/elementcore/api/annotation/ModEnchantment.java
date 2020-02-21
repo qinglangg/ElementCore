@@ -11,8 +11,16 @@ import java.lang.annotation.Target;
  */
 @SuppressWarnings("unused")
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target(ElementType.FIELD)
 public @interface ModEnchantment {
-    String registerName() default "";
+
+    /**
+     * @return registryName
+     */
+    String value() default "";
+
+    /**
+     * @return name
+     */
     String name() default "";
 }

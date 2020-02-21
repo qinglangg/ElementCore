@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.common.event;
 
+import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.annotation.enums.GenType;
@@ -18,17 +19,18 @@ import java.util.List;
  */
 public class TerrainBusRegister {
 
-    private ECModElements mElements;
+    private ECModContainer mContainer;
 
-    public TerrainBusRegister(ECModElements elements) {
-        mElements = elements;
+    public TerrainBusRegister(ECModContainer container) {
+        mContainer = container;
     }
 
     @SubscribeEvent
     public void onGenerateTree(DecorateBiomeEvent.Post event) {
-        ECUtils.common.runWithModActive(mElements.container.mod, () -> {
+        ECModElements elements = mContainer.elements();
+        ECUtils.common.runWithModActive(elements.container.mod, () -> {
             if (!event.getWorld().isRemote) {
-                final List<WorldGenerator> worldGenerators = mElements.blockWorldGen == null ? null : mElements.blockWorldGen.get(GenType.Tree);
+                final List<WorldGenerator> worldGenerators = elements.blockWorldGen.get(GenType.Tree);
                 if (worldGenerators != null) {
                     for (WorldGenerator generator: worldGenerators) {
                         ChunkPos chunkPos = event.getChunkPos();

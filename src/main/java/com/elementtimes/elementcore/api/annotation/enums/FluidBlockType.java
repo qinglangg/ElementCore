@@ -2,6 +2,7 @@ package com.elementtimes.elementcore.api.annotation.enums;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fluids.Fluid;
@@ -31,13 +32,13 @@ public enum FluidBlockType {
      */
     FiniteLava(fluid -> new BlockFluidFinite(fluid, Material.LAVA));
 
-    private Function<Fluid, Block> creator;
+    private Function<Fluid, BlockFluidBase> creator;
 
-    FluidBlockType(Function<Fluid, Block> creator) {
+    FluidBlockType(Function<Fluid, BlockFluidBase> creator) {
         this.creator = creator;
     }
 
-    public Block create(Fluid fluid) {
+    public BlockFluidBase create(Fluid fluid) {
         return creator.apply(fluid);
     }
 }

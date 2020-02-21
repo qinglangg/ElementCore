@@ -15,7 +15,7 @@ import java.util.Optional;
  *
  * @author luqin2007
  */
-@SuppressWarnings({"unchecked", "unused", "WeakerAccess", "SimplifyOptionalCallChains"})
+@SuppressWarnings({"unchecked", "unused", "WeakerAccess"})
 public class ReflectUtils {
 
     private static ReflectUtils u = null;
@@ -37,7 +37,7 @@ public class ReflectUtils {
 
         Optional<T> opt = Optional.empty();
         if (holder instanceof Class) {
-            opt = create((Class) holder, type, logger);
+            opt = create((Class<?>) holder, type, logger);
         } else if (holder instanceof Field) {
             opt = get((Field) holder, null, defaultValue, true, type, logger);
         } else if (holder instanceof Constructor) {
@@ -53,9 +53,9 @@ public class ReflectUtils {
      *
      * @param aClass 要创建的对象类
      */
-    public <T> Optional<T> create(@Nonnull Class aClass, Class<? extends T> type, Logger logger) {
+    public <T> Optional<T> create(@Nonnull Class<?> aClass, @Nullable Class<? extends T> type, Logger logger) {
         try {
-            if (type.isAssignableFrom(aClass)) {
+            if (type == aClass || type == null || type.isAssignableFrom(aClass)) {
                 Object object = aClass.newInstance();
                 return Optional.ofNullable((T) object);
             }
@@ -90,14 +90,14 @@ public class ReflectUtils {
      * 使用有参构造创建对象
      * @param aClass 要创建的对象类
      */
-    public <T> Optional<T> create(@Nonnull Class aClass, Object[] params, Class<? extends T> type, Logger logger) {
-        Class[] paramClass = Arrays.stream(params).map(Object::getClass).toArray(Class[]::new);
-        Optional<Constructor> constructorOpt = Arrays.stream(aClass.getConstructors())
-                .filter(c -> c.getParameterCount() == paramClass.length)
+    public <T> Optional<T> create(@Nonnull Class<?> aClass, Object[] params, Class<? extends T> type, Logger logger) {
+        Optional<Constructor<?>> constructorOpt = Arrays.stream(aClass.getConstructors())
+                .filter(c -> c.getParameterCount() == params.length)
                 .filter(c -> {
                     Class<?>[] parameterTypes = c.getParameterTypes();
-                    for (int i = 0; i < paramClass.length; i++) {
-                        if (!parameterTypes[i].isAssignableFrom(paramClass[i])) {
+                    for (int i = 0; i < params.length; i++) {
+                        Object o = params[i];
+                        if (o != null && !parameterTypes[i].isInstance(o)) {
                             return false;
                         }
                     }
@@ -105,7 +105,7 @@ public class ReflectUtils {
                 })
                 .findFirst();
         if (constructorOpt.isPresent()) {
-            Constructor constructor = constructorOpt.get();
+            Constructor<?> constructor = constructorOpt.get();
             if (!constructor.isAccessible()) {
                 constructor.setAccessible(true);
             }
@@ -149,7 +149,7 @@ public class ReflectUtils {
      *
      * @param constructor 要创建的对象的构造函数
      */
-    public <T> Optional<T> create(@Nonnull Constructor constructor, Class<? extends T> type, Logger logger) {
+    public <T> Optional<T> create(@Nonnull Constructor<?> constructor, Class<? extends T> type, Logger logger) {
         if (logger == null) {
             logger = LogManager.getLogger();
         }
@@ -173,9 +173,10 @@ public class ReflectUtils {
      * @param defaultValue 若无法获取，使用的默认对象
      * @param object 变量所在对象，静态则为 null
      * @param setIfNull 当变量原值为 null 时，是否自动赋值
+     * @param type 检查类型
      * @param <T> 变量类型
      */
-    public <T> Optional<T> get(@Nonnull Field field, @Nullable Object object, @Nullable T defaultValue, boolean setIfNull, Class<? extends T> type, Logger logger) {
+    public <T> Optional<T> get(@Nonnull Field field, @Nullable Object object, @Nullable T defaultValue, boolean setIfNull, @Nonnull Class<? extends T> type, Logger logger) {
         T obj = null;
         field.setAccessible(true);
         boolean isStatic = Modifier.isStatic(field.getModifiers());
@@ -208,61 +209,119 @@ public class ReflectUtils {
     }
 
     /**
-     * 调用一个方法，获取其返回值
-     * 方法会先尝试使用无参调用该方法
-     * 否则会从该成员的类型中调用其无参构造尝试创建对象
-     *
-     * @param method 方法签名
-     * @param <T> 方法类型
+     * 获取类成员
+     * 优先获取静态成员
+     * @param clazz 成员所在类
+     * @param fieldName 成员名
+     * @param object 类实例
+     * @param <T> 成员类型
+     * @return 尝试获取成员的结果
      */
-    public <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, Class<? extends T> type, Logger logger) {
-        Object obj = null;
-        method.setAccessible(true);
-        boolean isStatic = Modifier.isStatic(method.getModifiers());
-        // 成员本身值
+    public <T> Optional<T> get(@Nonnull Class<?> clazz, @Nonnull String fieldName, @Nullable Object object, @Nonnull Class<? extends T> type, Logger logger) {
         try {
-            if (isStatic) {
-                obj = method.invoke(null);
-            } else if (object != null) {
-                obj = method.invoke(object);
+            // 静态成员
+            Field holder = clazz.getDeclaredField(fieldName);
+            if (holder != null) {
+                return get(holder, object, null, false, type, logger);
             } else {
-                logger.warn("Method {} is not static, but the object is null", method.getName());
+                if (object == null) {
+                    // 尝试初始化实例
+                    Constructor<?> constructor = clazz.getConstructor();
+                    constructor.setAccessible(true);
+                    object = constructor.newInstance();
+                }
+                return get(clazz.getField(fieldName), object, null, false, type, logger);
             }
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (InstantiationException
+                | NoSuchFieldException
+                | InvocationTargetException
+                | NoSuchMethodException
+                | IllegalAccessException e) {
+            logger.warn("Cannot get field {} from {}", fieldName, clazz.getCanonicalName());
             e.printStackTrace();
-            logger.warn("Cannot invoke method {}", method.getName());
         }
-
-        if (obj == null || !type.isAssignableFrom(obj.getClass())) {
-            return create(method.getReturnType(), type, logger);
-        } else {
-            return Optional.of((T) obj);
-        }
+        return Optional.empty();
     }
 
     /**
      * 调用一个方法，获取其返回值
-     * 方法会先尝试使用无参调用该方法
-     * 否则会从该成员的类型中调用其无参构造尝试创建对象
-     *
      * @param method 方法签名
+     * @param object 所在对象
+     * @param type 返回值类型
+     * @param <T> 方法类型
      */
-    public void invoke(@Nonnull Method method, @Nullable Object object, Logger logger) {
+    public <T> Optional<T> invoke(@Nonnull Method method, @Nullable Object object, @Nullable Class<? extends T> type, Logger logger, Object... args) {
         method.setAccessible(true);
         boolean isStatic = Modifier.isStatic(method.getModifiers());
-        // 成员本身值
         try {
+            Object obj;
             if (isStatic) {
-                method.invoke(null);
+                obj = method.invoke(null, args);
             } else if (object != null) {
-                method.invoke(object);
+                obj = method.invoke(object, args);
             } else {
+                obj = null;
                 logger.warn("Method {} is not static, but the object is null", method.getName());
             }
+            if (obj != null && type != null && !type.isInstance(obj)) {
+                obj = null;
+            }
+            return (Optional<T>) Optional.ofNullable(obj);
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
             logger.warn("Cannot invoke method {}", method.getName());
+            return Optional.empty();
         }
+    }
+
+    /**
+     * 调用一个无参方法，获取其返回值
+     * @param methodName 方法名
+     * @param holder 方法所在类
+     * @param object 所在对象
+     * @param type 返回值类型
+     * @param <T> 方法类型
+     */
+    public <T> Optional<T> invoke(@Nonnull String methodName, @Nonnull Class<?> holder, @Nullable Object object, @Nullable Class<? extends T> type, Logger logger) {
+        for (Method declaredMethod : holder.getDeclaredMethods()) {
+            if (declaredMethod.getParameterCount() == 0 && methodName.equals(declaredMethod.getName())) {
+                return invoke(declaredMethod, object, type, logger);
+            }
+        }
+        for (Method method : holder.getMethods()) {
+            if (method.getParameterCount() == 0 && methodName.equals(method.getName())) {
+                return invoke(method, object, type, logger);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * 调用一个方法，获取其返回值
+     * @param methodName 方法名
+     * @param holder 方法所在类
+     * @param object 所在对象
+     * @param type 返回值类型
+     * @param args 参数
+     * @param argTypes 参数类型
+     * @param <T> 方法类型
+     */
+    public <T> Optional<T> invoke(@Nonnull String methodName, @Nonnull Class<?> holder, @Nullable Object object, @Nullable Class<? extends T> type, Logger logger, Object[] args, Class<?>... argTypes) {
+        for (Method declaredMethod : holder.getDeclaredMethods()) {
+            if (methodName.equals(declaredMethod.getName())) {
+                if (Arrays.equals(argTypes, declaredMethod.getParameterTypes())) {
+                    return invoke(declaredMethod, object, type, logger, args);
+                }
+            }
+        }
+        for (Method method : holder.getMethods()) {
+            if (methodName.equals(method.getName())) {
+                if (Arrays.equals(argTypes, method.getParameterTypes())) {
+                    return invoke(method, object, type, logger, args);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -302,85 +361,6 @@ public class ReflectUtils {
             e.printStackTrace();
             logger.warn("Field {} cannot set the value: \n\t{}.", field.getName(), value);
         }
-    }
-
-    /**
-     * 获取类成员
-     * 优先获取静态成员
-     *
-     * @param clazz 成员所在类
-     * @param fieldName 成员名
-     * @param object 类实例
-     * @param <T> 成员类型
-     * @return 尝试获取成员的结果
-     */
-    @SuppressWarnings("unchecked")
-    public <T> Optional<T> getField(@Nonnull Class clazz, @Nonnull String fieldName, @Nullable Object object, Class<? extends T> type, Logger logger) {
-        try {
-            // 静态成员
-            Field holder = clazz.getDeclaredField(fieldName);
-            if (holder != null) {
-                return get(holder, object, null, false, type, logger);
-            } else {
-                if (object == null) {
-                    // 尝试初始化实例
-                    Constructor constructor = clazz.getConstructor();
-                    constructor.setAccessible(true);
-                    object = constructor.newInstance();
-                }
-                return get(clazz.getField(fieldName), object, null, false, type, logger);
-            }
-        } catch (InstantiationException
-                | NoSuchFieldException
-                | InvocationTargetException
-                | NoSuchMethodException
-                | IllegalAccessException e) {
-            logger.warn("Cannot get field {} from {}", fieldName, clazz.getCanonicalName());
-            e.printStackTrace();
-        }
-        return Optional.empty();
-    }
-
-    public Optional<Object> getFromFieldOrMethod(Class clazz, String name) {
-        Object obj = null;
-        try {
-            obj = clazz.getField(name).get(null);
-        } catch (NoSuchFieldException | IllegalAccessException ignored) { }
-        if (obj == null) {
-            try {
-                Field f = clazz.getDeclaredField(name);
-                f.setAccessible(true);
-                obj = f.get(null);
-            } catch (IllegalAccessException | NoSuchFieldException ignored) { }
-        }
-        if (obj == null) {
-            try {
-                obj = clazz.getMethod(name).invoke(null);
-            } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
-        }
-        if (obj == null) {
-            try {
-                Method method = clazz.getDeclaredMethod(name);
-                method.setAccessible(true);
-                obj = method.invoke(null);
-            } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
-        }
-        if (obj == null || name.contains("()")) {
-            String funcName = name.substring(0, name.indexOf("()"));
-            if (obj == null) {
-                try {
-                    obj = clazz.getMethod(funcName).invoke(null);
-                } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
-            }
-            if (obj == null) {
-                try {
-                    Method method = clazz.getDeclaredMethod(funcName);
-                    method.setAccessible(true);
-                    obj = method.invoke(null);
-                } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException ignored) { }
-            }
-        }
-        return Optional.ofNullable(obj);
     }
 
     public void setFinalField(Field field, Object newValue) throws NoSuchFieldException, IllegalAccessException {

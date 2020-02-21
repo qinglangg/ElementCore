@@ -1,13 +1,14 @@
 package com.elementtimes.elementcore.api.template.tileentity.lifecycle;
 
-import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
+import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineRecipe;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
 import com.elementtimes.elementcore.api.utils.FluidUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
@@ -25,7 +26,7 @@ import java.util.function.Function;
  */
 public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
 
-    private BaseTileEntity mMachine;
+    private TileEntity mMachine;
     private Function<IBlockState, IBlockState> mReplacer;
     private Function<IBlockState, ImmutablePair<Integer, Object>> mCollector;
     private int mWorkCycle;
@@ -52,7 +53,7 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
      * @param radius 扫面范围的半径，实际扫描区域截面为边长为 2r+1 的正方形
      * @param depth 扫描的深度，扫描深度范围为从机器下一格算起，到机器 pos.y-depth 的位置
      */
-    public WorldReplaceMachineLifecycle(BaseTileEntity machine,
+    public WorldReplaceMachineLifecycle(TileEntity machine,
                                         Function<IBlockState, IBlockState> replacer,
                                         Function<IBlockState, ImmutablePair<Integer, Object>> collector,
                                         int workCycle,
@@ -127,27 +128,31 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
     }
 
     private void markOutput(FluidStack fluid, int slot) {
-        MachineRecipeCapture capture = mMachine.getWorkingRecipe();
-        assert capture != null;
-        int size = capture.fluidOutputs.size();
-        if (size <= slot) {
-            for (; size <= slot; size++) {
-                capture.fluidOutputs.add(size, FluidUtils.EMPTY);
+        if (mMachine instanceof IMachineRecipe) {
+            MachineRecipeCapture capture = ((IMachineRecipe) mMachine).getWorkingRecipe();
+            assert capture != null;
+            int size = capture.fluidOutputs.size();
+            if (size <= slot) {
+                for (; size <= slot; size++) {
+                    capture.fluidOutputs.add(size, FluidUtils.EMPTY);
+                }
             }
+            capture.fluidOutputs.set(slot, fluid);
         }
-        capture.fluidOutputs.set(slot, fluid);
     }
 
     private void markOutput(ItemStack item, int slot) {
-        MachineRecipeCapture capture = mMachine.getWorkingRecipe();
-        assert capture != null;
-        int size = capture.outputs.size();
-        if (size <= slot) {
-            for (; size <= slot; size++) {
-                capture.outputs.add(size, ItemStack.EMPTY);
+        if (mMachine instanceof IMachineRecipe) {
+            MachineRecipeCapture capture = ((IMachineRecipe) mMachine).getWorkingRecipe();
+            assert capture != null;
+            int size = capture.outputs.size();
+            if (size <= slot) {
+                for (; size <= slot; size++) {
+                    capture.outputs.add(size, ItemStack.EMPTY);
+                }
             }
+            capture.outputs.set(slot, item);
         }
-        capture.outputs.set(slot, item);
     }
 
     @Override

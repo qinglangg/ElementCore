@@ -7,7 +7,9 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * 方块工具
@@ -24,7 +26,7 @@ public class BlockUtils {
     }
 
     public <T extends Comparable<T>> IBlockState checkAndSetState(IBlockState state, IProperty<T> property, T value) {
-        if (value != state.getValue(property)) {
+        if (!Objects.equals(value, state.getValue(property))) {
             return state.withProperty(property, value);
         }
         return state;
@@ -40,6 +42,10 @@ public class BlockUtils {
             }
             world.markBlockRangeForRenderUpdate(pos, pos);
         }
+    }
+
+    public void setBlockState(World world, BlockPos pos, IBlockState newState) {
+        setBlockState(world, pos, newState, world.getTileEntity(pos));
     }
 
     public EnumFacing getPosFacing(BlockPos before, BlockPos pos) {

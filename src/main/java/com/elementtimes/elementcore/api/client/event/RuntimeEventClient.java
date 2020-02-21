@@ -1,6 +1,6 @@
 package com.elementtimes.elementcore.api.client.event;
 
-import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.common.ECModContainer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -16,16 +16,16 @@ import java.util.List;
 @SideOnly(Side.CLIENT)
 public class RuntimeEventClient {
 
-    private ECModElements mElements;
+    private ECModContainer mContainer;
 
-    public RuntimeEventClient(ECModElements elements) {
-        mElements = elements;
+    public RuntimeEventClient(ECModContainer container) {
+        mContainer = container;
     }
 
     @SubscribeEvent
     public void onItemStackTooltips(ItemTooltipEvent event) {
-        final ItemStack itemStack = event.getItemStack();
-        final List<String> toolTip = event.getToolTip();
-        mElements.toolTips.forEach(tt -> tt.addTooltip(itemStack, toolTip));
+        ItemStack itemStack = event.getItemStack();
+        List<String> toolTip = event.getToolTip();
+        mContainer.elements().getClientElements().tooltips.forEach(consumer -> consumer.accept(itemStack, toolTip));
     }
 }

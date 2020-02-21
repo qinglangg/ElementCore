@@ -48,17 +48,19 @@ public class MachineRecipe {
     public boolean checkInput(List<ItemStack> input, List<FluidStack> fluids) {
         // check
         boolean result = true;
-        if (input.size() >= inputs.size() || fluids.size() >= fluidInputs.size()) {
-            int size = Math.max(inputs.size(), fluidInputs.size());
+        int itemSize = inputs.size();
+        int fluidSize = fluidInputs.size();
+        if (input.size() >= itemSize || fluids.size() >= fluidSize) {
+            int size = Math.max(itemSize, fluidSize);
             for (int i = 0; i < size; i++) {
-                if (i < inputs.size()) {
+                if (i < itemSize) {
                     if (!input.get(i).isEmpty() && !inputs.get(i).accept.apply(this, i, input, fluids, input.get(i))) {
                         result = false;
                         break;
                     }
                 }
 
-                if (i < fluidInputs.size()) {
+                if (i < fluidSize) {
                     if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fluids.get(i))) {
                         result = false;
                         break;

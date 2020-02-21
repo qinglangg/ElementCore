@@ -3,13 +3,13 @@ package com.elementtimes.elementcore.api.utils;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
@@ -46,14 +46,24 @@ public class ItemUtils {
      * 为某一物品附魔所有非诅咒的最大等级
      * @param itemStack 要附魔的物品
      */
-    public void addMaxEnchantments(ItemStack itemStack) {
+    public void addAllEnchantments(ItemStack itemStack) {
         EnchantmentHelper.setEnchantments(
                 getSuitableEnchantments(itemStack).stream()
                         .filter(enchantment -> !enchantment.isCurse())
                         .map(enchantment -> new ImmutablePair <>(enchantment, enchantment.getMaxLevel()))
-                        .collect(Collectors.toMap(ImmutablePair::getKey, ImmutablePair::getValue)),
-                itemStack
-        );
+                        .collect(Collectors.toMap(ImmutablePair::getKey, ImmutablePair::getValue)), itemStack);
+    }
+
+    /**
+     * 为某一物品附魔所有的最大等级
+     * @param itemStack 要附魔的物品
+     */
+    public void addAllCurse(ItemStack itemStack) {
+        EnchantmentHelper.setEnchantments(
+                getSuitableEnchantments(itemStack).stream()
+                        .filter(Enchantment::isCurse)
+                        .map(enchantment -> new ImmutablePair <>(enchantment, enchantment.getMaxLevel()))
+                        .collect(Collectors.toMap(ImmutablePair::getKey, ImmutablePair::getValue)), itemStack);
     }
 
     /**
@@ -62,7 +72,7 @@ public class ItemUtils {
      * @return 物品列表
      */
     public List<ItemStack> toList(IItemHandler itemHandler, IntSet ignore) {
-        List<ItemStack> input = new ArrayList<>(itemHandler.getSlots());
+        List<ItemStack> input = new ArrayList<>();
         for (int i = 0; i < itemHandler.getSlots(); i++) {
             if (!ignore.contains(i)) {
                 input.add(i, itemHandler.getStackInSlot(i));
@@ -73,74 +83,29 @@ public class ItemUtils {
 
     /**
      * 将物品列表转化为 NBT 列表
+     * 主要是为了在一个 NBT 中保存多个 ItmStack 列表，如果只有一个请使用
+     *  {@link ItemStackHelper#saveAllItems(NBTTagCompound, NonNullList)}
      * @param items 物品列表
      * @return NBT 列表
      */
-    public NBTTagList toNBTList(List<ItemStack> items) {
-        NBTTagList list = new NBTTagList();
-        items.forEach(item -> list.appendTag(item.writeToNBT(new NBTTagCompound())));
-        return list;
+    public NBTTagList saveAllItems(NonNullList<ItemStack> items) {
+        return (NBTTagList) ItemStackHelper.saveAllItems(new NBTTagCompound(), items).getTag("Items");
     }
 
     /**
      * 将 NBT 列表转化为物品列表
+     * 主要是为了在一个 NBT 中保存多个 ItmStack 列表，如果只有一个请使用
+     *  {@link ItemStackHelper#loadAllItems(NBTTagCompound, NonNullList)}
      * @param list NBT 列表
      * @return 物品列表
      */
-    public List<ItemStack> fromNBTList(NBTTagList list) {
+    public NonNullList<ItemStack> loadAllItems(NBTTagList list) {
         int count = list.tagCount();
-        List<ItemStack> itemStacks = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            itemStacks.add(new ItemStack(list.getCompoundTagAt(i)));
-        }
+        NonNullList<ItemStack> itemStacks = NonNullList.withSize(count, ItemStack.EMPTY);
+        NBTTagCompound compound = new NBTTagCompound();
+        compound.setTag("Items", list);
+        ItemStackHelper.loadAllItems(compound, itemStacks);
         return itemStacks;
-    }
-
-    /**
-     * 将 IItemHandler 写入 NBTTagCompound
-     * @param handler IItemHandler
-     * @param key key
-     * @param nbtTagCompound 待存储 NBTTagCompound
-     * @return nbtTagCompound
-     */
-    public NBTTagCompound writeToNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
-        if (handler.getSlots() != 0) {
-            if (handler instanceof INBTSerializable) {
-                nbtTagCompound.setTag(key, ((INBTSerializable) handler).serializeNBT());
-            } else {
-                NBTTagList list = new NBTTagList();
-                for (int i = 0; i < handler.getSlots(); i++) {
-                    list.appendTag(handler.getStackInSlot(i).serializeNBT());
-                }
-                nbtTagCompound.setTag(key, list);
-            }
-        }
-        return nbtTagCompound;
-    }
-
-    /**
-     * 从 NBTTagCompound 恢复 IItemHandler
-     * @param handler IItemHandler
-     * @param key key
-     * @param nbtTagCompound 待存储 NBTTagCompound
-     */
-    public void readFromNBT(IItemHandler handler, String key, NBTTagCompound nbtTagCompound) {
-        if (handler instanceof INBTSerializable) {
-            //noinspection unchecked
-            ((INBTSerializable) handler).deserializeNBT(nbtTagCompound.getTag(key));
-        } else {
-            NBTTagList list = (NBTTagList) nbtTagCompound.getTag(key);
-            int count = Math.min(list.tagCount(), handler.getSlots());
-            for (int i = 0; i < count; i++) {
-                ItemStack stack = new ItemStack(list.getCompoundTagAt(i));
-                if (handler instanceof IItemHandlerModifiable) {
-                    ((IItemHandlerModifiable) handler).setStackInSlot(i, stack);
-                } else {
-                    handler.extractItem(i, handler.getSlotLimit(i), false);
-                    handler.insertItem(i, stack, false);
-                }
-            }
-        }
     }
 
     public boolean isItemRawEqual(ItemStack is1, ItemStack is2) {

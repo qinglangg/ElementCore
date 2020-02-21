@@ -31,17 +31,17 @@ public class BlockTileBase<T extends TileEntity> extends BlockContainer implemen
     private int mGui;
     private Object mMod;
 
-    private BlockTileBase(Material materialIn, int gui, Object mod) {
-        super(materialIn);
+    public BlockTileBase(Class<T> entityClass, int gui, Object mod) {
+        super(Material.IRON);
         setHardness(15.0F);
         setResistance(25.0F);
         mGui = gui;
         mMod = mod;
+        mEntityClass = entityClass;
     }
 
     public BlockTileBase(Class<T> entityClass, Object mod) {
-        this(Material.IRON, 0, mod);
-        this.mEntityClass = entityClass;
+        this(entityClass, 0, mod);
     }
 
     @Nullable

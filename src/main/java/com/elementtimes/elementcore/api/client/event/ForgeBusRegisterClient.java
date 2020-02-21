@@ -1,8 +1,8 @@
 package com.elementtimes.elementcore.api.client.event;
 
 import com.elementtimes.elementcore.api.client.ECModElementsClient;
-import com.elementtimes.elementcore.api.client.LoaderHelperClient;
-import com.elementtimes.elementcore.api.client.ModelLocation;
+import com.elementtimes.elementcore.api.client.loader.ItemClientLoader;
+import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.common.ECUtils;
 import net.minecraft.block.Block;
@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.ItemMeshDefinition;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.IStateMapper;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
+import net.minecraft.client.renderer.entity.RenderEntity;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
@@ -21,6 +22,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.client.model.b3d.B3DLoader;
 import net.minecraftforge.client.model.obj.OBJLoader;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -28,6 +30,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 注解注册
@@ -37,72 +40,69 @@ import java.util.Map;
 @SideOnly(Side.CLIENT)
 public class ForgeBusRegisterClient {
 
-    private ECModElements mElements;
-    private ECModElementsClient mClients;
+    private ECModContainer mContainer;
 
-    public ForgeBusRegisterClient(ECModElements elements) {
-        mElements = elements;
-        mClients = elements.getClientElements();
+    public ForgeBusRegisterClient(ECModContainer container) {
+        mContainer = container;
+    }
+    
+    public ECModElements elements() {
+        return mContainer.elements();
+    }
+    
+    public ECModElementsClient client() {
+        return elements().getClientElements();
     }
 
     @SubscribeEvent
     public void registerModel(ModelRegistryEvent event) {
-        ECUtils.common.runWithModActive(mElements.container.mod, this::registerModelFunc, event);
+        ECUtils.common.runWithModActive(mContainer.mod, this::registerModelFunc, event);
     }
 
     private void registerModelFunc() {
         // 三方渲染
-        if (mElements.blockObj) {
-            OBJLoader.INSTANCE.addDomain(mElements.container.id());
+        if (elements().blockObj) {
+            OBJLoader.INSTANCE.addDomain(mContainer.id());
         }
-        if (mElements.blockB3d) {
-            B3DLoader.INSTANCE.addDomain(mElements.container.id());
+        if (elements().blockB3d) {
+            B3DLoader.INSTANCE.addDomain(mContainer.id());
         }
         // 注册渲染
-        if (mElements.items != null) {
-            for (Item item : mElements.items.values()) {
-                registerItemFunc(item);
-            }
+        for (Item item : elements().items) {
+            registerItemFunc(item);
         }
-        if (mElements.blocks != null) {
-            for (Block block : mElements.blocks.values()) {
-                registerBlockFunc(block);
-            }
+        for (Block block : elements().blocks) {
+            registerBlockFunc(block);
         }
         // 注册流体
-        if (mElements.fluidBlocks != null) {
-            mElements.fluidBlocks.forEach((fluid, block) -> ModelLoader.setCustomStateMapper(fluid.getBlock(), new StateMapperBase() {
-                @Nonnull
-                @Override
-                protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
-                    String bs = mElements.fluidBlockStates == null ? null : mElements.fluidBlockStates.get(fluid);
-                    ResourceLocation location;
-                    if (bs != null && !bs.isEmpty()) {
-                        location = new ResourceLocation(mElements.container.id(), bs);
-                    } else {
-                        location = fluid.getBlock().getRegistryName();
-                    }
-                    assert location != null;
-                    return new ModelResourceLocation(location, fluid.getName());
+        elements().fluidBlocks.forEach((fluid, block) -> ModelLoader.setCustomStateMapper(fluid.getBlock(), new StateMapperBase() {
+            @Nonnull
+            @Override
+            protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
+                String bs = elements().fluidBlockResources == null ? null : elements().fluidBlockResources.get(fluid);
+                ResourceLocation location;
+                if (bs != null && !bs.isEmpty()) {
+                    location = new ResourceLocation(mContainer.id(), bs);
+                } else {
+                    location = fluid.getBlock().getRegistryName();
                 }
-            }));
-        }
+                assert location != null;
+                return new ModelResourceLocation(location, fluid.getName());
+            }
+        }));
         // 注册 TESR
-        if (mClients.blockTesr != null) {
-            mClients.blockTesr.forEach(ClientRegistry::bindTileEntitySpecialRenderer);
-        }
+        client().blockTesr.forEach(ClientRegistry::bindTileEntitySpecialRenderer);
+        // 注册实体渲染
+        client().entityRenders.forEach(RenderingRegistry::registerEntityRenderingHandler);
     }
 
     private void registerItemFunc(Item item) {
-        ItemMeshDefinition definition = mClients.itemMeshDefinition == null ? null : mClients.itemMeshDefinition.get(item);
+        ItemMeshDefinition definition = client().itemMeshDefinition.get(item);
         if (definition != null) {
             ModelLoader.setCustomMeshDefinition(item, definition);
-        } else if (mClients.itemSubModel.containsKey(item)) {
-            for (Map.Entry<Item, ArrayList<ModelLocation>> entry : mClients.itemSubModel.entrySet()) {
-                Item i = entry.getKey();
-                for (ModelLocation triple : entry.getValue()) {
-                    ModelLoader.setCustomModelResourceLocation(i, triple.metadata, triple.modelResourceLocation);
-                }
+        } else if (client().itemSubModel.containsKey(item)) {
+            for (ItemClientLoader.SubModel model : client().itemSubModel.get(item)) {
+                ModelLoader.setCustomModelResourceLocation(item, model.metadata, model.modelResourceLocation);
             }
         } else {
             //noinspection ConstantConditions
@@ -111,47 +111,14 @@ public class ForgeBusRegisterClient {
     }
 
     private void registerBlockFunc(Block block) {
-        if (mClients.blockStateMaps != null && mClients.blockStateMaps.containsKey(block)) {
+        IStateMapper mapper = client().blockStateMaps.get(block);
+        if (mapper != null) {
             // IStateMapper
-            IStateMapper mapper = mClients.blockStateMaps.get(block);
             ModelLoader.setCustomStateMapper(block, mapper);
-            // ResourceLocation
-            ArrayList<ModelLocation> triples = mClients.blockStates == null ? null : mClients.blockStates.get(block);
-            if (triples != null) {
-                Item item = Item.getItemFromBlock(block);
-                Map<IBlockState, ModelResourceLocation> locationMap;
-                //noinspection ConstantConditions
-                ModelResourceLocation defLocation = new ModelResourceLocation(block.getRegistryName(), "inventory");
-                locationMap = mapper.putStateModelLocations(block);
-                if (triples.size() == 0) {
-                    // metadata from DefaultState
-                    int defMeta = block.getMetaFromState(block.getDefaultState());
-                    ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, block.getDefaultState()));
-                    if (defMeta != 0b0000) {
-                        // metadata from 0b0000
-                        //noinspection deprecation
-                        IBlockState stateZero = block.getStateFromMeta(0b0000);
-                        ModelLoader.setCustomModelResourceLocation(item, defMeta, LoaderHelperClient.getLocationFromState(locationMap, defLocation, stateZero));
-                    }
-                    return;
-                }
-                for (ModelLocation triple : triples) {
-                    ModelLoader.setCustomModelResourceLocation(item, triple.metadata, triple.modelResourceLocation);
-                }
-            } else {
-                mapper.putStateModelLocations(block).forEach((iBlockState, modelResourceLocation) -> ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), block.getMetaFromState(iBlockState), modelResourceLocation));
-            }
+            mapper.putStateModelLocations(block).forEach((state, model) ->
+                    ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), block.getMetaFromState(state), model));
         } else {
-            if (mClients.blockStates != null && mClients.blockStates.containsKey(block)) {
-                final ArrayList<ModelLocation> triples = mClients.blockStates.get(block);
-                Item blockItem = Item.getItemFromBlock(block);
-                for (ModelLocation triple : triples) {
-                    ModelLoader.setCustomModelResourceLocation(blockItem, triple.metadata, triple.modelResourceLocation);
-                }
-            } else {
-                //noinspection ConstantConditions
-                ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0, new ModelResourceLocation(block.getRegistryName(), "inventory"));
-            }
+            ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(block), 0, new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "inventory"));
         }
     }
 
@@ -163,17 +130,15 @@ public class ForgeBusRegisterClient {
 
     private void regFluidSpiritFunc(TextureStitchEvent.Pre event) {
         TextureMap textureMap = event.getMap();
-        if (mElements.fluidResources != null) {
-            mElements.fluidResources.forEach(fluid -> {
-                if (fluid.getStill() != null) {
-                    textureMap.registerSprite(fluid.getStill());
-                }
+        elements().fluidResources.forEach(fluid -> {
+            if (fluid.getStill() != null) {
+                textureMap.registerSprite(fluid.getStill());
+            }
 
-                if (fluid.getFlowing() != null) {
-                    textureMap.registerSprite(fluid.getFlowing());
-                }
-            });
-        }
+            if (fluid.getFlowing() != null) {
+                textureMap.registerSprite(fluid.getFlowing());
+            }
+        });
     }
 
     @SubscribeEvent
@@ -183,20 +148,16 @@ public class ForgeBusRegisterClient {
     }
 
     private void registerItemColorFunc(ColorHandlerEvent.Item event) {
-        if (mClients.itemColors != null) {
-            mClients.itemColors.forEach((color, items) -> {
-                if (items.size() > 0) {
-                    event.getItemColors().registerItemColorHandler(color, items.toArray(new Item[0]));
-                }
-            });
-        }
-        if (mClients.blockItemColors != null) {
-            mClients.blockItemColors.forEach((color, blocks) -> {
-                if (blocks.size() > 0) {
-                    event.getItemColors().registerItemColorHandler(color, blocks.toArray(new Block[0]));
-                }
-            });
-        }
+        client().itemColors.forEach((color, items) -> {
+            if (items.size() > 0) {
+                event.getItemColors().registerItemColorHandler(color, items.toArray(new Item[0]));
+            }
+        });
+        client().blockItemColors.forEach((color, blocks) -> {
+            if (blocks.size() > 0) {
+                event.getItemColors().registerItemColorHandler(color, blocks.toArray(new Block[0]));
+            }
+        });
     }
 
     @SubscribeEvent
@@ -206,12 +167,10 @@ public class ForgeBusRegisterClient {
     }
 
     private void registerBlockColorFunc(ColorHandlerEvent.Block event) {
-        if (mClients.blockColors != null) {
-            mClients.blockColors.forEach((color, blocks) -> {
-                if (blocks.size() > 0) {
-                    event.getBlockColors().registerBlockColorHandler(color, blocks.toArray(new Block[0]));
-                }
-            });
-        }
+        client().blockColors.forEach((color, blocks) -> {
+            if (blocks.size() > 0) {
+                event.getBlockColors().registerBlockColorHandler(color, blocks.toArray(new Block[0]));
+            }
+        });
     }
 }

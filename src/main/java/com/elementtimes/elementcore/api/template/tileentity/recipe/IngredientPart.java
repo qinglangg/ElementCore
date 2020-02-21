@@ -245,10 +245,8 @@ public class IngredientPart<T> {
     }
 
     public static IngredientPart<ItemStack> combineItem(IngredientPart<ItemStack>... ingredientParts) {
-        return combine(IS_EMPTY_ITEM, ItemStack.EMPTY, ingredientParts);
+        return combine((is) -> is == ItemStack.EMPTY || is.isEmpty(), ItemStack.EMPTY, ingredientParts);
     }
-
-    public static final Predicate<ItemStack> IS_EMPTY_ITEM = (is) -> is == ItemStack.EMPTY || is.isEmpty();
 
     public static IngredientPart<ItemStack> EMPTY_ITEM = new IngredientPart<>(
             (recipe, slot, inputItems, inputFluids, input) -> true,

@@ -1,6 +1,8 @@
 package com.elementtimes.elementcore.api.annotation;
 
 import com.elementtimes.elementcore.api.annotation.enums.FluidBlockType;
+import com.elementtimes.elementcore.api.annotation.part.Getter;
+import com.elementtimes.elementcore.api.annotation.part.Method;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,48 +11,26 @@ import java.lang.annotation.Target;
 
 /**
  * 流体注册
- * 通常，应当忽略 name/stillResource/flowingResource/overlayResource/color 参数
- * 以上参数用于当对应注解成员不存在时，用于新建 Fluid 对象。这种用法是不推荐的。
- * 因此 实际有用的 仅为 bucket，creativeTabKey 参数
  * @author luqin2007
  */
 @SuppressWarnings("unused")
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target(ElementType.FIELD)
 public @interface ModFluid {
+
     /**
-     * 代表流体注册名
-     * 当该注解注解 Field 且流体 name 与属性名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
-     * 当该注解注解 Class 且流体 name 与类名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
-     * @return name
+     * 修改 unlocalizedName
+     * 若留空，则不会修改，会用 Fluid 构造中传入的 fluidName 值
+     * 会使用 toLowerCase 处理
+     * @return unlocalizedName
      */
-    String name() default "";
+    String unlocalizedName() default "";
 
     /**
      * 使用该参数请务必确保有 mod 开启万能桶
      * @return 是否添加对应的桶
      */
     boolean bucket() default true;
-
-    /**
-     * @return 静止材质
-     */
-    String stillResource() default "";
-
-    /**
-     * @return 流动材质
-     */
-    String flowingResource() default "";
-
-    /**
-     * @return 流体颜色 ARGB
-     */
-    int color() default 0xFFFFFFFF;
-
-    /**
-     * @return 燃烧时间，包括桶和瓶
-     */
-    int burningTime() default -1;
 
     /**
      * 设置流体密度，同时自动设置gaseous属性
@@ -72,21 +52,23 @@ public @interface ModFluid {
 
     /**
      * 流体方块
+     * 使用默认的 BlockFluidClassic 或 BlockFluidFinite
+     * 使用 Water 或 Lava 的 Material
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
+    @Target(ElementType.FIELD)
     @interface FluidBlock {
+
         /**
          * RegisterName，代表方块注册名
-         * 当该注解注解 Field 且方块 registerName 与属性名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
-         * 当该注解注解 Class 且方块 registerName 与类名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
+         * 当方块 registerName 与变量名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
          * @return registerName
          */
         String registerName() default "";
 
         /**
          * UnlocalizedName，用于获取方块显示名
-         * 当 unlocalizedName 与 registerName 相同时，可省略
+         * 当 unlocalizedName 与变量名相同（忽略大小写，使用 toLowerCase 处理）时，可省略
          * @return unlocalizedName
          */
         String unlocalizedName() default "";
@@ -105,14 +87,53 @@ public @interface ModFluid {
         FluidBlockType type() default FluidBlockType.Classic;
 
         /**
-         * 自定义流体方块全类名
-         * 使用此方法指定流体方块，会优先使用带有一个 Fluid 类型参数的构造
-         * 有限度最高
-         * 使用该参数获取的流体方块仍会在 registerName/unlocalizedName 为 null 时设置其值
-         * 仍会设置 creativeTab
-         * @return 自定义流体方块全类名
+         * 由于 Forge 读取流体方块材质根据流体 name 属性区分，因此可以多个流体公用一个 blockstate json 文件
+         * 此属性可设置使用的 blockstate 文件名（不包括扩展名）。
+         * 留空则仍使用方块的 RegistryName
+         * @return blockstate 资源名
          */
-        String className() default "";
+        String resource() default "fluids";
+    }
+
+    /**
+     * 流体方块
+     * 使用自定义的方块
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface FluidBlockObj {
+
+        /**
+         * @return 获取的 Block 类型方块
+         */
+        Getter value();
+
+        /**
+         * 由于 Forge 读取流体方块材质根据流体 name 属性区分，因此可以多个流体公用一个 blockstate json 文件
+         * 此属性可设置使用的 blockstate 文件名（不包括扩展名）。
+         * 留空则仍使用方块的 RegistryName
+         * @return blockstate 资源名
+         */
+        String resource() default "fluids";
+    }
+
+    /**
+     * 流体方块
+     * 使用自定义的方块，通过方法获取
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface FluidBlockFunc {
+
+        /**
+         * 获取方块的方法
+         * 参数
+         *  Fluid：对应流体
+         * 返回值
+         *  Block：流体方块
+         * @return 方法
+         */
+        Method value();
 
         /**
          * 由于 Forge 读取流体方块材质根据流体 name 属性区分，因此可以多个流体公用一个 blockstate json 文件

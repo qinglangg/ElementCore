@@ -1,19 +1,13 @@
 package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
-import com.elementtimes.elementcore.api.common.ECUtils;
-import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeHandler;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * 提供合成表及一系列方法

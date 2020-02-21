@@ -1,21 +1,21 @@
 package com.elementtimes.elementcore.api.utils;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.Item;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.CraftingManager;
-import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 用于合成的工具类
@@ -40,76 +40,6 @@ public class RecipeUtils {
         public void onCraftMatrixChanged(IInventory inventoryIn) { }
     }, 3, 3);
 
-    private static final String INGREDIENT_START_ORE = "[ore]";
-    private static final String INGREDIENT_START_NAME = "[id]";
-
-    /**
-     * 根据传入的名字获取物品
-     * 匹配 domain:registry:metadata
-     * 可只写 registry，相当于 minecraft:registry:0
-     * @param name 物品名
-     * @return 物品栈
-     */
-    public ItemStack getFromItemName(String name) {
-        String[] split = name.split(":");
-        Item item;
-        int damage = 0;
-        if (split.length == 1) {
-            item = Item.getByNameOrId("minecraft:" + name);
-        } else if (split.length == 2) {
-            item = Item.getByNameOrId(name);
-        } else {
-            try {
-                item = Item.getByNameOrId(split[0] + ":" + split[1]);
-                damage = Integer.parseInt(split[2]);
-            } catch (Exception e) {
-                item = Item.getByNameOrId(name);
-            }
-        }
-        ItemStack stack = item == null ? ItemStack.EMPTY : new ItemStack(item);
-        stack.setItemDamage(damage);
-        return stack;
-    }
-
-    /**
-     * 根据传入的 Object 对象获取 Ingredient
-     *  String
-     *      以 [ore] 开头，强制使用矿辞
-     *      以 [id] 开头，强制使用 registryName
-     *      否则，先测试矿辞，当矿辞中不包含任何内容时，使用 registryName
-     *  非 String，调用 CraftingHelper.getIngredient(object) 获取
-     * @param obj 对象
-     * @return Ingredient
-     */
-    public Ingredient getIngredient(Object obj) {
-        try {
-            if (obj instanceof String) {
-                String oreOrName = (String) obj;
-                // [ore] 开头 强制矿辞
-                if (oreOrName.startsWith(INGREDIENT_START_ORE)) {
-                    oreOrName = oreOrName.substring(5);
-                    return CraftingHelper.getIngredient(oreOrName);
-                }
-                // [id] 开头 强制 RegistryName
-                if (oreOrName.startsWith(INGREDIENT_START_NAME)) {
-                    oreOrName = oreOrName.substring(4);
-                    return Ingredient.fromStacks(getFromItemName(oreOrName));
-                }
-                // 否则 先测试矿辞 失败则使用 RegistryName
-                Ingredient ingredient = CraftingHelper.getIngredient(oreOrName);
-                ItemStack[] matchingStacks = ingredient.getMatchingStacks();
-                if (matchingStacks.length == 0) {
-                    return Ingredient.fromStacks(getFromItemName(oreOrName));
-                }
-                return ingredient;
-            }
-			return CraftingHelper.getIngredient(obj);
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            return Ingredient.EMPTY;
-        }
-    }
-
     /**
      * 测试合成表
      * @param input 输入
@@ -130,19 +60,76 @@ public class RecipeUtils {
      * @param oreName 输入矿辞名
      * @return 输出
      */
-    public Map<ItemStack, ItemStack> collectOneBlockCraftingResult(World world, String oreName) {
+    public List<RecipeInfo> getOneItemCrafting(World world, String oreName) {
+        List<RecipeInfo> results = new ArrayList<>();
         ItemStack[] inputItems = CraftingHelper.getIngredient(oreName).getMatchingStacks();
-        Map<ItemStack, ItemStack> results = new HashMap<>(inputItems.length);
         for (ItemStack inputItem : inputItems) {
-            ItemStack result;
-            ItemStack i = ItemHandlerHelper.copyStackWithSize(inputItem, 1);
-            if (!i.isEmpty()) {
-                result = getCraftingResult(world, NonNullList.withSize(1, i));
-            } else {
-                result = ItemStack.EMPTY;
-            }
-            results.put(inputItem, result);
+            results.add(getOneItemCrafting(world, inputItem));
         }
         return results;
+    }
+
+    /**
+     * 获取单物品输入的输出
+     * @param input 输入物品
+     * @return 输出
+     */
+    public RecipeInfo getOneItemCrafting(World world, ItemStack input) {
+        ItemStack i = ItemHandlerHelper.copyStackWithSize(input, 1);
+        ItemStack result;
+        if (!i.isEmpty()) {
+            result = getCraftingResult(world, NonNullList.withSize(1, i));
+        } else {
+            result = ItemStack.EMPTY;
+        }
+        return new RecipeInfo(1, 1, false, result, i);
+    }
+
+    /**
+     * 压缩类型合成表获取
+     * @param inputType 输入的物品
+     * @return 合成表
+     */
+    public List<RecipeInfo> getCompressCrafting(World world, ItemStack inputType) {
+        List<RecipeInfo> infos = new ArrayList<>();
+        // 2 x 2
+        ItemStack input = ItemHandlerHelper.copyStackWithSize(inputType, 1);
+        NonNullList<ItemStack> inputs = NonNullList.withSize(9, ItemStack.EMPTY);
+        inputs.set(0, input);
+        inputs.set(1, input);
+        inputs.set(3, input);
+        inputs.set(4, input);
+        ItemStack result = getCraftingResult(world, inputs);
+        infos.add(new RecipeInfo(2, 2, true, result, input, 4));
+        // 3 x 3
+        inputs = NonNullList.withSize(9, input);
+        result = getCraftingResult(world, inputs);
+        infos.add(new RecipeInfo(3, 3, true, result, input, 9));
+        return infos;
+    }
+
+    public static class RecipeInfo {
+        public final Int2ObjectMap<ItemStack> inputs;
+        public final ItemStack output;
+        public final boolean shaped;
+        public final int width, height;
+
+        public RecipeInfo(int width, int height, boolean shaped, ItemStack output, ItemStack... inputs) {
+            this.output = output;
+            this.shaped = shaped;
+            this.width = width;
+            this.height = height;
+            this.inputs = new Int2ObjectArrayMap<>();
+            for (int i = 0; i < inputs.length; i++) {
+                ItemStack stack = inputs[i];
+                if (stack != null && !stack.isEmpty()) {
+                    this.inputs.put(i, stack);
+                }
+            }
+        }
+
+        public RecipeInfo(int width, int height, boolean shaped, ItemStack output, ItemStack input, int times) {
+            this(width, height, shaped, output, Collections.nCopies(times, input).toArray(new ItemStack[0]));
+        }
     }
 }

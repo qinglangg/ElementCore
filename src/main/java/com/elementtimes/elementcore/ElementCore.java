@@ -1,38 +1,23 @@
 package com.elementtimes.elementcore;
 
-import com.elementtimes.elementcore.api.annotation.ModBlock;
-import com.elementtimes.elementcore.api.annotation.ModCreativeTabs;
 import com.elementtimes.elementcore.api.annotation.ModItem;
+import com.elementtimes.elementcore.api.annotation.ModTab;
+import com.elementtimes.elementcore.api.annotation.part.Method2;
+import com.elementtimes.elementcore.api.annotation.tools.ModColor;
 import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
-import com.elementtimes.elementcore.api.template.block.BaseClosableMachine;
-import com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer;
-import com.elementtimes.elementcore.api.template.gui.server.BaseContainer;
 import com.elementtimes.elementcore.api.template.tabs.CreativeTabDynamic;
-import com.elementtimes.elementcore.api.template.tileentity.interfaces.IGuiProvider;
-import com.elementtimes.elementcore.common.block.EnergyBox;
-import com.elementtimes.elementcore.common.item.DebugStick;
-import com.elementtimes.elementcore.common.block.tileentity.TileTest;
-import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.network.IGuiHandler;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-
-import javax.annotation.Nullable;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 
 /**
  * 元素核心
@@ -57,47 +42,30 @@ public class ElementCore {
         return ECModElements.builder();
     }
 
+    @SidedProxy(serverSide = "com.elementtimes.elementcore.CommonProxy",
+            clientSide = "com.elementtimes.elementcore.ClientProxy")
+    private static CommonProxy PROXY;
+
     public ECModContainer container;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        container = ECModElements.builder().disableDebugMessage().build(event);
+        PROXY.preInit(event);
     }
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        for (ECModContainer mod : ECModContainer.MODS.values()) {
-            mod.elements.fmlEventRegister.onInit(event);
-        }
-        NetworkRegistry.INSTANCE.registerGuiHandler(this, new IGuiHandler() {
-            @Nullable
-            @Override
-            public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-                TileEntity tileEntity = world.getTileEntity(new BlockPos(x, y, z));
-                if (tileEntity instanceof IGuiProvider) {
-                    return new BaseContainer(tileEntity, player);
-                }
-                return null;
-            }
-
-            @Nullable
-            @Override
-            @SideOnly(Side.CLIENT)
-            public Object getClientGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
-                TileEntity tileEntity = world.getTileEntity(new BlockPos(x, y, z));
-                if (tileEntity instanceof IGuiProvider) {
-                    return new BaseGuiContainer(new BaseContainer(tileEntity, player));
-                }
-                return getServerGuiElement(ID, player, world, x, y, z);
-            }
-        });
+        PROXY.init(event);
     }
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        for (ECModContainer mod : ECModContainer.MODS.values()) {
-            mod.elements.fmlEventRegister.onPostInit(event);
-        }
+        PROXY.postInit(event);
+    }
+
+    @EventHandler
+    public void onServerStart(FMLServerStartingEvent event) {
+        PROXY.onServerStart(event);
     }
 
     @Mod.InstanceFactory
@@ -111,31 +79,17 @@ public class ElementCore {
 
     public static class Items {
         @ModItem(creativeTabKey = "main")
-        @ModItem.ItemColor("com.elementtimes.elementcore.client.DebugStickColor")
+        @ModColor(item = @Method2(value = "com.elementtimes.elementcore.DebugStick", name = "color"))
         @ModItem.HasSubItem(
-                metadatas = {0b0000, 0b0001, 0b0010},
-                models = {"minecraft:stick", "minecraft:stick", "minecraft:stick"})
+                metadatas = {0b0000, 0b0001},
+                models = {"minecraft:stick", "minecraft:stick"})
         public static Item debugger = new DebugStick();
     }
 
     public static class Tabs {
-        @ModCreativeTabs
+        @ModTab
         public static CreativeTabs main = new CreativeTabDynamic("elementcore.main", 20L,
                 new ItemStack(Items.debugger, 1, 0),
-                new ItemStack(Items.debugger, 1, 1),
-                new ItemStack(Items.debugger, 1, 2));
-    }
-
-    public static class Blocks {
-        @ModBlock(creativeTabKey = "main")
-        @ModBlock.TileEntity(name = "energy", clazz = "com.elementtimes.elementcore.common.block.EnergyBox$TileEntity")
-        @ModBlock.Tooltip("ITileEnergy 测试")
-        public static Block energy = new EnergyBox();
-
-//        @ModBlock(creativeTabKey = "main")
-//        @ModBlock.TileEntity(name = "test", clazz = "com.elementtimes.elementcore.common.block.tileentity.TileTest")
-//        @ModBlock.StateMapperCustom
-//        @ModBlock.StateMap
-//        public static Block test = new BaseClosableMachine<>(TileTest.class, ElementCore.INSTANCE);
+                new ItemStack(Items.debugger, 1, 1));
     }
 }

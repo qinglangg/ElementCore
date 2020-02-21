@@ -98,7 +98,7 @@ public class CreativeTabDynamic extends CreativeTabs {
         if (dynamicItems.size() == 0) {
             stack = ItemStack.EMPTY;
         } else {
-            long worldTime = FMLClientHandler.instance().getWorldClient().getWorldTime();
+            long worldTime = FMLClientHandler.instance().getWorldClient().getTotalWorldTime();
             if (worldTime - markTime >= dynamicChangeTick) {
                 iconIndex++;
                 iconIndex %= dynamicItems.size();

@@ -5,6 +5,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -14,14 +15,13 @@ import java.util.List;
 
 /**
  * 代表一个实际的合成表。
- * 此合成表是确定的，输入 输出都已明确，唯有能量消耗不确定。
- * 主要是考虑到能量消耗可能因配置文件或其他原因随时更改，且能量准确值在确定消耗前用处不大
+ * 此合成表是确定的，输入 输出都已明确。
  * @author luqin2007
  */
 public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
     public MachineRecipe recipe;
-    public List<ItemStack> inputs;
-    public List<ItemStack> outputs;
+    public NonNullList<ItemStack> inputs;
+    public NonNullList<ItemStack> outputs;
     public List<FluidStack> fluidInputs;
     public int[] fluidInputAmounts;
     public List<FluidStack> fluidOutputs;
@@ -61,19 +61,19 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
     MachineRecipeCapture(MachineRecipe recipe, List<ItemStack> input, List<FluidStack> fluids) {
         this.recipe = recipe;
 
-        this.inputs = new ArrayList<>(recipe.inputs.size());
+        this.inputs = NonNullList.withSize(recipe.inputs.size(), ItemStack.EMPTY);
         for (int i = 0; i < recipe.inputs.size(); i++) {
             IngredientPart<ItemStack> part = recipe.inputs.get(i);
-            inputs.add(i, part.getter.apply(recipe, input, fluids, i, part.probability));
+            inputs.set(i, part.getter.apply(recipe, input, fluids, i, part.probability));
         }
 
-        this.outputs = new ArrayList<>(recipe.outputs.size());
+        this.outputs = NonNullList.withSize(recipe.outputs.size(), ItemStack.EMPTY);
         for (int i = 0; i < recipe.outputs.size(); i++) {
             IngredientPart<ItemStack> part = recipe.outputs.get(i);
-            outputs.add(i, part.getter.apply(recipe, input, fluids, i, part.probability));
+            outputs.set(i, part.getter.apply(recipe, input, fluids, i, part.probability));
         }
 
-        this.fluidInputs = new ArrayList<>(recipe.fluidInputs.size());
+        this.fluidInputs = new ArrayList<>();
         this.fluidInputAmounts = new int[recipe.fluidInputs.size()];
         for (int i = 0; i < recipe.fluidInputs.size(); i++) {
             IngredientPart<FluidStack> part = recipe.fluidInputs.get(i);
@@ -82,8 +82,8 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
             fluidInputAmounts[i] = fluid.amount;
         }
 
-        this.fluidOutputs = new ArrayList<>(recipe.fluidOutputs.size());
-        this.fluidOutputAmounts = ECUtils.array.newArray(recipe.fluidOutputs.size(), 0);
+        this.fluidOutputs = new ArrayList<>();
+        this.fluidOutputAmounts = new int[recipe.fluidOutputs.size()];
         for (int i = 0; i < recipe.fluidOutputs.size(); i++) {
             IngredientPart<FluidStack> part = recipe.fluidOutputs.get(i);
             FluidStack fluid = part.getter.apply(recipe, input, fluids, i, part.probability);
@@ -97,10 +97,10 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
     @Override
     public NBTTagCompound serializeNBT() {
         NBTTagCompound nbtRecipe = new NBTTagCompound();
-        nbtRecipe.setTag(NBT_RECIPE_ITEM_INPUT, ECUtils.item.toNBTList(inputs));
+        nbtRecipe.setTag(NBT_RECIPE_ITEM_INPUT, ECUtils.item.saveAllItems(inputs));
         nbtRecipe.setTag(NBT_RECIPE_FLUID_INPUT, ECUtils.fluid.saveToNbt(fluidInputs));
         nbtRecipe.setTag(NBT_RECIPE_FLUID_INPUT_AMOUNT, new NBTTagIntArray(fluidInputAmounts));
-        nbtRecipe.setTag(NBT_RECIPE_ITEM_OUTPUT, ECUtils.item.toNBTList(outputs));
+        nbtRecipe.setTag(NBT_RECIPE_ITEM_OUTPUT, ECUtils.item.saveAllItems(outputs));
         nbtRecipe.setTag(NBT_RECIPE_FLUID_OUTPUT, ECUtils.fluid.saveToNbt(fluidOutputs));
         nbtRecipe.setTag(NBT_RECIPE_FLUID_OUTPUT_AMOUNT, new NBTTagIntArray(fluidOutputAmounts));
         nbtRecipe.setInteger(NBT_RECIPE_ENERGY, energy);
@@ -109,17 +109,17 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
 
     @Override
     public void deserializeNBT(NBTTagCompound nbt) {
-        this.inputs = !nbt.hasKey(NBT_RECIPE_ITEM_INPUT) ? Collections.emptyList()
-                : ECUtils.item.fromNBTList((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_INPUT));
-        this.outputs = !nbt.hasKey(NBT_RECIPE_ITEM_OUTPUT) ? Collections.emptyList()
-                : ECUtils.item.fromNBTList((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_OUTPUT));
+        this.inputs = !nbt.hasKey(NBT_RECIPE_ITEM_INPUT) ? NonNullList.create()
+                : ECUtils.item.loadAllItems((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_INPUT));
+        this.outputs = !nbt.hasKey(NBT_RECIPE_ITEM_OUTPUT) ? NonNullList.create()
+                : ECUtils.item.loadAllItems((NBTTagList) nbt.getTag(NBT_RECIPE_ITEM_OUTPUT));
         this.fluidInputs = !nbt.hasKey(NBT_RECIPE_FLUID_INPUT) ? Collections.emptyList()
                 : ECUtils.fluid.readFromNbt((NBTTagList) nbt.getTag(NBT_RECIPE_FLUID_INPUT));
         this.fluidOutputs = !nbt.hasKey(NBT_RECIPE_FLUID_OUTPUT) ? Collections.emptyList()
                 : ECUtils.fluid.readFromNbt((NBTTagList) nbt.getTag(NBT_RECIPE_FLUID_OUTPUT));
-        this.fluidInputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_INPUT_AMOUNT) ? ECUtils.array.newArray(fluidInputs.size(), 0)
+        this.fluidInputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_INPUT_AMOUNT) ? new int[fluidInputs.size()]
                 : nbt.getIntArray(NBT_RECIPE_FLUID_INPUT_AMOUNT);
-        this.fluidOutputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_OUTPUT_AMOUNT) ? ECUtils.array.newArray(fluidOutputs.size(), 0)
+        this.fluidOutputAmounts = !nbt.hasKey(NBT_RECIPE_FLUID_OUTPUT_AMOUNT) ? new int[fluidOutputs.size()]
                 : nbt.getIntArray(NBT_RECIPE_FLUID_OUTPUT_AMOUNT);
         this.energy = nbt.getInteger(NBT_RECIPE_ENERGY);
     }

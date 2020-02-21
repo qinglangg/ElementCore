@@ -9,6 +9,7 @@ import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
+import com.elementtimes.elementcore.api.utils.FluidUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import net.minecraft.item.ItemStack;
@@ -332,7 +333,7 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
     @Nullable
     protected MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
         List<ItemStack> items = ECUtils.item.toList(input, machine.getRecipeSlotIgnore());
-        List<FluidStack> fluids = ECUtils.fluid.toListNotNull(tankHandler);
+        List<FluidStack> fluids = ECUtils.fluid.toListIndexed(tankHandler, FluidUtils.EMPTY);
         MachineRecipeCapture[] captures = machine.getRecipes().matchInput(items, fluids);
         if (captures.length == 0) {
             return null;

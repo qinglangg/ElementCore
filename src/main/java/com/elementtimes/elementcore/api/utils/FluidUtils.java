@@ -2,12 +2,11 @@ package com.elementtimes.elementcore.api.utils;
 
 import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
+import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
@@ -15,9 +14,11 @@ import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStackSimple;
 import net.minecraftforge.fluids.capability.wrappers.FluidBucketWrapper;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -44,7 +45,13 @@ public class FluidUtils {
      */
     public NBTTagList saveToNbt(List<FluidStack> fluids) {
         NBTTagList list = new NBTTagList();
-        fluids.forEach(fluid -> list.appendTag(fluid.writeToNBT(new NBTTagCompound())));
+        for (FluidStack fluid : fluids) {
+            if (fluid != null) {
+                list.appendTag(fluid.writeToNBT(new NBTTagCompound()));
+            } else {
+                list.appendTag(new NBTTagCompound());
+            }
+        }
         return list;
     }
 
@@ -57,14 +64,19 @@ public class FluidUtils {
         int count = list.tagCount();
         List<FluidStack> fluidStacks = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            fluidStacks.add(FluidStack.loadFluidStackFromNBT(list.getCompoundTagAt(i)));
+            NBTTagCompound compound = list.getCompoundTagAt(i);
+            if (compound.hasNoTags()) {
+                fluidStacks.add(null);
+            } else {
+                fluidStacks.add(FluidStack.loadFluidStackFromNBT(compound));
+            }
         }
         return fluidStacks;
     }
 
     /**
      * 流体容器非空
-     * @param properties IFluidTankProperties
+     * @param properties IFluidTankProperties[]
      * @return 流体容器非空
      */
     public boolean isEmpty(IFluidTankProperties[] properties) {
@@ -81,42 +93,77 @@ public class FluidUtils {
      * @param handler 流体容器
      * @return 流体容器非空
      */
-    public boolean isEmpty(ITankHandler handler) {
-        for (int i = 0; i < handler.size(); i++) {
-            FluidStack fluid = handler.getFluid(i, false);
-            if (fluid != null && fluid.amount > 0) {
-                return false;
+    public boolean isEmpty(IFluidHandler handler) {
+        if (handler instanceof IFluidTank) {
+            return ((IFluidTank) handler).getFluidAmount() == 0 && ((IFluidTank) handler).getCapacity() > 0;
+        } else if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            for (int i = 0; i < tank.size(); i++) {
+                FluidStack fluid = tank.getFluid(i, false);
+                if (fluid != null && fluid.amount > 0) {
+                    return false;
+                }
             }
+            return true;
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            return stack == null || stack.amount == 0;
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            FluidStack stack = ((FluidHandlerItemStackSimple) handler).getFluid();
+            return stack == null || stack.amount == 0;
+        } else if (handler instanceof FluidHandlerItemStack) {
+            FluidStack stack = ((FluidHandlerItemStack) handler).getFluid();
+            return stack == null || stack.amount == 0;
+        } else if (handler != null) {
+            FluidStack stack = handler.drain(1, false);
+            return stack != null && stack.amount > 0;
+        } else {
+            return false;
         }
-        return true;
     }
 
     /**
-     * 流体容器某一槽位非空
+     * 流体容器某一槽位空
      * @param properties IFluidTankProperties
      * @param slot 槽位
-     * @return 非空
+     * @return 空
      */
     public boolean isEmpty(IFluidTankProperties[] properties, int slot) {
         if (slot < properties.length) {
             IFluidTankProperties property = properties[slot];
             return property.getContents() == null || property.getContents().amount == 0;
         }
-        return true;
+        return false;
     }
 
     /**
-     * 流体容器某一槽位非空
+     * 流体容器某一槽位空
      * @param handler 流体容器
      * @param slot 槽位
-     * @return 非空
+     * @return 空
      */
-    public boolean isEmpty(ITankHandler handler, int slot) {
-        if (slot < handler.size()) {
-            FluidStack fluid = handler.getFluid(slot, false);
-            return fluid == null || fluid.amount == 0;
+    public boolean isEmpty(IFluidHandler handler, int slot) {
+        if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            if (slot < tank.size()) {
+                FluidStack fluid = tank.getFluid(slot, false);
+                return fluid == null || fluid.amount == 0;
+            }
+            return false;
+        } else if (handler instanceof IFluidTank) {
+            return slot == 0 && ((IFluidTank) handler).getFluidAmount() == 0 && ((IFluidTank) handler).getCapacity() > 0;
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            return slot == 0 && (stack == null || stack.amount == 0);
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            FluidStack stack = ((FluidHandlerItemStackSimple) handler).getFluid();
+            return slot == 0 && (stack == null || stack.amount == 0);
+        } else if (handler instanceof FluidHandlerItemStack) {
+            FluidStack stack = ((FluidHandlerItemStack) handler).getFluid();
+            return slot == 0 && (stack == null || stack.amount == 0);
+        } else {
+            return handler != null && isEmpty(handler.getTankProperties(), slot);
         }
-        return true;
     }
 
     /**
@@ -141,13 +188,29 @@ public class FluidUtils {
      * @param handler 流体容器
      * @return 流体容器满，。
      */
-    public boolean isFull(ITankHandler handler) {
-        for (int i = 0; i < handler.size(); i++) {
-            if (isFull(handler, i)) {
-                return true;
+    public boolean isFull(IFluidHandler handler) {
+        if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            for (int i = 0; i < tank.size(); i++) {
+                if (!isFull(tank, i)) {
+                    return false;
+                }
             }
+            return true;
+        } else if (handler instanceof IFluidTank) {
+            return ((IFluidTank) handler).getFluidAmount() >= ((IFluidTank) handler).getCapacity();
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            return stack != null && stack.amount >= Fluid.BUCKET_VOLUME;
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            FluidStack stack = ((FluidHandlerItemStackSimple) handler).getFluid();
+            return stack != null && stack.amount >= Fluid.BUCKET_VOLUME;
+        } else if (handler instanceof FluidHandlerItemStack) {
+            FluidStack stack = ((FluidHandlerItemStack) handler).getFluid();
+            return stack != null && stack.amount >= Fluid.BUCKET_VOLUME;
+        } else {
+            return handler != null && isFull(handler.getTankProperties());
         }
-        return false;
     }
 
     /**
@@ -171,13 +234,87 @@ public class FluidUtils {
      * @param slot 槽位
      * @return 是否满
      */
-    public boolean isFull(ITankHandler handler, int slot) {
-        if (slot < handler.size()) {
-            FluidStack fluid = handler.getFluid(slot, false);
-            int capacity = handler.getCapacity(slot);
-            return capacity < 0 || (fluid != null && fluid.amount >= capacity);
+    public boolean isFull(IFluidHandler handler, int slot) {
+        if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            if (tank.size() > slot) {
+                FluidStack fluid = tank.getFluid(slot, false);
+                int capacity = tank.getCapacity(slot);
+                return capacity < 0 || (fluid != null && fluid.amount >= capacity);
+            }
+            return false;
+        } else if (handler instanceof IFluidTank) {
+            return slot == 0 && ((IFluidTank) handler).getFluidAmount() >= ((IFluidTank) handler).getCapacity();
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            return slot == 0 && stack != null && stack.amount >= Fluid.BUCKET_VOLUME;
+        } else {
+            return handler != null && isFull(handler.getTankProperties(), slot);
         }
-        return false;
+    }
+
+    /**
+     * 将某流体容器的流体转化为列表
+     * @param properties IFluidTankProperties
+     * @return 列表
+     */
+    public List<FluidStack> toListIndexed(IFluidTankProperties[] properties, @Nullable FluidStack nullStack) {
+        return Arrays.stream(properties)
+                .map(IFluidTankProperties::getContents)
+                .map(f -> (f != null && f.amount > 0) ? f : nullStack)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 将某流体容器的流体转化为列表
+     * @param handler 流体容器
+     * @return 列表
+     */
+    public List<FluidStack> toListIndexed(IFluidHandler handler, @Nullable FluidStack nullStack) {
+        ArrayList<FluidStack> fluidStacks = new ArrayList<>();
+        if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            int size = tank.size();
+            for (int i = 0; i < size; i++) {
+                FluidStack fluid = tank.getFluid(i);
+                if (fluid == null) {
+                    fluid = nullStack;
+                }
+                fluidStacks.add(i, fluid);
+            }
+        } else if (handler instanceof IFluidTank) {
+            fluidStacks.add(nullStack);
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            fluidStacks.add(stack == null ? nullStack : stack);
+        } else if (handler instanceof FluidHandlerItemStack) {
+            FluidStack stack = ((FluidHandlerItemStack) handler).getFluid();
+            fluidStacks.add(stack == null ? nullStack : stack);
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            FluidStack stack = ((FluidHandlerItemStackSimple) handler).getFluid();
+            fluidStacks.add(stack == null ? nullStack : stack);
+        } else if (handler != null) {
+            return toListIndexed(handler.getTankProperties(), nullStack);
+        }
+        return fluidStacks;
+    }
+
+    /**
+     * 将某流体容器的流体转化为列表
+     * @param properties IFluidTankProperties
+     * @return 列表
+     */
+    public List<FluidStack> toListIndexed(IFluidTankProperties[] properties) {
+        return toListIndexed(properties, null);
+    }
+
+    /**
+     * 将某流体容器的流体转化为列表
+     * @param handler 流体容器
+     * @return 列表
+     */
+    public List<FluidStack> toListIndexed(IFluidHandler handler) {
+        return toListIndexed(handler, null);
     }
 
     /**
@@ -186,9 +323,9 @@ public class FluidUtils {
      * @return 列表
      */
     public List<FluidStack> toList(IFluidTankProperties[] properties) {
-        System.out.println(Arrays.toString(properties));
         return Arrays.stream(properties)
                 .map(IFluidTankProperties::getContents)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -197,41 +334,40 @@ public class FluidUtils {
      * @param handler 流体容器
      * @return 列表
      */
-    public List<FluidStack> toList(ITankHandler handler) {
-        int size = handler.size();
-        List<FluidStack> fluidStacks = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            fluidStacks.add(i, handler.getFluid(i));
-        }
-        return fluidStacks;
-    }
-
-    /**
-     * 将某流体容器的流体转化为列表，列表非空
-     * @param properties IFluidTankProperties
-     * @return 列表
-     */
-    public List<FluidStack> toListNotNull(IFluidTankProperties[] properties) {
-        return Arrays.stream(properties)
-                .map(IFluidTankProperties::getContents)
-                .map(f -> (f != null && f.amount > 0) ? f : EMPTY)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 将某流体容器的流体转化为列表，列表非空
-     * @param handler 流体容器
-     * @return 列表
-     */
-    public List<FluidStack> toListNotNull(ITankHandler handler) {
-        int size = handler.size();
-        List<FluidStack> fluidStacks = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            FluidStack fluid = handler.getFluid(i);
-            if (fluid == null) {
-                fluid = EMPTY;
+    public List<FluidStack> toList(IFluidHandler handler) {
+        ArrayList<FluidStack> fluidStacks = new ArrayList<>();
+        if (handler instanceof ITankHandler) {
+            ITankHandler tank = (ITankHandler) handler;
+            int size = tank.size();
+            for (int i = 0; i < size; i++) {
+                FluidStack fluid = tank.getFluid(i);
+                if (fluid == null) {
+                    continue;
+                }
+                fluidStacks.add(i, fluid);
             }
-            fluidStacks.add(i, fluid);
+        } else if (handler instanceof IFluidTank) {
+            FluidStack stack = ((IFluidTank) handler).getFluid();
+            if (stack != null) {
+                fluidStacks.add(stack);
+            }
+        } else if (handler instanceof FluidBucketWrapper) {
+            FluidStack stack = ((FluidBucketWrapper) handler).getFluid();
+            if (stack != null) {
+                fluidStacks.add(stack);
+            }
+        } else if (handler instanceof FluidHandlerItemStack) {
+            FluidStack stack = ((FluidHandlerItemStack) handler).getFluid();
+            if (stack != null) {
+                fluidStacks.add(stack);
+            }
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            FluidStack stack = ((FluidHandlerItemStackSimple) handler).getFluid();
+            if (stack != null) {
+                fluidStacks.add(stack);
+            }
+        } else if (handler != null) {
+            return toList(handler.getTankProperties());
         }
         return fluidStacks;
     }
@@ -241,45 +377,46 @@ public class FluidUtils {
      * @param itemStack 物品栈
      * @return 流体
      */
-    public FluidStack getFluid(ItemStack itemStack) {
-        FluidStack fluidStack = FluidStack.loadFluidStackFromNBT(itemStack.getTagCompound());
-        if (fluidStack == null) {
-            IFluidHandlerItem capability = itemStack.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null);
-            if (capability != null) {
-                if (capability instanceof FluidBucketWrapper) {
-                    fluidStack = ((FluidBucketWrapper) capability).getFluid();
-                } else if (capability instanceof FluidHandlerItemStack) {
-                    fluidStack = ((FluidHandlerItemStack) capability).getFluid();
-                } else if (capability instanceof FluidHandlerItemStackSimple) {
-                    fluidStack = ((FluidHandlerItemStackSimple) capability).getFluid();
-                } else if (capability instanceof ITankHandler) {
-                    fluidStack = ((ITankHandler) capability).getFluidFirst();
-                } else {
-                    fluidStack = capability.getTankProperties()[0].getContents();
-                }
-            }
+    public FluidStack getFluid(ItemStack itemStack, @Nullable FluidStack stack) {
+        IFluidHandlerItem handler = FluidUtil.getFluidHandler(itemStack);
+        FluidStack result;
+        if (handler instanceof ITankHandler) {
+            result = ((ITankHandler) handler).getFluid(0, true);
+        } else {
+            result = FluidUtil.getFluidContained(itemStack);
         }
-        return fluidStack;
+        return result == null ? stack : result;
     }
 
     /**
-     * 从物品中获取流体，非空
+     * 从物品中获取流体
      * @param itemStack 物品栈
      * @return 流体
      */
-    public FluidStack getFluidNotNull(ItemStack itemStack) {
-        FluidStack fluidStack = getFluid(itemStack);
-        return fluidStack == null ? EMPTY : fluidStack;
+    public FluidStack getFluid(ItemStack itemStack) {
+        return getFluid(itemStack, null);
+    }
+
+    public boolean hasFluid(IFluidHandler handler, Fluid fluid) {
+        if (handler == null || fluid == null) {
+            return false;
+        }
+        IFluidTankProperties[] properties = handler.getTankProperties();
+        for (int i = 0; i < properties.length; i++) {
+            FluidStack contents = properties[i].getContents();
+            if (contents != null && contents.getFluid() == fluid) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public NBTTagCompound writeToNBT(IFluidHandler handler, String key, NBTTagCompound nbtTagCompound) {
         if (handler instanceof INBTSerializable) {
-            nbtTagCompound.setTag(key, ((INBTSerializable) handler).serializeNBT());
+            nbtTagCompound.setTag(key, ((INBTSerializable<? extends NBTBase>) handler).serializeNBT());
         } else {
             NBTTagList list = new NBTTagList();
-            IFluidTankProperties[] properties = handler.getTankProperties();
-            for (IFluidTankProperties property : properties) {
-                FluidStack fluid = property.getContents();
+            for (FluidStack fluid : toListIndexed(handler)) {
                 if (fluid == null) {
                     list.appendTag(new NBTTagCompound());
                 } else {
@@ -297,10 +434,11 @@ public class FluidUtils {
             ((INBTSerializable) handler).deserializeNBT(nbtTagCompound.getTag(key));
         } else {
             NBTTagList list = (NBTTagList) nbtTagCompound.getTag(key);
-            IFluidTankProperties[] properties = handler.getTankProperties();
-            int count = Math.min(list.tagCount(), properties.length);
-            for (int i = 0; i < count; i++) {
-                handler.fill(FluidStack.loadFluidStackFromNBT(list.getCompoundTagAt(i)), true);
+            for (int i = 0; i < list.tagCount(); i++) {
+                NBTTagCompound compound = list.getCompoundTagAt(i);
+                if (!compound.hasNoTags()) {
+                    handler.fill(FluidStack.loadFluidStackFromNBT(compound), true);
+                }
             }
         }
     }
