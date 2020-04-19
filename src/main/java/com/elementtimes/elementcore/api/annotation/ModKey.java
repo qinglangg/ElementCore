@@ -10,6 +10,7 @@ import java.lang.annotation.Target;
 /**
  * 标记注册快捷键
  * 注解到 KeyBinding 对象上
+ * @see net.minecraft.client.settings.KeyBinding
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)

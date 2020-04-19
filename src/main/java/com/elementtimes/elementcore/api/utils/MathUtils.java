@@ -8,20 +8,12 @@ import com.google.common.primitives.Bytes;
  */
 public class MathUtils {
 
-    private static MathUtils u = null;
-    public static MathUtils getInstance() {
-        if (u == null) {
-            u = new MathUtils();
-        }
-        return u;
-    }
-
-    public boolean fromByte(int code, int position) {
+    public static boolean fromByte(int code, int position) {
         int b = 0b1 << position;
         return (code & b) == b;
     }
 
-    public int setByte(int code, int position, boolean b) {
+    public static int setByte(int code, int position, boolean b) {
         if (fromByte(code, position) == b) {
             return code;
         }
@@ -32,7 +24,7 @@ public class MathUtils {
 		return code & (~(0b1 << position));
     }
 
-    public String toBinaryString(int i, int bitCount) {
+    public static String toBinaryString(int i, int bitCount) {
         String b = Integer.toBinaryString(i);
         int db = bitCount - b.length();
         if (db < 0) {
@@ -46,5 +38,13 @@ public class MathUtils {
             return sb.toString();
         }
         return b;
+    }
+
+    /**
+     * @see net.minecraft.util.math.MathHelper#epsilonEquals(float, float)
+     * 但这个方法是 ClientOnly 的
+     */
+    public static boolean equal(float f0, float f1) {
+        return Math.abs(f0 - f1) <= 1e-5f;
     }
 }

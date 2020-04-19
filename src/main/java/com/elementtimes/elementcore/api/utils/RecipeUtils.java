@@ -2,20 +2,23 @@ package com.elementtimes.elementcore.api.utils;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.inventory.ItemStackHelper;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.CraftingInventory;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.ContainerType;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.CraftingManager;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.tags.Tag;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 用于合成的工具类
@@ -25,19 +28,9 @@ import java.util.*;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class RecipeUtils {
 
-    private static RecipeUtils u = null;
-    public static RecipeUtils getInstance() {
-        if (u == null) {
-            u = new RecipeUtils();
-        }
-        return u;
-    }
-
-    private InventoryCrafting tempCrafting = new InventoryCrafting(new Container() {
+    private static CraftingInventory tempCrafting = new CraftingInventory(new Container(ContainerType.CRAFTING, 0) {
         @Override
-        public boolean canInteractWith(@Nonnull EntityPlayer playerIn) { return false; }
-        @Override
-        public void onCraftMatrixChanged(IInventory inventoryIn) { }
+        public boolean canInteractWith(@Nonnull PlayerEntity playerIn) { return false; }
     }, 3, 3);
 
     /**
@@ -45,26 +38,43 @@ public class RecipeUtils {
      * @param input 输入
      * @return 输出
      */
-    public ItemStack getCraftingResult(World world, @Nonnull NonNullList<ItemStack> input) {
+    public static ItemStack getCraftingResult(World world, @Nonnull NonNullList<ItemStack> input) {
         tempCrafting.clear();
         for (int i = 0; i < input.size(); i++) {
             tempCrafting.setInventorySlotContents(i, input.get(i));
         }
-        ItemStack resultEntry = CraftingManager.findMatchingResult(tempCrafting, world).copy();
+        for (IRecipe recipe : world.getRecipeManager().getRecipes()) {
+            if (recipe.matches(tempCrafting, world)) {
+                tempCrafting.clear();
+                return recipe.getRecipeOutput();
+            }
+        }
         tempCrafting.clear();
-        return resultEntry;
+        return ItemStack.EMPTY;
     }
 
     /**
      * 获取单物品输入的输出
-     * @param oreName 输入矿辞名
+     * @param itemTag 输入矿辞名
      * @return 输出
      */
-    public List<RecipeInfo> getOneItemCrafting(World world, String oreName) {
+    public static List<RecipeInfo> getOneItemCrafting(World world, ResourceLocation itemTag) {
         List<RecipeInfo> results = new ArrayList<>();
-        ItemStack[] inputItems = CraftingHelper.getIngredient(oreName).getMatchingStacks();
-        for (ItemStack inputItem : inputItems) {
-            results.add(getOneItemCrafting(world, inputItem));
+        for (Item inputItem : ItemUtils.getItems(itemTag)) {
+            results.add(getOneItemCrafting(world, new ItemStack(inputItem)));
+        }
+        return results;
+    }
+
+    /**
+     * 获取单物品输入的输出
+     * @param itemTag 输入矿辞名
+     * @return 输出
+     */
+    public static List<RecipeInfo> getOneItemCrafting(World world, Tag<Item> itemTag) {
+        List<RecipeInfo> results = new ArrayList<>();
+        for (Item inputItem : ItemUtils.getItems(itemTag)) {
+            results.add(getOneItemCrafting(world, new ItemStack(inputItem)));
         }
         return results;
     }
@@ -74,7 +84,7 @@ public class RecipeUtils {
      * @param input 输入物品
      * @return 输出
      */
-    public RecipeInfo getOneItemCrafting(World world, ItemStack input) {
+    public static RecipeInfo getOneItemCrafting(World world, ItemStack input) {
         ItemStack i = ItemHandlerHelper.copyStackWithSize(input, 1);
         ItemStack result;
         if (!i.isEmpty()) {
@@ -90,7 +100,7 @@ public class RecipeUtils {
      * @param inputType 输入的物品
      * @return 合成表
      */
-    public List<RecipeInfo> getCompressCrafting(World world, ItemStack inputType) {
+    public static List<RecipeInfo> getCompressCrafting(World world, ItemStack inputType) {
         List<RecipeInfo> infos = new ArrayList<>();
         // 2 x 2
         ItemStack input = ItemHandlerHelper.copyStackWithSize(inputType, 1);

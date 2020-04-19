@@ -1,15 +1,10 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Objects;
 
 /**
  * 方块工具
@@ -17,59 +12,51 @@ import java.util.Objects;
  */
 public class BlockUtils {
 
-    private static BlockUtils u = null;
-    public static BlockUtils getInstance() {
-        if (u == null) {
-            u = new BlockUtils();
-        }
-        return u;
-    }
-
-    public <T extends Comparable<T>> IBlockState checkAndSetState(IBlockState state, IProperty<T> property, T value) {
-        if (!Objects.equals(value, state.getValue(property))) {
-            return state.withProperty(property, value);
-        }
-        return state;
-    }
-
-    public void setBlockState(World world, BlockPos pos, IBlockState newState, @Nullable TileEntity tileEntity) {
-        IBlockState oldState = world.getBlockState(pos);
+    public static void setBlockState(World world, BlockPos pos, BlockState oldState, BlockState newState, int flag) {
         if (oldState != newState) {
-            world.setBlockState(pos, newState, 3);
-            if (tileEntity != null) {
-                tileEntity.validate();
-                world.setTileEntity(pos, tileEntity);
+            TileEntity te = world.getTileEntity(pos);
+            world.setBlockState(pos, newState);
+            if (te != null && te != world.getTileEntity(pos)) {
+                te.validate();
+                world.setTileEntity(pos, te);
             }
-            world.markBlockRangeForRenderUpdate(pos, pos);
         }
     }
 
-    public void setBlockState(World world, BlockPos pos, IBlockState newState) {
-        setBlockState(world, pos, newState, world.getTileEntity(pos));
+    public static void setBlockState(World world, BlockPos pos, BlockState newState, int flag) {
+        setBlockState(world, pos, world.getBlockState(pos), newState, flag);
     }
 
-    public EnumFacing getPosFacing(BlockPos before, BlockPos pos) {
+    public static void setBlockState(World world, BlockPos pos, BlockState oldState, BlockState newState) {
+        setBlockState(world, pos, oldState, newState, 3);
+    }
+
+    public static void setBlockState(World world, BlockPos pos, BlockState newState) {
+        setBlockState(world, pos, world.getBlockState(pos), newState, 3);
+    }
+
+    public static Direction getPosFacing(BlockPos before, BlockPos pos) {
         // face
-        EnumFacing facing = null;
+        Direction facing = null;
         int dx = pos.getX() - before.getX();
         if (dx > 0) {
-            facing = EnumFacing.EAST;
+            facing = Direction.EAST;
         } else if (dx < 0) {
-            facing = EnumFacing.WEST;
+            facing = Direction.WEST;
         }
         int dy = pos.getY() - before.getY();
         if (dy > 0 && facing == null) {
-            facing = EnumFacing.UP;
+            facing = Direction.UP;
         } else if (dy < 0 && facing == null) {
-            facing = EnumFacing.DOWN;
+            facing = Direction.DOWN;
         } else if (dy != 0) {
             return null;
         }
         int dz = pos.getZ() - before.getZ();
         if (dz > 0 && facing == null) {
-            facing = EnumFacing.SOUTH;
+            facing = Direction.SOUTH;
         } else if (dz < 0 && facing == null) {
-            facing = EnumFacing.NORTH;
+            facing = Direction.NORTH;
         } else if (dz != 0) {
             return null;
         }

@@ -1,8 +1,5 @@
 package com.elementtimes.elementcore.api.annotation;
 
-import com.elementtimes.elementcore.api.annotation.enums.PotionBottleType;
-import com.elementtimes.elementcore.api.annotation.part.PotionType;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -10,6 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * 药水
+ * 注解到一个药水类的对象或类上
+ * 若应用到药水类上，该类应当有一个无参构造
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)
@@ -19,33 +18,19 @@ public @interface ModPotion {
 
     /**
      * RegistryName
-     * 默认 变量名
-     * @return RegistryName
      */
     String value() default "";
 
     /**
-     * PotionName
-     * 默认 变量名
-     * @return PotionName
-     */
-    String name() default "";
-
-    PotionType withType() default @PotionType;
-
-    /**
-     * 向创造模式物品栏增加药水
-     * 会查找所有包含该药水的 PotionEffect
+     * 好像 Effect 也是需要注册的。。。
      */
     @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
-    @interface Bottles {
-        /**
-         * CreativeTabs
-         * @return CreativeTabs
-         */
-        String value() default "misc";
+    @Target({ElementType.FIELD, ElementType.TYPE})
+    @interface Effect {
 
-        PotionBottleType[] types() default {PotionBottleType.NORMAL};
+        /**
+         * RegistryName
+         */
+        String value() default "";
     }
 }

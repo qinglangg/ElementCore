@@ -2,7 +2,6 @@ package com.elementtimes.elementcore.api.annotation;
 
 import com.elementtimes.elementcore.api.annotation.part.Getter;
 import com.elementtimes.elementcore.api.annotation.part.Method;
-import net.minecraftforge.common.capabilities.Capability;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -14,13 +13,8 @@ import java.lang.annotation.Target;
  * @author luqin2007
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD})
+@Target(ElementType.TYPE)
 public @interface ModCapability {
-
-    /**
-     * Capability 对应数据接口类
-     */
-    Class<?> type();
 
     /**
      * Capability 对应数据接口类的实现类的获取方式
@@ -29,7 +23,7 @@ public @interface ModCapability {
      * 返回值
      *  实现了 type 属性指向的接口的实例
      */
-    Method typeFactory();
+    Method factory();
 
     /**
      * Capability.IStorage 实现类

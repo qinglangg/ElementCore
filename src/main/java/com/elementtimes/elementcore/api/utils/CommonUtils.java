@@ -1,71 +1,42 @@
 package com.elementtimes.elementcore.api.utils;
 
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.event.FMLEvent;
-import net.minecraftforge.fml.common.eventhandler.IContextSetter;
-import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.fml.loading.moddiscovery.ModFileInfo;
+import net.minecraftforge.forgespi.language.IModInfo;
+import net.minecraftforge.forgespi.language.ModFileScanData;
 
-import javax.annotation.Nullable;
-import java.util.function.Supplier;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class CommonUtils {
 
-    private static CommonUtils u = null;
-    public static CommonUtils getInstance() {
-        if (u == null) {
-            u = new CommonUtils();
-        }
-        return u;
+    public static Dist getSide() {
+        return FMLLoader.getDist();
     }
 
-    public Side getSide() {
-        return FMLCommonHandler.instance().getSide();
+    public static boolean isServer() {
+        return getSide().isDedicatedServer();
     }
 
-    public boolean isServer() {
-        return FMLCommonHandler.instance().getSide().isServer();
+    public static boolean isClient() {
+        return getSide().isClient();
     }
 
-    public boolean isClient() {
-        return FMLCommonHandler.instance().getSide().isClient();
+    public static List<ModFileScanData> allScanData() {
+        return ModList.get().getAllScanData();
     }
 
-    public void runWithModActive(ModContainer mod, Runnable runnable, @Nullable Object event) {
-        final Loader loader = Loader.instance();
-        final ModContainer activeModContainer = loader.activeModContainer();
-        if (mod != activeModContainer) {
-            loader.setActiveModContainer(mod);
-            applyModContainerToEvent(event, mod);
-            runnable.run();
-            applyModContainerToEvent(event, activeModContainer);
-            loader.setActiveModContainer(activeModContainer);
-        } else {
-            runnable.run();
-        }
+    public static Stream<ModFileScanData> findScanData(Predicate<IModInfo> check) {
+        return allScanData().stream()
+                .filter(data -> data.getIModInfoData().stream().flatMap(info -> info.getMods().stream()).anyMatch(check));
     }
 
-    public <T> T runWithModActive(ModContainer mod, Supplier<T> runnable, @Nullable Object event) {
-        final Loader loader = Loader.instance();
-        final ModContainer activeModContainer = loader.activeModContainer();
-        if (mod != activeModContainer) {
-            loader.setActiveModContainer(mod);
-            applyModContainerToEvent(event, mod);
-            T ret = runnable.get();
-            applyModContainerToEvent(event, activeModContainer);
-            loader.setActiveModContainer(activeModContainer);
-            return ret;
-        } else {
-            return runnable.get();
-        }
-    }
-
-    private void applyModContainerToEvent(@Nullable Object event, ModContainer mod) {
-        if (event instanceof FMLEvent) {
-            ((FMLEvent) event).applyModContainer(mod);
-        } else if (event instanceof IContextSetter) {
-            ((IContextSetter) event).setModContainer(mod);
-        }
+    public static Optional<ModFileScanData> findScanData(String id) {
+        ModFileInfo info = ModList.get().getModFileById(id);
+        return Optional.ofNullable(info == null ? null : info.getFile().getScanResult());
     }
 }

@@ -1,8 +1,6 @@
 package com.elementtimes.elementcore.api.annotation;
 
-import com.elementtimes.elementcore.api.annotation.part.Getter;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.relauncher.Side;
+import com.elementtimes.elementcore.api.annotation.part.Method;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,8 +8,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 客户端与服务端通信 用于 IMessage 接口实现类
+ * 客户端与服务端通信的信息类
  * 注册到 SimpleChannel
+ * 三个方法中 T 为被注解类的类型
  * @author luqin2007
  */
 @SuppressWarnings("unused")
@@ -20,12 +19,29 @@ import java.lang.annotation.Target;
 public @interface ModSimpleNetwork {
 
     /**
-     * @return 数据包的 Handler 实例, 实现 IMessageHandler 接口
+     * 将数据写入 PacketBuffer
+     * 参数
+     *  T, PacketBuffer
+     * 返回值
+     *  无
      */
-    Getter value();
+    Method encoder();
 
     /**
-     * @return 数据包接收端
+     * 从 PacketBuffer 中读取数据
+     * 参数
+     *  PacketBuffer
+     * 返回值
+     *  T
      */
-    Side[] side() default { Side.SERVER, Side.CLIENT };
+    Method decoder();
+
+    /**
+     * 处理数据
+     * 参数
+     *  T, Supplier<NetworkEvent.Context>
+     * 返回值
+     *  无
+     */
+    Method handler();
 }
