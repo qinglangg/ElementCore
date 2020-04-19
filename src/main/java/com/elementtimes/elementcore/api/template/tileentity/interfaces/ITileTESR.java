@@ -2,19 +2,15 @@ package com.elementtimes.elementcore.api.template.tileentity.interfaces;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagFloat;
+import net.minecraft.nbt.NBTTagDouble;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.INBTSerializable;
-import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 添加 TESR 渲染支持
@@ -113,25 +109,17 @@ public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
     class RenderObject implements INBTSerializable<NBTTagCompound> {
 
         public ItemStack obj;
-        public Vec3d[] translates = new Vec3d[0];
-        public Vec3d[] scales = new Vec3d[0];
-        public Vec3d[] rotates = new Vec3d[0];
-        public float[] rotateAngles = new float[0];
+        public List<RenderObjectTransformation> transformations = new ArrayList<>();
+        
         private boolean isRender = false;
         private boolean isBlock;
 
         private static final String BIND_NBT_TESR_RENDER = "_nbt_tesr_render_";
         private static final String BIND_NBT_TESR_RENDER_OBJ = "_nbt_tesr_render_obj_";
         private static final String BIND_NBT_TESR_RENDER_EMPTY = "_nbt_tesr_render_empty_";
-        private static final String BIND_NBT_TESR_RENDER_TRANSLATES = "_nbt_tesr_render_t_";
-        private static final String BIND_NBT_TESR_RENDER_SCALES = "_nbt_tesr_render_s_";
-        private static final String BIND_NBT_TESR_RENDER_ROTATES = "_nbt_tesr_render_r_";
-        private static final String BIND_NBT_TESR_RENDER_ROTATE_ANGLES = "_nbt_tesr_render_r_a_";
+        private static final String BIND_NBT_TESR_RENDER_TRANSFORMATIONS = "_nbt_tesr_render_t_";
         private static final String BIND_NBT_TESR_RENDER_IS_RENDER = "_nbt_tesr_render_is_render_";
         private static final String BIND_NBT_TESR_RENDER_IS_BLOCK = "_nbt_tesr_render_is_block_";
-        private static final String BIND_NBT_TESR_RENDER_VECTOR_X = "_nbt_tesr_render_vector_x_";
-        private static final String BIND_NBT_TESR_RENDER_VECTOR_Y = "_nbt_tesr_render_vector_y_";
-        private static final String BIND_NBT_TESR_RENDER_VECTOR_Z = "_nbt_tesr_render_vector_z_";
 
         public static RenderObject create(NBTTagCompound nbt) {
             if (nbt.getCompoundTag(BIND_NBT_TESR_RENDER).getBoolean(BIND_NBT_TESR_RENDER_EMPTY)) {
@@ -148,34 +136,32 @@ public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
         }
 
         public RenderObject translate(double x, double y, double z) {
-            translates = ArrayUtils.add(translates, new Vec3d(x, y, z));
+            transformations.add(new RenderObjectTransformation(0, x, y, z));
             return this;
         }
 
         public RenderObject translate(Vec3d vector) {
-            translates = ArrayUtils.add(translates, vector);
+            transformations.add(new RenderObjectTransformation(0, vector.x, vector.y, vector.z));
             return this;
         }
 
         public RenderObject scale(double x, double y, double z) {
-            scales = ArrayUtils.add(scales, new Vec3d(x, y, z));
+            transformations.add(new RenderObjectTransformation(1, x, y, z));
             return this;
         }
 
         public RenderObject scale(Vec3d vector) {
-            scales = ArrayUtils.add(scales, vector);
+            transformations.add(new RenderObjectTransformation(1, vector.x, vector.y, vector.z));
             return this;
         }
 
         public RenderObject rotate(double x, double y, double z, float angle) {
-            rotates = ArrayUtils.add(rotates, new Vec3d(x, y, z));
-            rotateAngles = ArrayUtils.add(rotateAngles, angle);
+            transformations.add(new RenderObjectTransformation(2, x, y, z, angle));
             return this;
         }
 
         public RenderObject rotate(Vec3d vector, float angle) {
-            rotates = ArrayUtils.add(rotates, vector);
-            rotateAngles = ArrayUtils.add(rotateAngles, angle);
+            transformations.add(new RenderObjectTransformation(2, vector.x, vector.y, vector.z, angle));
             return this;
         }
 
@@ -199,46 +185,43 @@ public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
 
         public RenderObject copy() {
             RenderObject renderObject = new RenderObject(obj.copy());
-            renderObject.translates = new Vec3d[translates.length];
-            for (int i = 0; i < translates.length; i++) {
-                Vec3d v = translates[i];
-                renderObject.translates[i] = new Vec3d(v.x, v.y, v.z);
-            }
-            renderObject.scales = new Vec3d[scales.length];
-            for (int i = 0; i < scales.length; i++) {
-                Vec3d v = scales[i];
-                renderObject.scales[i] = new Vec3d(v.x, v.y, v.z);
-            }
-            renderObject.rotates = new Vec3d[rotates.length];
-            for (int i = 0; i < rotates.length; i++) {
-                Vec3d v = rotates[i];
-                renderObject.rotates[i] = new Vec3d(v.x, v.y, v.z);
-            }
-            renderObject.rotateAngles = new float[rotateAngles.length];
-            for (int i = 0; i < rotateAngles.length; i++) {
-                renderObject.rotateAngles[i] = rotateAngles[i];
+            renderObject.isBlock = isBlock;
+            for (RenderObjectTransformation transformation : transformations) {
+                renderObject.transformations.add(transformation.copy());
             }
             return renderObject;
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
+        public boolean equals(Object object) {
+            if (this == object) {
                 return true;
             }
-            if (!(obj instanceof RenderObject)) {
+            if (object == null || getClass() != object.getClass()) {
                 return false;
             }
-            return ((RenderObject) obj).obj.equals(this.obj)
-                    && ((RenderObject) obj).translates.equals(this.translates)
-                    && ((RenderObject) obj).scales.equals(this.scales)
-                    && ((RenderObject) obj).rotateAngles.equals(this.rotateAngles)
-                    && ((RenderObject) obj).rotates.equals(this.rotates);
+
+            RenderObject that = (RenderObject) object;
+
+            if (isRender != that.isRender) {
+                return false;
+            }
+            if (isBlock != that.isBlock) {
+                return false;
+            }
+            if (!Objects.equals(obj, that.obj)) {
+                return false;
+            }
+            return Objects.equals(transformations, that.transformations);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(obj, translates, scales, rotateAngles, rotates);
+            int result = obj != null ? obj.hashCode() : 0;
+            result = 31 * result + (transformations != null ? transformations.hashCode() : 0);
+            result = 31 * result + (isRender ? 1 : 0);
+            result = 31 * result + (isBlock ? 1 : 0);
+            return result;
         }
 
         public NBTTagCompound writeNBT(NBTTagCompound nbt) {
@@ -248,12 +231,13 @@ public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
             } else {
                 nbtRender.setBoolean(BIND_NBT_TESR_RENDER_EMPTY, false);
                 nbtRender.setTag(BIND_NBT_TESR_RENDER_OBJ, obj.writeToNBT(new NBTTagCompound()));
-                nbtRender.setTag(BIND_NBT_TESR_RENDER_TRANSLATES, vec2nbt(translates));
-                nbtRender.setTag(BIND_NBT_TESR_RENDER_ROTATES, vec2nbt(rotates));
-                nbtRender.setTag(BIND_NBT_TESR_RENDER_SCALES, vec2nbt(scales));
-                nbtRender.setTag(BIND_NBT_TESR_RENDER_ROTATE_ANGLES, float2nbt(rotateAngles));
                 nbtRender.setBoolean(BIND_NBT_TESR_RENDER_IS_RENDER, isRender);
                 nbtRender.setBoolean(BIND_NBT_TESR_RENDER_IS_BLOCK, isBlock);
+                NBTTagList list = new NBTTagList();
+                for (RenderObjectTransformation transformation : transformations) {
+                    list.appendTag(transformation.serializeNBT());
+                }
+                nbtRender.setTag(BIND_NBT_TESR_RENDER_TRANSFORMATIONS, list);
             }
             nbt.setTag(BIND_NBT_TESR_RENDER, nbtRender);
             return nbt;
@@ -268,54 +252,76 @@ public interface ITileTESR extends INBTSerializable<NBTTagCompound> {
         public void deserializeNBT(NBTTagCompound nbt) {
             NBTTagCompound nbtRender = nbt.getCompoundTag(BIND_NBT_TESR_RENDER);
             obj = new ItemStack(nbtRender.getCompoundTag(BIND_NBT_TESR_RENDER_OBJ));
-            translates = nbt2vec((NBTTagList) nbtRender.getTag(BIND_NBT_TESR_RENDER_TRANSLATES));
-            scales = nbt2vec((NBTTagList) nbtRender.getTag(BIND_NBT_TESR_RENDER_SCALES));
-            rotates = nbt2vec((NBTTagList) nbtRender.getTag(BIND_NBT_TESR_RENDER_ROTATES));
-            rotateAngles = nbt2float((NBTTagList) nbtRender.getTag(BIND_NBT_TESR_RENDER_ROTATE_ANGLES));
             isBlock = nbtRender.getBoolean(BIND_NBT_TESR_RENDER_IS_BLOCK);
             isRender = nbtRender.getBoolean(BIND_NBT_TESR_RENDER_IS_RENDER);
+            transformations.clear();
+            NBTTagList list = nbtRender.getTagList(BIND_NBT_TESR_RENDER_TRANSFORMATIONS, Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < list.tagCount(); i++) {
+                RenderObjectTransformation transformation = new RenderObjectTransformation(0);
+                transformation.deserializeNBT(list.getCompoundTagAt(i));
+                transformations.add(transformation);
+            }
+        }
+    }
+
+    class RenderObjectTransformation implements INBTSerializable<NBTTagCompound> {
+
+        public int type;
+        public double[] params;
+
+        public RenderObjectTransformation(int type, double... params) {
+            this.type = type;
+            this.params = params;
         }
 
-        private NBTTagList vec2nbt(Vec3d[] vectors) {
+        public RenderObjectTransformation copy() {
+            return new RenderObjectTransformation(type, params);
+        }
+
+        @Override
+        public NBTTagCompound serializeNBT() {
+            NBTTagCompound compound = new NBTTagCompound();
             NBTTagList list = new NBTTagList();
-            for (Vec3d vector : vectors) {
-                NBTTagCompound nbtVector = new NBTTagCompound();
-                nbtVector.setDouble(BIND_NBT_TESR_RENDER_VECTOR_X, vector.x);
-                nbtVector.setDouble(BIND_NBT_TESR_RENDER_VECTOR_Y, vector.y);
-                nbtVector.setDouble(BIND_NBT_TESR_RENDER_VECTOR_Z, vector.z);
-                list.appendTag(nbtVector);
+            for (double param : params) {
+                list.appendTag(new NBTTagDouble(param));
             }
-            return list;
+            compound.setInteger("t", type);
+            compound.setTag("p", list);
+            return compound;
         }
 
-        private NBTTagList float2nbt(float[] values) {
-            NBTTagList list = new NBTTagList();
-            for (float value : values) {
-                list.appendTag(new NBTTagFloat(value));
+        @Override
+        public void deserializeNBT(NBTTagCompound nbt) {
+            type = nbt.getInteger("t");
+            NBTTagList list = nbt.getTagList("p", Constants.NBT.TAG_DOUBLE);
+            params = new double[list.tagCount()];
+            for (int i = 0; i < list.tagCount(); i++) {
+                params[i] = list.getDoubleAt(i);
             }
-            return list;
         }
 
-        private Vec3d[] nbt2vec(NBTTagList vectors) {
-            int count = vectors.tagCount();
-            Vec3d[] list = new Vec3d[count];
-            for (int i = 0; i < count; i++) {
-                NBTTagCompound nbtVector = vectors.getCompoundTagAt(i);
-                double x = nbtVector.getDouble(BIND_NBT_TESR_RENDER_VECTOR_X);
-                double y = nbtVector.getDouble(BIND_NBT_TESR_RENDER_VECTOR_Y);
-                double z = nbtVector.getDouble(BIND_NBT_TESR_RENDER_VECTOR_Z);
-                list[i] = new Vec3d(x, y, z);
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
             }
-            return list;
+            if (object == null || getClass() != object.getClass()) {
+                return false;
+            }
+
+            RenderObjectTransformation that = (RenderObjectTransformation) object;
+
+            if (type != that.type) {
+                return false;
+            }
+            return Arrays.equals(params, that.params);
         }
 
-        private float[] nbt2float(NBTTagList values) {
-            int count = values.tagCount();
-            float[] fList = new float[count];
-            for (int i = 0; i < count; i++) {
-                fList[i] = values.getFloatAt(i);
-            }
-            return fList;
+        @Override
+        public int hashCode() {
+            int result = type;
+            result = 31 * result + Arrays.hashCode(params);
+            return result;
         }
     }
 }

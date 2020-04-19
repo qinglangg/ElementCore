@@ -1,4 +1,4 @@
-package com.elementtimes.elementcore.api.common.event;
+package com.elementtimes.elementcore.api.common.events;
 
 import com.elementtimes.elementcore.api.annotation.enums.LoadState;
 import com.elementtimes.elementcore.api.common.ECModContainer;
@@ -121,11 +121,9 @@ public class FmlRegister {
         for (int i = 0; i < elements.netSimple.size(); i++) {
             NetworkLoader.SimpleNetwork network = elements.netSimple.get(i);
             if (network.server) {
-                elements.warn("Network[S]{}: {}", i, network.message);
                 elements.simpleChannel.registerMessage(network.handler, network.message, i, Side.SERVER);
             }
             if (network.client) {
-                elements.warn("Network[C]{}: {}", i, network.message);
                 elements.simpleChannel.registerMessage(network.handler, network.message, i, Side.CLIENT);
             }
         }

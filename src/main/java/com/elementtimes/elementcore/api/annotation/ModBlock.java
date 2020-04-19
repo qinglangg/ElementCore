@@ -198,14 +198,14 @@ public @interface ModBlock {
          * 简单的方块染色。如果要更详细的设置，使用 ModColor 或 ModColorObj 注解
          * @return 方块染色
          */
-        int value();
+        int value() default 0;
 
         /**
          * 简单的物品染色。如果要更详细的设置，使用 ModColor 或 ModColorObj 注解
          *  -1 代表无物品染色
          * @return 物品染色
          */
-        int item() default -1;
+        int item() default 0;
     }
 
     /**

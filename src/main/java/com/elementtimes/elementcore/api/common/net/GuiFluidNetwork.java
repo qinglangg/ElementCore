@@ -2,9 +2,9 @@ package com.elementtimes.elementcore.api.common.net;
 
 import com.elementtimes.elementcore.api.annotation.ModSimpleNetwork;
 import com.elementtimes.elementcore.api.annotation.part.Getter;
+import com.elementtimes.elementcore.api.common.net.handler.GuiFluidHandler;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
-import com.elementtimes.elementcore.api.utils.FluidUtils;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -16,10 +16,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,13 +25,13 @@ import java.util.Map;
  * 用于流体参与的机器的通信
  * @author luqin2007
  */
-@ModSimpleNetwork(value = @Getter(GuiFluidNetwork.Handler.class), side = Side.CLIENT)
+@ModSimpleNetwork(value = @Getter(GuiFluidHandler.class), side = Side.CLIENT)
 public class GuiFluidNetwork implements IMessage {
 
-    private Map<SideHandlerType, Int2ObjectMap<FluidStack>> fluids = new HashMap<>();
-    private Map<SideHandlerType, Int2IntMap> capabilities = new HashMap<>();
-    private int guiType;
-    private boolean isValid = false;
+    public Map<SideHandlerType, Int2ObjectMap<FluidStack>> fluids = new HashMap<>();
+    public Map<SideHandlerType, Int2IntMap> capabilities = new HashMap<>();
+    public int guiType;
+    public boolean isValid = false;
 
     public GuiFluidNetwork() { }
 
@@ -78,8 +75,12 @@ public class GuiFluidNetwork implements IMessage {
                 Int2IntMap rCapabilities = new Int2IntArrayMap(count);
                 for (int i = 0; i < count; i++) {
                     int slot = buf.readInt();
-                    FluidStack fluid = FluidStack.loadFluidStackFromNBT(ByteBufUtils.readTag(buf));
-                    rFluids.put(slot, fluid);
+                    NBTTagCompound compound = ByteBufUtils.readTag(buf);
+                    if (compound == null || compound.hasNoTags()) {
+                        rFluids.put(slot, null);
+                    } else {
+                        rFluids.put(slot, FluidStack.loadFluidStackFromNBT(compound));
+                    }
                     rCapabilities.put(slot, buf.readInt());
                 }
                 fluids.put(type, rFluids);
@@ -102,37 +103,12 @@ public class GuiFluidNetwork implements IMessage {
                 buf.writeInt(slot);
                 FluidStack fluid = rFluids.get(slot);
                 if (fluid == null) {
-                    fluid = FluidUtils.EMPTY;
+                    ByteBufUtils.writeTag(buf, new NBTTagCompound());
+                } else {
+                    ByteBufUtils.writeTag(buf, fluid.writeToNBT(new NBTTagCompound()));
                 }
-                ByteBufUtils.writeTag(buf, fluid.writeToNBT(new NBTTagCompound()));
                 buf.writeInt(rCapabilities.get(slot));
             });
         });
-    }
-
-    public static class Handler implements IMessageHandler<GuiFluidNetwork, IMessage> {
-
-        public Handler() {}
-
-        @Override
-        public IMessage onMessage(GuiFluidNetwork message, MessageContext ctx) {
-            synchronized (this) {
-                if (message.isValid) {
-                    Map<SideHandlerType, Int2ObjectMap<ImmutablePair<FluidStack, Integer>>> fluids = new HashMap<>();
-                    message.fluids.keySet().forEach(type -> {
-                        Int2ObjectMap<FluidStack> rFluids = message.fluids.get(type);
-                        Int2IntMap rCapabilities = message.capabilities.get(type);
-                        fluids.put(type, new Int2ObjectArrayMap<>(rFluids.size()));
-                        rFluids.keySet().forEach(slot -> {
-                            FluidStack fluidStack = rFluids.get(slot);
-                            int capability = rCapabilities.get(slot);
-                            fluids.get(type).put(slot, ImmutablePair.of(fluidStack, capability));
-                        });
-                    });
-                    com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.FLUIDS.put(message.guiType, fluids);
-                }
-            }
-            return null;
-        }
     }
 }

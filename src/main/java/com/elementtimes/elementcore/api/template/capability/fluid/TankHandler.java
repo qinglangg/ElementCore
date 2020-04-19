@@ -37,38 +37,18 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
             } else {
                 capacity = 1000;
             }
-            handlers[i] = new FluidTank(capacity) {
-                @Override
-                public FluidStack drain(int maxDrain, boolean doDrain) {
-                    if (fluid == null || !drankCheck.test(i, new FluidStack(fluid, maxDrain))) {
-                        return null;
-                    }
-                    return super.drain(maxDrain, doDrain);
-                }
-
-                @Override
-                public FluidStack drain(FluidStack resource, boolean doDrain) {
-                    if (resource == null || !drankCheck.test(i, resource)) {
-                        return null;
-                    }
-                    return super.drain(resource, doDrain);
-                }
-
-                @Override
-                public int fill(FluidStack resource, boolean doFill) {
-                    if (resource == null || !fillCheck.test(i, resource)) {
-                        return 0;
-                    }
-                    return super.fill(resource, doFill);
-                }
-            };
+            handlers[i] = new Tank(fillCheck, drankCheck, capacity, i);
             last = capacity;
         }
         return handlers;
     }
 
+    private BiPredicate<Integer, FluidStack> fillCheck, drankCheck;
+
     public TankHandler(BiPredicate<Integer, FluidStack> fillCheck, BiPredicate<Integer, FluidStack> drankCheck, int size, int... capacities) {
         super(build(fillCheck, drankCheck, size, capacities));
+        this.fillCheck = fillCheck;
+        this.drankCheck = drankCheck;
     }
 
     @Override
@@ -94,7 +74,7 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
             NBTTagList list = (NBTTagList) nbt.getTag("_fluids_");
             for (int i = 0; i < Math.min(subHandlers.length, list.tagCount()); i++) {
                 NBTTagCompound nbtFluid = (NBTTagCompound) list.get(i);
-                FluidTank tank = new FluidTank(nbtFluid.getInteger("_capacity_"));
+                FluidTank tank = new Tank(fillCheck, drankCheck, nbtFluid.getInteger("_capacity_"), i);
                 tank.readFromNBT(nbtFluid.getCompoundTag("_tank_"));
                 subHandlers[i] = tank;
             }
@@ -149,5 +129,42 @@ public class TankHandler extends FluidHandlerConcatenate implements ITankHandler
     @Override
     public int getCapacity(int slot) {
         return ((IFluidTank) subHandlers[slot]).getCapacity();
+    }
+
+    static class Tank extends FluidTank {
+
+        public int slot;
+        private BiPredicate<Integer, FluidStack> fillCheck, drankCheck;
+
+        public Tank(BiPredicate<Integer, FluidStack> fillCheck, BiPredicate<Integer, FluidStack> drankCheck, int capability, int slot) {
+            super(capability);
+            this.slot = slot;
+            this.fillCheck = fillCheck;
+            this.drankCheck = drankCheck;
+        }
+
+        @Override
+        public FluidStack drain(int maxDrain, boolean doDrain) {
+            if (fluid == null || !drankCheck.test(slot, new FluidStack(fluid, maxDrain))) {
+                return null;
+            }
+            return super.drain(maxDrain, doDrain);
+        }
+
+        @Override
+        public FluidStack drain(FluidStack resource, boolean doDrain) {
+            if (resource == null || !drankCheck.test(slot, resource)) {
+                return null;
+            }
+            return super.drain(resource, doDrain);
+        }
+
+        @Override
+        public int fill(FluidStack resource, boolean doFill) {
+            if (resource == null || !fillCheck.test(slot, resource)) {
+                return 0;
+            }
+            return super.fill(resource, doFill);
+        }
     }
 }

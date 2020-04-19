@@ -23,4 +23,6 @@ public class ECUtils {
     public static MathUtils math = MathUtils.getInstance();
 
     public static StorageUtils storage = StorageUtils.getInstance();
+
+    public static CollectionUtil collection = CollectionUtil.getInstance();
 }

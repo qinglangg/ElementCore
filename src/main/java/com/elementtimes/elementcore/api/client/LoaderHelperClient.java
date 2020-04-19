@@ -26,12 +26,13 @@ import java.util.Optional;
 public class LoaderHelperClient {
 
     public static IBlockColor getValueBlockColor(ECModElementsClient client, int value) {
-        if (value == -1) {
+        if (value == 0) {
             return null;
         }
         IBlockColor color = client.blockValueColors.get(value);
         if (color == null) {
-            client.blockValueColors.put(value, (state, worldIn, pos, tintIndex) -> value);
+            color = (state, worldIn, pos, tintIndex) -> value;
+            client.blockValueColors.put(value, color);
         }
         return color;
     }
@@ -40,9 +41,13 @@ public class LoaderHelperClient {
         String key = key(method);
         if (key != null) {
             ECModElementsClient client = elements.getClientNotInit();
-            IntInvoker invoker = RefHelper.invoker(elements, method, 0, IBlockState.class, IBlockAccess.class, BlockPos.class, int.class);
-            return client.blockMethodColors.computeIfAbsent(key, k ->
-                    (state, worldIn, pos, tintIndex) -> invoker.invoke(state, worldIn, pos, tintIndex));
+            IBlockColor color = client.blockMethodColors.get(key);
+            if (color == null) {
+                IntInvoker invoker = RefHelper.invoker(elements, method, 0, IBlockState.class, IBlockAccess.class, BlockPos.class, int.class);
+                color = (state, worldIn, pos, tintIndex) -> invoker.invoke(state, worldIn, pos, tintIndex);
+                client.blockMethodColors.put(key, color);
+            }
+            return color;
         }
         return null;
     }
@@ -66,12 +71,13 @@ public class LoaderHelperClient {
     }
 
     public static IItemColor getValueItemColor(ECModElementsClient client, int value) {
-        if (value == -1) {
+        if (value == 0) {
             return null;
         }
         IItemColor color = client.itemValueColors.get(value);
         if (color == null) {
-            client.itemValueColors.put(value, (stack, tintIndex) -> value);
+            color = (stack, tintIndex) -> value;
+            client.itemValueColors.put(value, color);
         }
         return color;
     }
@@ -80,8 +86,13 @@ public class LoaderHelperClient {
         String key = key(method);
         if (key != null) {
             ECModElementsClient client = elements.getClientNotInit();
-            IntInvoker invoker = RefHelper.invoker(elements, method, 0, ItemStack.class, int.class);
-            return client.itemMethodColors.computeIfAbsent(key, k -> (stack, tintIndex) -> invoker.invoke(stack, tintIndex));
+            IItemColor color = client.itemMethodColors.get(key);
+            if (color == null) {
+                IntInvoker invoker = RefHelper.invoker(elements, method, 0, ItemStack.class, int.class);
+                color = (stack, tintIndex) -> invoker.invoke(stack, tintIndex);
+                client.itemMethodColors.put(key, color);
+            }
+            return color;
         }
         return null;
     }

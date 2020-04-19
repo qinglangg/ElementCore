@@ -32,7 +32,9 @@ public class NetworkLoader {
                             client = true;
                             server = true;
                         }
-                        elements.netSimple.add(new SimpleNetwork(handler, aClass, server, client));
+                        SimpleNetwork simpleNetwork = new SimpleNetwork(handler, aClass, server, client);
+                        elements.warn("[ModSimpleNetwork]{}", simpleNetwork);
+                        elements.netSimple.add(simpleNetwork);
                     });
                 });
             });
@@ -40,6 +42,7 @@ public class NetworkLoader {
         if (elements.eventChannel != null) {
             ObjHelper.stream(elements, ModEventNetwork.class).forEach(data -> {
                 ObjHelper.findClass(elements, data.getClassName()).ifPresent(aClass -> {
+                    elements.warn("[ModSimpleNetwork]{}", aClass);
                     if (ObjHelper.getDefault(data, false)) {
                         elements.netEvent.add(ECUtils.reflect.create(aClass, aClass, elements));
                     } else {
@@ -61,6 +64,16 @@ public class NetworkLoader {
             this.message = message;
             this.server = server;
             this.client = client;
+        }
+
+        @Override
+        public String toString() {
+            return "SimpleNetwork{" +
+                    "handler=" + handler +
+                    ", message=" + message +
+                    ", server=" + server +
+                    ", client=" + client +
+                    '}';
         }
     }
 }

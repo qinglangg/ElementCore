@@ -2,6 +2,8 @@ package com.elementtimes.elementcore.api.template.tileentity;
 
 import com.elementtimes.elementcore.ElementCore;
 import com.elementtimes.elementcore.api.common.ECUtils;
+import com.elementtimes.elementcore.api.common.net.GuiEnergyNetwork;
+import com.elementtimes.elementcore.api.common.net.GuiFluidNetwork;
 import com.elementtimes.elementcore.api.template.capability.EnergyHandler;
 import com.elementtimes.elementcore.api.template.capability.fluid.ITankHandler;
 import com.elementtimes.elementcore.api.template.capability.fluid.TankHandler;
@@ -15,9 +17,6 @@ import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInf
 import com.elementtimes.elementcore.api.template.tileentity.lifecycle.RecipeMachineLifecycle;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeCapture;
 import com.elementtimes.elementcore.api.template.tileentity.recipe.MachineRecipeHandler;
-import com.elementtimes.elementcore.api.utils.FluidUtils;
-import com.elementtimes.elementcore.api.common.net.GuiEnergyNetwork;
-import com.elementtimes.elementcore.api.common.net.GuiFluidNetwork;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.entity.player.EntityPlayer;
@@ -97,14 +96,14 @@ public abstract class BaseTileEntity extends TileEntity implements
     private void postEnergy(EntityPlayer player, HandlerInfoMachineLifecycle.EnergyInfo info) {
         if (player instanceof EntityPlayerMP) {
             GuiEnergyNetwork energyNetwork = new GuiEnergyNetwork(getGuiId(), info.capacity, info.stored);
-            ElementCore.instance().container.elements.simpleChannel.sendTo(energyNetwork, (EntityPlayerMP) player);
+            ElementCore.instance().container.elements.sendToPlayer(energyNetwork, (EntityPlayerMP) player);
         }
     }
     private void postFluid(EntityPlayer player, HandlerInfoMachineLifecycle.FluidInfo info) {
         if (player instanceof EntityPlayerMP) {
             GuiFluidNetwork fluidNetwork = new GuiFluidNetwork();
             fluidNetwork.put(getGuiId(), info);
-            ElementCore.instance().container.elements.simpleChannel.sendTo(fluidNetwork, (EntityPlayerMP) player);
+            ElementCore.instance().container.elements.sendToPlayer(fluidNetwork, (EntityPlayerMP) player);
         }
     }
 
@@ -219,7 +218,7 @@ public abstract class BaseTileEntity extends TileEntity implements
         List<ItemStack> list = ECUtils.item.toList(itemHandler, getRecipeSlotIgnore());
         ItemStack backup = list.get(slot);
         list.set(slot, stack);
-        boolean valid = getRecipes().acceptInput(list, ECUtils.fluid.toListIndexed(getTanks(SideHandlerType.INPUT), FluidUtils.EMPTY));
+        boolean valid = getRecipes().acceptInput(list, ECUtils.fluid.toListIndexed(getTanks(SideHandlerType.INPUT)));
         list.set(slot, backup);
         return valid;
     }
@@ -268,7 +267,7 @@ public abstract class BaseTileEntity extends TileEntity implements
     }
     @Override
     public boolean isFillValid(int slot, FluidStack fluidStack) {
-        List<FluidStack> fluids = ECUtils.fluid.toListIndexed(getTanks(SideHandlerType.INPUT), FluidUtils.EMPTY);
+        List<FluidStack> fluids = ECUtils.fluid.toListIndexed(getTanks(SideHandlerType.INPUT));
         fluids.set(slot, fluidStack);
         return getRecipes().acceptInput(ECUtils.item.toList(getItemHandler(SideHandlerType.INPUT), getRecipeSlotIgnore()), fluids);
     }
@@ -343,6 +342,20 @@ public abstract class BaseTileEntity extends TileEntity implements
                 slotIgnore.add(slot);
             }
         }
+    }
+
+    public void markBucketInputAndFix(int itemOutputDelta, int... slots) {
+        markBucketInput(slots);
+        MachineRecipeHandler recipes = getRecipes();
+        fixRecipeCount(recipes.inputItemCount - slots.length, recipes.outputItemCount - itemOutputDelta, recipes.inputFluidCount, recipes.outputFluidCount);
+    }
+
+    public void fixRecipeCount(int inputItem, int outputItem, int inputFluid, int outputFluid) {
+        getRecipes().resetSize(inputItem, outputItem, inputFluid, outputFluid);
+    }
+
+    public boolean isOriRecipe() {
+        return mRecipe == getRecipes();
     }
 
     private SideHandlerType getIOType(@Nullable EnumFacing facing, boolean hasInput, boolean hasOutput) {

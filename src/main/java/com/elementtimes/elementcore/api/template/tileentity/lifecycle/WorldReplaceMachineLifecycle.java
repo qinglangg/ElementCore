@@ -22,8 +22,11 @@ import java.util.function.Function;
 
 /**
  * 用于替换世界中的方块的机器生命周期
+ * @deprecated 该类有问题，且依赖于 MachineRecipe，已启用
+ *             使用 {@link WorldReplaceLifecycle} 替代
  * @author luqin2007
  */
+@Deprecated
 public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
 
     private TileEntity mMachine;
@@ -134,7 +137,7 @@ public class WorldReplaceMachineLifecycle implements IMachineLifecycle {
             int size = capture.fluidOutputs.size();
             if (size <= slot) {
                 for (; size <= slot; size++) {
-                    capture.fluidOutputs.add(size, FluidUtils.EMPTY);
+                    capture.fluidOutputs.add(size, null);
                 }
             }
             capture.fluidOutputs.set(slot, fluid);

@@ -79,7 +79,7 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
             IngredientPart<FluidStack> part = recipe.fluidInputs.get(i);
             FluidStack fluid = part.getter.apply(recipe, input, fluids, i, part.probability);
             fluidInputs.add(i, fluid);
-            fluidInputAmounts[i] = fluid.amount;
+            fluidInputAmounts[i] = fluid == null ? 0 : fluid.amount;
         }
 
         this.fluidOutputs = new ArrayList<>();
@@ -88,7 +88,7 @@ public class MachineRecipeCapture implements INBTSerializable<NBTTagCompound> {
             IngredientPart<FluidStack> part = recipe.fluidOutputs.get(i);
             FluidStack fluid = part.getter.apply(recipe, input, fluids, i, part.probability);
             fluidOutputs.add(i, fluid);
-            fluidOutputAmounts[i] = fluid.amount;
+            fluidOutputAmounts[i] = fluid == null ? 0 : fluid.amount;
         }
 
         this.energy = recipe.energy.applyAsInt(this);

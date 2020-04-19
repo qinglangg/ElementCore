@@ -31,10 +31,10 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
         version = ElementCore.VERSION,
         updateJSON = ElementCore.UPDATE
 )
-public class ElementCore {
+public class  ElementCore {
     private static ElementCore INSTANCE = null;
 
-    static final String MODID = "elementcore";
+    public static final String MODID = "elementcore";
     static final String VERSION = "@version@";
     static final String UPDATE = "https://github.com/luiqn2007/ElementCore/blob/1.12.2/update.json";
 

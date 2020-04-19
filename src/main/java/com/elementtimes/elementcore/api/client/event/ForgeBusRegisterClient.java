@@ -8,10 +8,10 @@ import com.elementtimes.elementcore.api.common.ECUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ItemMeshDefinition;
+import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.IStateMapper;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
-import net.minecraft.client.renderer.entity.RenderEntity;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
@@ -28,8 +28,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -99,13 +97,18 @@ public class ForgeBusRegisterClient {
     private void registerItemFunc(Item item) {
         ItemMeshDefinition definition = client().itemMeshDefinition.get(item);
         if (definition != null) {
-            ModelLoader.setCustomMeshDefinition(item, definition);
+            ResourceLocation[] resources = client().itemMeshDefinitionAll.get(item);
+            if (resources != null) {
+                ModelLoader.setCustomMeshDefinition(item, definition);
+                ModelBakery.registerItemVariants(item, resources);
+            } else {
+                ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
+            }
         } else if (client().itemSubModel.containsKey(item)) {
             for (ItemClientLoader.SubModel model : client().itemSubModel.get(item)) {
                 ModelLoader.setCustomModelResourceLocation(item, model.metadata, model.modelResourceLocation);
             }
         } else {
-            //noinspection ConstantConditions
             ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
         }
     }
@@ -143,8 +146,7 @@ public class ForgeBusRegisterClient {
 
     @SubscribeEvent
     public void registerItemColor(ColorHandlerEvent.Item event) {
-        registerItemColorFunc(event);
-//        ECUtils.common.runWithModActive(mInitializer.container.mod, () -> registerItemColorFunc(event), event);
+        ECUtils.common.runWithModActive(elements().container.mod, () -> registerItemColorFunc(event), event);
     }
 
     private void registerItemColorFunc(ColorHandlerEvent.Item event) {
@@ -162,8 +164,7 @@ public class ForgeBusRegisterClient {
 
     @SubscribeEvent
     public void registerBlockColor(ColorHandlerEvent.Block event) {
-        registerBlockColorFunc(event);
-//        ECUtils.common.runWithModActive(mInitializer.container.mod, () -> registerBlockColorFunc(event), event);
+        ECUtils.common.runWithModActive(elements().container.mod, () -> registerBlockColorFunc(event), event);
     }
 
     private void registerBlockColorFunc(ColorHandlerEvent.Block event) {

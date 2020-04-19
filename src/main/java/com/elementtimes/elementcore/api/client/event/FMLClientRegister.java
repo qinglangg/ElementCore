@@ -4,6 +4,8 @@ import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.common.ECUtils;
 import net.minecraftforge.client.ClientCommandHandler;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -24,6 +26,12 @@ public class FMLClientRegister {
     public void onPreInit(FMLPreInitializationEvent event) {
         ECUtils.common.runWithModActive(mContainer.mod, () -> {
             elements().getClientElements().commands.forEach(ClientCommandHandler.instance::registerCommand);
+        }, event);
+    }
+
+    public void onInit(FMLInitializationEvent event) {
+        ECUtils.common.runWithModActive(mContainer.mod, () -> {
+            elements().getClientElements().keys.forEach(ClientRegistry::registerKeyBinding);
         }, event);
     }
 }

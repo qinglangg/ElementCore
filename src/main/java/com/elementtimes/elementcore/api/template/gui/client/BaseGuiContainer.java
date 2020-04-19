@@ -8,7 +8,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -103,19 +102,18 @@ public class BaseGuiContainer extends GuiContainer {
                 if (fluidPair != null) {
                     float total = fluidPair.right;
                     FluidStack fluidStack = fluidPair.left;
-                    if (fluidStack == null) {
-                        fluidStack = new FluidStack(FluidRegistry.WATER, 0);
-                    }
-                    ResourceLocation stillTexture = fluidStack.getFluid().getStill();
-                    ResourceLocation stillTexture2 = new ResourceLocation(stillTexture.getResourceDomain(), "textures/" + stillTexture.getResourcePath() + ".png");
-                    mc.getTextureManager().bindTexture(stillTexture2);
-                    if (slotInfo.isHorizontal) {
-                        int w = (int) (slotInfo.w * fluidStack.amount / total);
-                        this.drawTexturedModalRect(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
-                    } else {
-                        int h = (int) (slotInfo.h * fluidStack.amount / total);
-                        int y = slotInfo.y + slotInfo.h - h;
-                        this.drawTexturedModalRect(slotInfo.x, y, 0, 0, slotInfo.w, h);
+                    if (fluidStack != null) {
+                        ResourceLocation stillTexture = fluidStack.getFluid().getStill();
+                        ResourceLocation stillTexture2 = new ResourceLocation(stillTexture.getResourceDomain(), "textures/" + stillTexture.getResourcePath() + ".png");
+                        mc.getTextureManager().bindTexture(stillTexture2);
+                        if (slotInfo.isHorizontal) {
+                            int w = (int) (slotInfo.w * fluidStack.amount / total);
+                            this.drawTexturedModalRect(slotInfo.x, slotInfo.y, 0, 0, w, slotInfo.h);
+                        } else {
+                            int h = (int) (slotInfo.h * fluidStack.amount / total);
+                            int y = slotInfo.y + slotInfo.h - h;
+                            this.drawTexturedModalRect(slotInfo.x, y, 0, 0, slotInfo.w, h);
+                        }
                     }
                 }
             }
@@ -143,8 +141,12 @@ public class BaseGuiContainer extends GuiContainer {
                         FluidStack fluidStack = pair.left;
                         int total = pair.right;
                         List<String> texts = new ArrayList<>(2);
-                        texts.add(fluidStack.getLocalizedName());
-                        texts.add(fluidStack.amount + "/" + total);
+                        if (fluidStack == null) {
+                            texts.add("0/" + total);
+                        } else {
+                            texts.add(fluidStack.getLocalizedName());
+                            texts.add(fluidStack.amount + "/" + total);
+                        }
                         drawHoveringText(texts, mouseX, mouseY);
                     }
                 }

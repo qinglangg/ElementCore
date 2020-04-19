@@ -5,10 +5,17 @@
     "0.2.6": "fix: recipe, gui",
     "0.3.0": "添加 Mixin 实现燃烧时间和创造任务栏某些功能，为了兼容网易",
     "0.4.0": "添加 Getter 和 Method 注解，作为对象和方法的引用",
-    "0.4.1": "对 BaseTileEntity 和 部分注解的 bug 修复，详见 github 提交日志"
+    "0.4.1": "对 BaseTileEntity 和 部分注解的 bug 修复，详见 github 提交日志",
+    "0.5.0": "详见 https://github.com/luiqn2007/ElementCore2/blob/1.12.2/wiki_assets/1_12_2/update/0.5.0.md",
+    "0.5.1": "修复若干 bug",
+    "0.5.2": "更新build.gradle",
+    "0.5.3": "增加部分用于配置文件的 API",
+    "0.6.0": "增加 WorldReplaceLifecycle 替代 WorldReplaceMachineLifecycle；EnergyGeneratorLifecycle 增加分发策略",
+    "0.6.1": "增加 ModBook 与 IBook 接口，支持简单的指导书支持",
+    "0.6.2": "默认注解只处理当前 mod 的类"
   },
   "promos": {
-    "1.12.2-latest": "0.4.1",
-    "1.12.2-recommended": "0.4.1"
+    "1.12.2-latest": "0.6.2",
+    "1.12.2-recommended": "0.6.2"
   }
 }

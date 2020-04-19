@@ -6,7 +6,6 @@ import com.elementtimes.elementcore.api.template.capability.item.IItemHandler;
 import com.elementtimes.elementcore.api.template.tileentity.BaseTileEntity;
 import com.elementtimes.elementcore.api.template.tileentity.SideHandlerType;
 import com.elementtimes.elementcore.api.template.tileentity.interfaces.IMachineLifecycle;
-import com.elementtimes.elementcore.api.utils.FluidUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.item.ItemStack;
@@ -53,6 +52,18 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
      *                          key 为流体输出槽位，value 为 int 数组，第一个元素为绑定的物品输入槽位，第二个元素为绑定的物品输出槽位
      */
     public FluidMachineLifecycle(BaseTileEntity machine, Int2ObjectMap<int[]> bucketInputSlots, Int2ObjectMap<int[]> bucketOutputSlots) {
+        this(machine, bucketInputSlots, bucketOutputSlots, machine.isOriRecipe());
+    }
+
+    /**
+     * 用于带有流体的机器，流体转移和同步部分生命周期创建
+     * @param machine 流体机器 TileEntity
+     * @param bucketInputSlots  流体输入槽与物品类型流体容器输入/输出槽的绑定关系，
+     *                          key 为流体输入槽位，value 为 int 数组，第一个元素为绑定的物品输入槽位，第二个元素为绑定的物品输出槽位
+     * @param bucketOutputSlots 流体输出槽与物品类型流体容器输入/输出槽的绑定关系，
+     *                          key 为流体输出槽位，value 为 int 数组，第一个元素为绑定的物品输入槽位，第二个元素为绑定的物品输出槽位
+     */
+    public FluidMachineLifecycle(BaseTileEntity machine, Int2ObjectMap<int[]> bucketInputSlots, Int2ObjectMap<int[]> bucketOutputSlots, boolean resize) {
         mMachine = machine;
         mInputs = bucketInputSlots;
         mOutputs = bucketOutputSlots;
@@ -60,7 +71,11 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
         outputItems = machine.getItemHandler(SideHandlerType.OUTPUT);
         inputFluids = machine.getTanks(SideHandlerType.INPUT);
         outputFluids = machine.getTanks(SideHandlerType.OUTPUT);
-        markBucketInput();
+        if (resize) {
+            markBucketInput();
+        } else {
+            markBucketInputNotFix();
+        }
     }
 
     /**
@@ -75,6 +90,22 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
      * @param outputStart 桶输出槽位起始序列
      */
     public FluidMachineLifecycle(BaseTileEntity machine, int inputCount, int outputCount, int inputStart, int outputStart) {
+        this(machine, inputCount, outputCount, inputStart, outputStart, machine.isOriRecipe());
+    }
+
+    /**
+     * 用于一般流体配置的生命周期
+     *  每个流体槽都有桶的输入和输出槽位
+     *  所有的桶输入槽位从 inputStart 开始按顺序向后排列
+     *  所有的桶输出槽位从 outputStart 开始按顺序向后排列
+     * @param machine 机器 TileEntity
+     * @param inputCount 输入槽位个数
+     * @param outputCount 输出槽位个数
+     * @param inputStart 桶输入槽位起始序列
+     * @param outputStart 桶输出槽位起始序列
+     * @param resize 是否对 MachineRecipe 执行 resize 操作
+     */
+    public FluidMachineLifecycle(BaseTileEntity machine, int inputCount, int outputCount, int inputStart, int outputStart, boolean resize) {
         mMachine = machine;
         mInputs = new Int2ObjectArrayMap<>(inputCount);
         mOutputs = new Int2ObjectArrayMap<>(outputCount);
@@ -92,7 +123,11 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
             mOutputs.put(i, new int[]{ inputStart + inputCount + i, outputStart + inputCount + i });
         }
 
-        markBucketInput();
+        if (resize) {
+            markBucketInput();
+        } else {
+            markBucketInputNotFix();
+        }
     }
 
     /**
@@ -102,9 +137,32 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
      * @param outputCount 输出槽位个数
      */
     public FluidMachineLifecycle(BaseTileEntity machine, int inputCount, int outputCount) {
+        this(machine, inputCount, outputCount, machine.isOriRecipe());
+    }
+
+    /**
+     * 对构造的再次简化，假定流体物品槽位全部位于输入/输出槽位末尾，且流体输入槽绑定的物品槽位于流体输出槽绑定的物品槽之前
+     * @param machine 机器 TileEntity
+     * @param inputCount 输入槽位个数
+     * @param outputCount 输出槽位个数
+     * @param resize 是否对 MachineRecipe 执行 resize 操作
+     */
+    public FluidMachineLifecycle(BaseTileEntity machine, int inputCount, int outputCount, boolean resize) {
         this(machine, inputCount, outputCount,
                 machine.getItemHandler(SideHandlerType.INPUT).getSlots() - inputCount - outputCount,
-                machine.getItemHandler(SideHandlerType.OUTPUT).getSlots() - inputCount - outputCount);
+                machine.getItemHandler(SideHandlerType.OUTPUT).getSlots() - inputCount - outputCount, resize);
+    }
+
+    /**
+     * 对构造的再次简化，假定
+     *  1.流体物品槽位全部位于输入/输出槽位末尾
+     *  2.流体输入槽绑定的物品槽位于流体输出槽绑定的物品槽之前
+     *  3.所有流体输入槽都是 GUI 输入，流体输出槽都是 GUI 输出
+     *  4.MachineRecipe 输入输出包含桶，应当 resize
+     * @param machine 机器 TileEntity
+     */
+    public FluidMachineLifecycle(BaseTileEntity machine) {
+        this(machine, machine.isOriRecipe());
     }
 
     /**
@@ -113,8 +171,9 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
      *  2.流体输入槽绑定的物品槽位于流体输出槽绑定的物品槽之前
      *  3.所有流体输入槽都是 GUI 输入，流体输出槽都是 GUI 输出
      * @param machine 机器 TileEntity
+     * @param resize 是否对 MachineRecipe 执行 resize 操作
      */
-    public FluidMachineLifecycle(BaseTileEntity machine) {
+    public FluidMachineLifecycle(BaseTileEntity machine, boolean resize) {
         mMachine = machine;
         inputItems = machine.getItemHandler(SideHandlerType.INPUT);
         outputItems = machine.getItemHandler(SideHandlerType.OUTPUT);
@@ -138,10 +197,22 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
             mOutputs.put(i, new int[]{ inputStart + inputCount + i, outputStart + inputCount + i });
         }
 
-        markBucketInput();
+        if (resize) {
+            markBucketInput();
+        } else {
+            markBucketInputNotFix();
+        }
     }
 
     private void markBucketInput() {
+        int[] slots = Stream
+                .concat(mInputs.values().stream(), mOutputs.values().stream())
+                .mapToInt(ints -> ints[0])
+                .toArray();
+        mMachine.markBucketInputAndFix(slots.length, slots);
+    }
+
+    private void markBucketInputNotFix() {
         int[] slots = Stream
                 .concat(mInputs.values().stream(), mOutputs.values().stream())
                 .mapToInt(ints -> ints[0])
@@ -152,7 +223,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
     @Override
     public void onTickStart() {
         insertEmptyContainers();
-        List<FluidStack> inputFluidList = ECUtils.fluid.toListIndexed(inputFluids, FluidUtils.EMPTY);
+        List<FluidStack> inputFluidList = ECUtils.fluid.toListIndexed(inputFluids);
         mInputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];
@@ -254,7 +325,7 @@ public class FluidMachineLifecycle implements IMachineLifecycle {
     @Override
     public void onTickFinish() {
         insertFullContainers();
-        List<FluidStack> outputFluidList = ECUtils.fluid.toListIndexed(outputFluids, FluidUtils.EMPTY);
+        List<FluidStack> outputFluidList = ECUtils.fluid.toListIndexed(outputFluids);
         mOutputs.int2ObjectEntrySet().forEach(entry -> {
             int slot = entry.getIntKey();
             int bucketInput = entry.getValue()[0];

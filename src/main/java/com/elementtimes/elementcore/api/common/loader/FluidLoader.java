@@ -33,7 +33,8 @@ public class FluidLoader {
                 Fluid fluid = newFluid(elements, data.getClassName(), data.getObjectName(), unlocalizedName);
                 if (fluid != null) {
                     // bucket
-                    if ((boolean) info.getOrDefault("bucket", true)) {
+                    boolean bucket = (boolean) info.getOrDefault("bucket", true);
+                    if (bucket) {
                         elements.fluidBuckets.add(fluid);
                     }
                     // density & gaseous
@@ -41,12 +42,15 @@ public class FluidLoader {
                     fluid.setDensity(density);
                     fluid.setGaseous(density < 0);
                     // creativeTabs
-                     ObjHelper.findTab(elements, (String) info.get("creativeTabKey"))
+                    String tabKey = (String) info.get("creativeTabKey");
+                    ObjHelper.findTab(elements, tabKey)
                              .ifPresent(tab -> elements.fluidTabs.put(fluid, tab));
                     // texture
-                    if ((boolean) info.getOrDefault("loadTexture", true)) {
+                    boolean texture = (boolean) info.getOrDefault("loadTexture", true);
+                    if (texture) {
                         elements.fluidResources.add(fluid);
                     }
+                    elements.warn("[ModFluid]{} bucket={}, loadTexture={}, density={}, tab={}", fluid.getName(), bucket, texture, density, tabKey);
                 }
             });
         });
@@ -65,28 +69,33 @@ public class FluidLoader {
                 if (!StringUtils.isNullOrEmpty(resource)) {
                     elements.fluidBlockResources.put(fluid, resource);
                 }
+                elements.warn("[ModFluid.FluidBlock]{}, resource={}, type={}, tab={}", fluid.getName(), resource, type == null ? "Classic" : type.getValue(), tab);
                 elements.fluidBlocks.put(fluid, fluidBlock);
             });
         });
         ObjHelper.stream(elements, ModFluid.FluidBlockObj.class).forEach(data -> {
             ObjHelper.find(elements, Fluid.class, data).ifPresent(fluid -> {
-                Supplier<Block> getter = RefHelper.getter(elements, ObjHelper.getDefault(data), Block.class);
+                Object aDefault = ObjHelper.getDefault(data);
+                Supplier<Block> getter = RefHelper.getter(elements, aDefault, Block.class);
                 Function<Fluid, Block> fluidBlock = f -> getter.get();
                 String resource = (String) data.getAnnotationInfo().getOrDefault("resource", "fluids");
                 if (!StringUtils.isNullOrEmpty(resource)) {
                     elements.fluidBlockResources.put(fluid, resource);
                 }
+                elements.warn("[ModFluid.FluidBlockObj]{} block={}, resource={}", fluid.getName(), RefHelper.toString(aDefault), resource);
                 elements.fluidBlocks.put(fluid, fluidBlock);
             });
         });
         ObjHelper.stream(elements, ModFluid.FluidBlockFunc.class).forEach(data -> {
             ObjHelper.find(elements, Fluid.class, data).ifPresent(fluid -> {
-                Invoker<Block> invoker = RefHelper.invoker(elements, ObjHelper.getDefault(data), p -> FluidBlockType.Classic.create(fluid), Fluid.class);
+                Object aDefault = ObjHelper.getDefault(data);
+                Invoker<Block> invoker = RefHelper.invoker(elements, aDefault, p -> FluidBlockType.Classic.create(fluid), Fluid.class);
                 Function<Fluid, Block> fluidBlock = f -> invoker.invoke(fluid);
                 String resource = (String) data.getAnnotationInfo().getOrDefault("resource", "fluids");
                 if (!StringUtils.isNullOrEmpty(resource)) {
                     elements.fluidBlockResources.put(fluid, resource);
                 }
+                elements.warn("[ModFluid.FluidBlockFunc]{} method={}, resource={}", fluid.getName(), RefHelper.toString(aDefault), resource);
                 elements.fluidBlocks.put(fluid, fluidBlock);
             });
         });

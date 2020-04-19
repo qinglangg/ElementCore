@@ -1,5 +1,6 @@
 package com.elementtimes.elementcore.api.annotation;
 
+import com.elementtimes.elementcore.api.annotation.part.Getter;
 import com.elementtimes.elementcore.api.annotation.part.Getter2;
 import com.elementtimes.elementcore.api.annotation.part.Method2;
 import net.minecraft.creativetab.CreativeTabs;
@@ -125,9 +126,12 @@ public @interface ModItem {
     /**
      * ItemMeshDefinition
      * 在注册 model 时会覆盖 HasSubItem 的效果
+     * 由于少了一个量，该注解本身无效。如果要想该注解生效，请配合 MeshDefinitionAll 注解使用
+     * @deprecated 使用 ItemMeshDefinitionObj 或配合 MeshDefinitionAll 使用
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
+    @Deprecated
     @interface MeshDefinitionObj {
         /**
          * ItemMeshDefinition 实例
@@ -139,9 +143,12 @@ public @interface ModItem {
     /**
      * ItemMeshDefinition
      * 在注册 model 时会覆盖 HasSubItem 的效果
+     * 由于少了一个量，该注解本身无效。如果要想该注解生效，请配合 MeshDefinitionAll 注解使用
+     * @deprecated 使用 ItemMeshDefinitionFunc 或配合 MeshDefinitionAll 使用
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
+    @Deprecated
     @interface MeshDefinitionFunc {
         /**
          * ItemMeshDefinition 方法
@@ -152,5 +159,67 @@ public @interface ModItem {
          * @return 方法
          */
         Method2 value();
+    }
+
+    /**
+     * 为保证兼容性，使用该注解配合 MeshDefinitionObj 和 MeshDefinitionFunc
+     * @deprecated 使用 ItemMeshDefinitionFunc 或配合 MeshDefinitionAll 使用
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @Deprecated
+    @interface MeshDefinitionAll {
+        /**
+         * ItemMeshDefinition 可能的所有值
+         * 可以是 Collection<ResourceLocation> 或 ResourceLocation[]
+         * @return ItemMeshDefinition 可能遇到的所有情况
+         */
+        Getter2 value();
+    }
+
+    /**
+     * ItemMeshDefinition
+     * 在注册 model 时会覆盖 HasSubItem 的效果
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface ItemMeshDefinitionObj {
+        /**
+         * ItemMeshDefinition 实例
+         * @return 实例
+         */
+        Getter2 value();
+
+        /**
+         * ItemMeshDefinition 可能的所有值
+         * 可以是 Collection<ResourceLocation> 或 ResourceLocation[]
+         * @return ItemMeshDefinition 可能遇到的所有情况
+         */
+        Getter2 all();
+    }
+
+    /**
+     * ItemMeshDefinition
+     * 在注册 model 时会覆盖 HasSubItem 的效果
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface ItemMeshDefinitionFunc {
+        /**
+         * ItemMeshDefinition 方法
+         * 参数
+         *  ItemStack 物品栈
+         * 返回值
+         *  ModelResourceLocation 资源
+         * @return 方法
+         */
+        Method2 value();
+
+        /**
+         * ItemMeshDefinition 可能的所有值
+         * 可以是 Collection<ResourceLocation> 或 ResourceLocation[]
+         * @return ItemMeshDefinition 可能遇到的所有情况
+         */
+        Getter2 all();
     }
 }

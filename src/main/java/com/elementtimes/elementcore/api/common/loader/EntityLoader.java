@@ -10,10 +10,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.registry.EntityEntry;
 import net.minecraftforge.fml.common.registry.EntityEntryBuilder;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author luqin2007
@@ -22,7 +19,11 @@ public class EntityLoader {
 
     public static void load(ECModElements elements) {
         ObjHelper.stream(elements, ModEntity.class).forEach(data -> {
-            elements.entities.add(new EntityData(data.getAnnotationInfo()));
+            ObjHelper.findClass(elements, data.getClassName()).ifPresent(aClass -> {
+                EntityData entityData = new EntityData((Class<? extends Entity>) aClass, data.getAnnotationInfo());
+                elements.warn("[ModEntity]{}", entityData);
+                elements.entities.add(entityData);
+            });
         });
     }
 
@@ -41,12 +42,13 @@ public class EntityLoader {
         public final int spawnWeight;
         public final int spawnMin;
         public final int spawnMax;
+        public final Class<? extends Entity> entityClass;
         public final List<String> biomeIds;
 
         private EntityEntry mEntry = null;
 
-        public EntityData(Map<String, Object> data) {
-            this((int) data.getOrDefault("network", 2), (String) data.get("id"), (String) data.get("name"),
+        public EntityData(Class<? extends Entity> entityClass, Map<String, Object> data) {
+            this((int) data.getOrDefault("network", 2), entityClass, (String) data.get("id"), (String) data.get("name"),
                     (int) data.getOrDefault("trackerRange", 64), (int) data.getOrDefault("updateFrequency", 3), (boolean) data.getOrDefault("sendVelocityUpdate", true),
                     (boolean) data.getOrDefault("hasEgg", true), (int) data.getOrDefault("eggColorPrimary", 0x000000), (int) data.getOrDefault("eggColorSecondary", 0x000000),
                     (boolean) data.getOrDefault("canSpawn", false), EnumCreatureType.valueOf((String) data.getOrDefault("spawnType", "CREATURE")),
@@ -54,11 +56,12 @@ public class EntityLoader {
                     (List<String>) data.getOrDefault("biomeIds", Collections.singletonList("plains")));
         }
 
-        public EntityData(int network, String id, String name,
+        public EntityData(int network, Class<? extends Entity> entityClass, String id, String name,
                           int trackerRange, int updateFrequency, boolean sendVelocityUpdate,
                           boolean hasEgg, int eggColorPrimary, int eggColorSecondary,
                           boolean canSpawn, EnumCreatureType spawnType, int spawnWeight, int spawnMin, int spawnMax, List<String> biomeIds) {
             this.network = network;
+            this.entityClass = entityClass;
             this.id = id;
             this.name = name;
             this.trackerRange = trackerRange;
@@ -95,6 +98,7 @@ public class EntityLoader {
                 EntityEntryBuilder<Entity> builder = EntityEntryBuilder.create()
                         .id(id, network)
                         .name(name)
+                        .entity(entityClass)
                         .tracker(trackerRange, updateFrequency, sendVelocityUpdate);
                 if (hasEgg) {
                     builder.egg(eggColorPrimary, eggColorSecondary);
@@ -105,6 +109,22 @@ public class EntityLoader {
                 mEntry = builder.build();
             }
             return mEntry;
+        }
+
+        @Override
+        public String toString() {
+            String egg = hasEgg ? "eggColorPrimary=" + eggColorPrimary + ", eggColorSecondary=" + eggColorSecondary : "No Egg";
+            String spawn = canSpawn ? "spawnType=" + spawnType + ", spawnWeight=" + spawnWeight + ", spawnCount=[" + spawnMin + ", " + spawnMax + "], biomeIds=" + Arrays.toString(biomeIds.toArray(new String[0])) : "No Spawn";
+            return "EntityData " + entityClass.getSimpleName() + "{" +
+                    "network=" + network +
+                    ", id=" + id +
+                    ", name=" + name +
+                    ", trackerRange=" + trackerRange +
+                    ", updateFrequency=" + updateFrequency +
+                    ", sendVelocityUpdate=" + sendVelocityUpdate +
+                    ", \n\tegg=" + egg +
+                    ", \n\tspawn=" + spawn +
+                    '}';
         }
     }
 }

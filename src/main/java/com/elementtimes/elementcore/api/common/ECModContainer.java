@@ -21,12 +21,14 @@ public class ECModContainer {
     public Logger logger;
     public final ECModElements elements;
     private boolean debugEnable;
+    public final boolean otherMod;
 
-    public ECModContainer(ModContainer mod, ECModElements container, boolean debugEnable, Logger logger) {
+    public ECModContainer(ModContainer mod, ECModElements container, boolean debugEnable, boolean otherMod, Logger logger) {
         this.mod = mod;
         this.logger = logger == null ? LogManager.getLogger(mod.getName()) : logger;
         this.elements = container;
         this.debugEnable = debugEnable;
+        this.otherMod = otherMod;
     }
 
     public String name() {

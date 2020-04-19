@@ -1,4 +1,4 @@
-package com.elementtimes.elementcore.api.common.event;
+package com.elementtimes.elementcore.api.common.events;
 
 import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;

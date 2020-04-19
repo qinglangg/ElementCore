@@ -25,8 +25,8 @@ public class CapabilityLoader {
             Optional<? extends IStorage> storageOpt = RefHelper.get(elements, storage, IStorage.class);
             Invoker<Object> factoryFunc = RefHelper.invoker(elements, factory, Invoker.empty());
             if (typeClassOpt.isPresent() && factory != null && storageOpt.isPresent()) {
-                CapabilityData capability =
-                        new CapabilityData(typeClassOpt.get(), storageOpt.get(), factoryFunc::invoke);
+                CapabilityData capability = new CapabilityData(typeClassOpt.get(), storageOpt.get(), factoryFunc::invoke);
+                elements.warn("[ModCapability]{}", capability);
                 elements.capabilities.add(capability);
             }
         });
@@ -45,6 +45,11 @@ public class CapabilityLoader {
             typeInterface = t;
             storage = s;
             factory = f;
+        }
+
+        @Override
+        public String toString() {
+            return "CapabilityData{" + "type=" + typeInterface + ", storage=" + storage + '}';
         }
     }
 }

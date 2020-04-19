@@ -1,6 +1,7 @@
 package com.elementtimes.elementcore.api.template.tileentity.recipe;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.fluids.FluidStack;
 
 import java.util.List;
@@ -48,26 +49,48 @@ public class MachineRecipe {
     public boolean checkInput(List<ItemStack> input, List<FluidStack> fluids) {
         // check
         boolean result = true;
-        int itemSize = inputs.size();
-        int fluidSize = fluidInputs.size();
-        if (input.size() >= itemSize || fluids.size() >= fluidSize) {
-            int size = Math.max(itemSize, fluidSize);
-            for (int i = 0; i < size; i++) {
-                if (i < itemSize) {
-                    if (!input.get(i).isEmpty() && !inputs.get(i).accept.apply(this, i, input, fluids, input.get(i))) {
-                        result = false;
-                        break;
-                    }
+        int size = Math.max(inputs.size(), fluidInputs.size());
+        int inputItemSize = input.size();
+        int inputFluidSize = fluids.size();
+        size = Math.max(size, inputItemSize);
+        size = Math.max(size, inputFluidSize);
+        for (int i = 0; i < size; i++) {
+            if (i < inputItemSize) {
+                if (!input.get(i).isEmpty() && !inputs.get(i).accept.apply(this, i, input, fluids, input.get(i))) {
+                    result = false;
+                    break;
                 }
-
-                if (i < fluidSize) {
-                    if (fluids.get(i) != null && fluids.get(i).amount > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fluids.get(i))) {
-                        result = false;
-                        break;
-                    }
+            }
+            if (i < inputFluidSize) {
+                FluidStack fs = fluids.get(i);
+                if (fs != null && fs.amount > 0 && !fluidInputs.get(i).accept.apply(this, i, input, fluids, fs)) {
+                    result = false;
+                    break;
                 }
             }
         }
         return result;
+    }
+
+    public MachineRecipe resize(int inputItem, int outputInput, int inputFluid, int outputFluid) {
+        MachineRecipe recipe = new MachineRecipe();
+        recipe.energy = energy;
+        recipe.inputs = NonNullList.withSize(inputItem, IngredientPart.EMPTY_ITEM);
+        for (int i = 0; i < Math.min(inputs.size(), recipe.inputs.size()); i++) {
+            recipe.inputs.set(i, inputs.get(i));
+        }
+        recipe.outputs = NonNullList.withSize(outputInput, IngredientPart.EMPTY_ITEM);
+        for (int i = 0; i < Math.min(outputs.size(), recipe.outputs.size()); i++) {
+            recipe.outputs.set(i, outputs.get(i));
+        }
+        recipe.fluidInputs = NonNullList.withSize(inputFluid, IngredientPart.EMPTY_FLUID);
+        for (int i = 0; i < Math.min(fluidInputs.size(), recipe.fluidInputs.size()); i++) {
+            recipe.fluidInputs.set(i, fluidInputs.get(i));
+        }
+        recipe.fluidOutputs = NonNullList.withSize(outputFluid, IngredientPart.EMPTY_FLUID);
+        for (int i = 0; i < Math.min(fluidOutputs.size(), recipe.fluidOutputs.size()); i++) {
+            recipe.fluidOutputs.set(i, fluidOutputs.get(i));
+        }
+        return recipe;
     }
 }

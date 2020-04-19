@@ -10,6 +10,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.NonNullList;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
@@ -108,6 +109,13 @@ public class ItemUtils {
         return itemStacks;
     }
 
+    /**
+     * 比较两个 ItemStack 内含的物品是否相同
+     * 即使 ItemStack 的 count==0 也可以比较
+     * @param is1 ItemStack 1
+     * @param is2 ItemStack 2
+     * @return 物品是否相同
+     */
     public boolean isItemRawEqual(ItemStack is1, ItemStack is2) {
         if (is1 == is2) {
             return true;
@@ -123,5 +131,28 @@ public class ItemUtils {
             return equal;
         }
         return is1.isItemEqual(is2);
+    }
+
+    /**
+     * 针对 {@link com.elementtimes.elementcore.api.template.capability.item.IItemHandler}，使用 insertItemIgnoreValid 实现的 insertItem 方法
+     * @see ItemHandlerHelper#insertItem(IItemHandler, ItemStack, boolean)
+     * @param dest 转移到的目标
+     * @param stack 被存入物品
+     * @param simulate 是否模拟
+     * @return 返回剩余的未存入物品
+     */
+    public ItemStack insertItemIgnoreCheck(com.elementtimes.elementcore.api.template.capability.item.IItemHandler dest, ItemStack stack, boolean simulate) {
+        if (dest == null || stack.isEmpty()) {
+            return stack;
+        }
+
+        for (int i = 0; i < dest.getSlots(); i++) {
+            stack = dest.insertItemIgnoreValid(i, stack, simulate);
+            if (stack.isEmpty()) {
+                return ItemStack.EMPTY;
+            }
+        }
+
+        return stack;
     }
 }

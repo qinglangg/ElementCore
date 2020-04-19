@@ -110,20 +110,11 @@ jar {
     ])
 }
 
-task apiJar(type: Jar) {
-    classifier = 'api'
-    from sourceSets.main.output
-    from sourceSets.main.allSource
-    include 'com/elementtimes/elementcore/api/**'
-    include 'com/elementtimes/elementcore/coremod/**'
-}
-
-task deobfJar(type: Jar) {
+task deobfJar(type: Jar, dependsOn: [compileJava]) {
     from(sourceSets.main.output)
     archiveName = "${baseName}-${version}-deobf.${extension}"
 }
 
 artifacts {
-    archives apiJar
     archives deobfJar
 }

@@ -11,12 +11,15 @@ import net.minecraft.client.renderer.block.statemap.IStateMapper;
 import net.minecraft.client.renderer.color.IBlockColor;
 import net.minecraft.client.renderer.color.IItemColor;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.command.ICommand;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.client.registry.IRenderFactory;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -25,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * 客户端的内容，主要包括渲染部分
@@ -51,6 +55,7 @@ public class ECModElementsClient {
 
     // Item
     public final Map<Item, ItemMeshDefinition> itemMeshDefinition = new HashMap<>();
+    public final Map<Item, ResourceLocation[]> itemMeshDefinitionAll = new HashMap<>();
     public final Map<IItemColor, List<Item>> itemColors = new HashMap<>();
     public final Map<Item, ArrayList<ItemClientLoader.SubModel>> itemSubModel = new HashMap<>();
 
@@ -68,6 +73,10 @@ public class ECModElementsClient {
 
     // tooltips
     public final List<BiConsumer<ItemStack, List<String>>> tooltips = new ArrayList<>();
+
+    // key
+    public final List<KeyBinding> keys = new ArrayList<>();
+    public final Map<KeyBinding, BiConsumer<InputEvent.KeyInputEvent, KeyBinding>> keyEvents = new HashMap<>();
 
     // event
     public FMLClientRegister fmlEventRegister;

@@ -3,6 +3,7 @@ package com.elementtimes.elementcore.api.common.loader;
 import com.elementtimes.elementcore.api.annotation.ModRecipe;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import com.elementtimes.elementcore.api.common.helper.ObjHelper;
+import com.elementtimes.elementcore.api.common.helper.RefHelper;
 import net.minecraft.block.Block;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -42,9 +43,11 @@ public class RecipeLoader {
                     if (recipe.getRegistryName() == null) {
                         recipe.setRegistryName(new ResourceLocation(elements.container.id(), name));
                     }
+                    elements.warn("[ModRecipe]{}", recipe);
                     elements.recipes.add(() -> new IRecipe[] {recipe});
                 } else if (obj instanceof Supplier) {
                     Supplier<?> supplier = (Supplier<?>) obj;
+                    elements.warn("[ModRecipe]{}", obj);
                     elements.recipes.add(() -> {
                         Object o = supplier.get();
                         if (o instanceof IRecipe) {
@@ -59,6 +62,7 @@ public class RecipeLoader {
                 } else if (obj instanceof Object[] && ((Object[]) obj).length > 0) {
                     Object[] objects = (Object[]) obj;
                     if (objects[0] instanceof IRecipe || objects[0] instanceof Supplier) {
+                        elements.warn("[ModRecipe]Recipe[]");
                         elements.recipes.add(() -> {
                             int id = 0;
                             List<IRecipe> recipes = new ArrayList<>();
@@ -87,6 +91,7 @@ public class RecipeLoader {
                         int width = (int) info.getOrDefault("width", 3);
                         int height = (int) info.getOrDefault("height", 3);
                         // 单一合成表
+                        elements.warn("[ModRecipe]Recipe(shaped={}, ore={}, width={}, height={})", shaped, ore, width, height);
                         elements.recipes.add(() -> {
                             ItemStack r;
                             Object obj0 = objects[0];
@@ -178,6 +183,7 @@ public class RecipeLoader {
                 String methodName = objectName.substring(0, objectName.indexOf("()"));
                 Method method = ReflectionHelper.findMethod(aClass, methodName, methodName);
                 method.setAccessible(true);
+                elements.warn("[ModRecipe.RecipeMethod]{}#{}", aClass, methodName);
                 elements.recipes.add(() -> {
                     try {
                         Object o = method.invoke(null);

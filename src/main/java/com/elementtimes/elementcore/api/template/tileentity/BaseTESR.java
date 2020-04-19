@@ -7,7 +7,6 @@ import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -25,26 +24,17 @@ public class BaseTESR extends TileEntitySpecialRenderer<TileEntity> {
                     continue;
                 }
                 GlStateManager.pushMatrix();
-                // translate
-                double tx = x, ty = y, tz = z;
-                boolean needTranslate = false;
-                for (Vec3d translate : stack.translates) {
-                    tx += translate.x;
-                    ty += translate.y;
-                    tz += translate.z;
-                    needTranslate = true;
-                }
-                if (needTranslate) {
-                    GlStateManager.translate(tx, ty, tz);
-                }
-                // scale
-                for (Vec3d scale : stack.scales) {
-                    GlStateManager.scale(scale.x, scale.y, scale.z);
-                }
-                // rotate
-                for (int i = 0; i < stack.rotates.length; i++) {
-                    Vec3d rotate = stack.rotates[i];
-                    GlStateManager.rotate(stack.rotateAngles[i], (float) rotate.x, (float) rotate.y, (float) rotate.z);
+                for (ITileTESR.RenderObjectTransformation transformation : stack.transformations) {
+                    switch (transformation.type) {
+                        case 0:
+                            GlStateManager.translate(transformation.params[0], transformation.params[1], transformation.params[2]);
+                            break;
+                        case 1:
+                            GlStateManager.scale(transformation.params[0], transformation.params[1], transformation.params[2]);
+                            break;
+                        default:
+                            GlStateManager.rotate((float) transformation.params[3], (float) transformation.params[0], (float) transformation.params[1], (float) transformation.params[2]);
+                    }
                 }
                 renderItem.renderItem(stack.obj, ItemCameraTransforms.TransformType.GROUND);
                 GlStateManager.popMatrix();

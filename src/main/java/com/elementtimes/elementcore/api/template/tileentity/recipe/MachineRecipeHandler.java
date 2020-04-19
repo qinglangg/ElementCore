@@ -19,7 +19,7 @@ import java.util.function.ToIntFunction;
 public class MachineRecipeHandler {
     private List<MachineRecipe> mMachineRecipes = new ArrayList<>();
 
-    public final int inputItemCount, outputItemCount, inputFluidCount, outputFluidCount;
+    public int inputItemCount, outputItemCount, inputFluidCount, outputFluidCount;
 
     public MachineRecipeHandler(int inputItemCount, int outputItemCount, int inputFluidCount, int outputFluidCount) {
         this.inputItemCount = inputItemCount;
@@ -241,5 +241,21 @@ public class MachineRecipeHandler {
            }
         }
         return false;
+    }
+
+    /**
+     * 调整配方 IO 数量
+     */
+    public void resetSize(int inputItem, int outputInput, int inputFluid, int outputFluid) {
+        inputItemCount = inputItem;
+        outputItemCount = outputInput;
+        inputFluidCount = inputFluid;
+        outputFluidCount = outputFluid;
+
+        List<MachineRecipe> recipes = new ArrayList<>();
+        for (MachineRecipe machineRecipe : mMachineRecipes) {
+            recipes.add(machineRecipe.resize(inputItem, outputInput, inputFluid, outputFluid));
+        }
+        mMachineRecipes = recipes;
     }
 }

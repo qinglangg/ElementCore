@@ -18,6 +18,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.objectweb.asm.Type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +40,7 @@ public class BlockLoader {
                 Map<String, Object> info = data.getAnnotationInfo();
                 Block block = newBlock(elements, data.getClassName(), data.getObjectName(),
                         (String) info.get("registerName"), (String) info.get("unlocalizedName"));
+                elements.warn("[ModBlock]{}: {}#{}", block.getRegistryName(), data.getClassName(), data.getObjectName());
                 ObjHelper.findTab(elements, (String) info.get("creativeTabKey")).ifPresent(block::setCreativeTab);
             });
         });
@@ -53,6 +55,7 @@ public class BlockLoader {
                 String name = (String) data.getAnnotationInfo().getOrDefault("name", className.substring(className.indexOf(".")));
                 Type type = ObjHelper.getDefault(data);
                 ObjHelper.<TileEntity>findClass(elements, type.getClassName()).ifPresent(aClass -> {
+                    elements.warn("[ModBlock.TileEntity]{}", aClass.getName());
                     elements.blockTileEntitiesNull.put(name, aClass);
                 });
             } else {
@@ -66,7 +69,10 @@ public class BlockLoader {
                 String name = name2;
                 Type type = ObjHelper.getDefault(data);
                 ObjHelper.<TileEntity>findClass(elements, type.getClassName())
-                        .ifPresent(aClass -> elements.blockTileEntities.put(block, ImmutablePair.of(name, aClass)));
+                        .ifPresent(aClass -> {
+                            elements.warn("[ModBlock.TileEntity]{} for {}", aClass.getName(), block.getRegistryName());
+                            elements.blockTileEntities.put(block, ImmutablePair.of(name, aClass));
+                        });
             }
         });
     }
@@ -77,7 +83,9 @@ public class BlockLoader {
                 Map<String, Object> info = data.getAnnotationInfo();
                 ModAnnotation.EnumHolder toolClass = (ModAnnotation.EnumHolder) info.get("toolClass");
                 int level = (int) info.getOrDefault("level", 2);
-                block.setHarvestLevel(toolClass == null ? "pickaxe" : toolClass.getValue(), level);
+                String tool = toolClass == null ? "pickaxe" : toolClass.getValue();
+                block.setHarvestLevel(tool, level);
+                elements.warn("[ModBlock.HarvestLevel]{}: {}-{}", block.getRegistryName(), tool, level);
             });
         });
     }
@@ -98,6 +106,8 @@ public class BlockLoader {
                 List<WorldGenerator> worldGeneratorList = elements.blockWorldGen.getOrDefault(type, new ArrayList<>());
                 worldGeneratorList.add(new SimpleOreGenerator(yRange, yMin, count, times, probability,
                         dimBlackList, dimWhiteList, block.getDefaultState()));
+                elements.warn("[ModBlock.WorldGen]{}: y=[{}, {}], count={}, times={}, probability={}, dimBlack={}, dimWhite={}", block.getRegistryName(),
+                        yMin, yMin + yRange, count, times, probability, Arrays.toString(dimBlackList), Arrays.toString(dimWhiteList));
                 elements.blockWorldGen.put(type, worldGeneratorList);
             });
         });
@@ -105,8 +115,10 @@ public class BlockLoader {
             ObjHelper.find(elements, Block.class, data).ifPresent(block -> {
                 ModAnnotation.EnumHolder typeValue = (ModAnnotation.EnumHolder) data.getAnnotationInfo().get("type");
                 GenType type = typeValue == null ? GenType.Ore : GenType.valueOf(typeValue.getValue());
-                RefHelper.get(elements, ObjHelper.getDefault(data), WorldGenerator.class).ifPresent(generator -> {
-                    elements.blockWorldGen.computeIfAbsent(type, t -> new ArrayList<>()).add(generator);
+                Object aDefault = ObjHelper.getDefault(data);
+                RefHelper.get(elements, aDefault, WorldGenerator.class).ifPresent(generator -> {
+                    elements.warn("[ModBlock.WorldGenObj]{}: {}({})", block.getRegistryName(), RefHelper.toString(aDefault), generator);
+                    ECUtils.collection.computeIfAbsent(elements.blockWorldGen, type, ArrayList::new).add(generator);
                 });
             });
         });

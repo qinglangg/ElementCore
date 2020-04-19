@@ -4,6 +4,7 @@ import com.elementtimes.elementcore.api.annotation.ModItem;
 import com.elementtimes.elementcore.api.client.ECModElementsClient;
 import com.elementtimes.elementcore.api.client.LoaderHelperClient;
 import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.common.helper.ObjHelper;
 import com.elementtimes.elementcore.api.common.helper.RefHelper;
 import com.elementtimes.elementcore.api.template.interfaces.invoker.Invoker;
@@ -17,6 +18,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +31,9 @@ public class ItemClientLoader {
 
     public static void load(ECModElements elements) {
         loadItemSub(elements);
+        loadTooltips(elements);
         loadItemMeshDefinition(elements);
+        loadItemMeshDefinition2(elements);
         loadItemColor(elements);
     }
 
@@ -58,32 +62,113 @@ public class ItemClientLoader {
         ECModElementsClient client = elements.getClientNotInit();
         ObjHelper.stream(elements, ModItem.ItemColor.class).forEach(data -> {
             ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
-                IItemColor itemColor = LoaderHelperClient.getValueItemColor(client, ObjHelper.getDefault(data));
+                int color = ObjHelper.getDefault(data);
+                IItemColor itemColor = LoaderHelperClient.getValueItemColor(client, color);
                 if (itemColor != null) {
-                    if (!client.itemColors.containsKey(itemColor)) {
-                        client.itemColors.put(itemColor, new ArrayList<>());
-                    }
-                    client.itemColors.get(itemColor).add(item);
+                    elements.warn("[ModItem.ItemColor]{} <- #{}", item.getRegistryName(), Integer.toHexString(color));
+                    ECUtils.collection.computeIfAbsent(client.itemColors, itemColor, ArrayList::new).add(item);
                 }
             });
         });
     }
 
+    private static void loadTooltips(ECModElements elements) {
+        ECModElementsClient client = elements.getClientNotInit();
+        ObjHelper.stream(elements, ModItem.Tooltip.class).forEach(data -> {
+            ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
+                List<String> tooltips = ObjHelper.getDefault(data);
+                elements.warn("[ModItem.Tooltip]{}", item.getRegistryName());
+                for (String tooltip : tooltips) {
+                    elements.warn("[ModItem.Tooltip] -> {}", tooltip);
+                }
+                client.tooltips.add((stack, strings) -> {
+                    if (stack.getItem() == item) {
+                        strings.addAll(tooltips);
+                    }
+                });
+            });
+        });
+    }
+
+    @Deprecated
     private static void loadItemMeshDefinition(ECModElements elements) {
         ECModElementsClient client = elements.getClientNotInit();
         ObjHelper.stream(elements, ModItem.MeshDefinitionObj.class).forEach(data -> {
             ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
-                RefHelper.get(elements, ObjHelper.getDefault(data), ItemMeshDefinition.class).ifPresent(definition -> {
+                Object aDefault = ObjHelper.getDefault(data);
+                RefHelper.get(elements, aDefault, ItemMeshDefinition.class).ifPresent(definition -> {
+                    elements.warn("[ModItem.MeshDefinitionObj]{} {}", item.getRegistryName(), RefHelper.toString(aDefault));
                     client.itemMeshDefinition.put(item, definition);
                 });
             });
         });
         ObjHelper.stream(elements, ModItem.MeshDefinitionFunc.class).forEach(data -> {
             ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
-                Invoker<ModelResourceLocation> invoker = RefHelper.invoker(elements, ObjHelper.getDefault(data), Invoker.empty(), ItemStack.class);
-                client.itemMeshDefinition.put(item, stack -> invoker.invoke(stack));
+                Object aDefault = ObjHelper.getDefault(data);
+                Invoker<ModelResourceLocation> invoker = RefHelper.invoker(elements, aDefault, Invoker.empty(), ItemStack.class);
+                elements.warn("[ModItem.MeshDefinitionFunc]{} {}", item.getRegistryName(), RefHelper.toString(aDefault));
+                client.itemMeshDefinition.put(item, invoker::invoke);
             });
         });
+        ObjHelper.stream(elements, ModItem.MeshDefinitionAll.class).forEach(data -> {
+            ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
+                RefHelper.get(elements, ObjHelper.getDefault(data), Object.class).ifPresent(object -> {
+                    ResourceLocation[] locations = findResourceLocations(object);
+                    elements.warn("[ModItem.MeshDefinitionAll]{}", item.getRegistryName());
+                    for (ResourceLocation location : locations) {
+                        elements.warn("[ModItem.MeshDefinitionAll] -> {}", location);
+                    }
+                    client.itemMeshDefinitionAll.put(item, locations);
+                });
+            });
+        });
+    }
+
+    private static void loadItemMeshDefinition2(ECModElements elements) {
+        ECModElementsClient client = elements.getClientNotInit();
+        ObjHelper.stream(elements, ModItem.ItemMeshDefinitionObj.class).forEach(data -> {
+            ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
+                Object aDefault = ObjHelper.getDefault(data);
+                RefHelper.get(elements, aDefault, ItemMeshDefinition.class).ifPresent(definition -> {
+                    elements.warn("[ModItem.ItemMeshDefinitionObj]{} {}", item.getRegistryName(), RefHelper.toString(aDefault));
+                    client.itemMeshDefinition.put(item, definition);
+                });
+                RefHelper.get(elements, data.getAnnotationInfo().get("all"), Object.class).ifPresent(object -> {
+                    ResourceLocation[] locations = findResourceLocations(object);
+                    for (ResourceLocation location : locations) {
+                        elements.warn("[ModItem.ItemMeshDefinitionObj] -> {}", location);
+                    }
+                    client.itemMeshDefinitionAll.put(item, locations);
+                });
+            });
+        });
+        ObjHelper.stream(elements, ModItem.ItemMeshDefinitionFunc.class).forEach(data -> {
+            ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
+                Object aDefault = ObjHelper.getDefault(data);
+                Invoker<ModelResourceLocation> invoker = RefHelper.invoker(elements, aDefault, Invoker.empty(), ItemStack.class);
+                elements.warn("[ModItem.ItemMeshDefinitionFunc]{} {}", item.getRegistryName(), RefHelper.toString(aDefault));
+                client.itemMeshDefinition.put(item, stack -> invoker.invoke(stack));
+                RefHelper.get(elements, data.getAnnotationInfo().get("all"), Object.class).ifPresent(object -> {
+                    ResourceLocation[] locations = findResourceLocations(object);
+                    for (ResourceLocation location : locations) {
+                        elements.warn("[ModItem.ItemMeshDefinitionFunc] -> {}", location);
+                    }
+                    client.itemMeshDefinitionAll.put(item, locations);
+                });
+            });
+        });
+    }
+
+    private static ResourceLocation[] findResourceLocations(Object object) {
+        ResourceLocation[] locations;
+        if (object instanceof Collection) {
+            locations = (ResourceLocation[]) ((Collection) object).toArray(new ResourceLocation[0]);
+        } else if (object instanceof ResourceLocation[]) {
+            locations = (ResourceLocation[]) object;
+        } else {
+            locations = new ResourceLocation[0];
+        }
+        return locations;
     }
 
     public static class SubModel {

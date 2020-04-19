@@ -46,13 +46,14 @@ public interface IDismantleBlock {
         if (!world.isRemote) {
             TileEntity tile = world.getTileEntity(pos);
             if (tile != null) {
-                NBTTagCompound tag = tile.serializeNBT();
-                tag.removeTag("x");
-                tag.removeTag("y");
-                tag.removeTag("z");
                 IBlockState state = world.getBlockState(pos);
                 ItemStack stack = new ItemStack(state.getBlock());
-                stack.setTagCompound(tag);
+                NBTTagCompound compound = stack.getTagCompound();
+                if (compound == null) {
+                    compound = new NBTTagCompound();
+                    stack.setTagCompound(compound);
+                }
+                compound.setTag("BlockEntityTag", tile.serializeNBT());
                 return stack;
             }
         }
@@ -67,19 +68,21 @@ public interface IDismantleBlock {
      * @param placer 放置玩家或实体
      * @param stack 物品栈
      * @see Block#onBlockPlacedBy(World, BlockPos, IBlockState, EntityLivingBase, ItemStack)
+     * @deprecated 不需要了
      */
+    @Deprecated
     default void onBlockPlacedBy(World worldIn, BlockPos pos, IBlockState state,
                                  EntityLivingBase placer, ItemStack stack) {
-        if (!worldIn.isRemote) {
-            TileEntity e = worldIn.getTileEntity(pos);
-            if (e != null && stack.getTagCompound() != null) {
-                NBTTagCompound tagCompound = stack.getTagCompound().copy();
-                // fix: x, y, z
-                tagCompound.setInteger("x", pos.getX());
-                tagCompound.setInteger("y", pos.getY());
-                tagCompound.setInteger("z", pos.getZ());
-                e.readFromNBT(tagCompound);
-            }
-        }
+//        if (!worldIn.isRemote) {
+//            TileEntity e = worldIn.getTileEntity(pos);
+//            if (e != null && stack.getTagCompound() != null) {
+//                NBTTagCompound tagCompound = stack.getTagCompound().copy();
+//                // fix: x, y, z
+//                tagCompound.setInteger("x", pos.getX());
+//                tagCompound.setInteger("y", pos.getY());
+//                tagCompound.setInteger("z", pos.getZ());
+//                e.readFromNBT(tagCompound);
+//            }
+//        }
     }
 }

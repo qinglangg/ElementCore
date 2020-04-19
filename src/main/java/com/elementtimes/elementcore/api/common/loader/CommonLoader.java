@@ -2,14 +2,12 @@ package com.elementtimes.elementcore.api.common.loader;
 
 import com.elementtimes.elementcore.api.annotation.tools.*;
 import com.elementtimes.elementcore.api.common.ECModElements;
+import com.elementtimes.elementcore.api.common.ECUtils;
 import com.elementtimes.elementcore.api.common.helper.ObjHelper;
 import com.elementtimes.elementcore.api.common.helper.RefHelper;
-import com.elementtimes.elementcore.api.template.interfaces.invoker.VoidInvoker;
 import net.minecraft.block.Block;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.apache.commons.lang3.ArrayUtils;
@@ -23,6 +21,7 @@ import java.util.Map;
 public class CommonLoader {
 
     public static void load(ECModElements elements) {
+        elements.warn("[COMMON]load " + elements.container.id());
         loadConfig(elements);
         TabLoader.load(elements);
         CapabilityLoader.load(elements);
@@ -36,10 +35,11 @@ public class CommonLoader {
         NetworkLoader.load(elements);
         CommandLoader.load(elements);
         GuiLoader.load(elements);
-        loadTabEditor(elements);
+        BookLoader.load(elements);
         loadStaticFunction(elements);
         loadBurnTime(elements);
         loadOreName(elements);
+        elements.warn("[COMMON]load finished");
     }
 
     private static void loadConfig(ECModElements elements) {
@@ -51,6 +51,7 @@ public class CommonLoader {
             if (!elements.blockB3d && (boolean) info.getOrDefault("useB3D", false)) {
                 elements.blockB3d = true;
             }
+            elements.warn("[ModConfig]obj={}, b3d={}", elements.blockObj, elements.blockB3d);
         });
     }
 
@@ -69,6 +70,7 @@ public class CommonLoader {
                     }
                 } catch (NoSuchMethodException ignored) { }
                 if (method != null) {
+                    elements.warn("[ModInvokeStatic]{}#{}", data.getClassName(), value);
                     elements.staticFunction.add(method);
                 } else {
                     elements.warn("Skip Function: {} from {}", value, data.getClassName());
@@ -86,6 +88,8 @@ public class CommonLoader {
                 int defValue = (int) info.get("value");
                 List<HashMap<String, Object>> subTimes = (List<HashMap<String, Object>>) info.get("sub");
                 boolean hasSubTime = subTimes != null && !subTimes.isEmpty();
+                Object name = o instanceof IForgeRegistryEntry ? ((IForgeRegistryEntry) o).getRegistryName() : ((Fluid) o).getName();
+                elements.warn("[ModBurnTime]{} default={}, subCount={}", name, defValue, subTimes == null ? 0 : subTimes.size());
                 elements.burnTimes.put(o, stack -> {
                     if (hasSubTime) {
                         for (HashMap<String, Object> map : subTimes) {
@@ -106,23 +110,16 @@ public class CommonLoader {
         });
     }
 
-    private static void loadTabEditor(ECModElements elements) {
-        ObjHelper.stream(elements, ModTabEditor.class).forEach(data -> {
-            ObjHelper.find(elements, CreativeTabs.class, data).ifPresent(tab -> {
-                VoidInvoker invoker = RefHelper.invoker(elements, ObjHelper.getDefault(data), NonNullList.class);
-                elements.tabEditors.computeIfAbsent(tab, k -> new ArrayList<>()).add(invoker::invoke);
-            });
-        });
-    }
-
     private static void loadOreName(ECModElements elements) {
         ObjHelper.stream(elements, ModOreDict.class).forEach(data -> {
             ObjHelper.find(elements, IForgeRegistryEntry.class, data).ifPresent(entry -> {
                 List<String> names = ObjHelper.getDefault(data);
+                elements.warn("[ModOreDict]{}", entry.getRegistryName());
+                names.forEach(name -> elements.warn("[ModOreDict] -> {}", name));
                 if (entry instanceof Item) {
-                    names.forEach(name -> elements.itemOreNames.computeIfAbsent(name, n -> new ArrayList<>()).add((Item) entry));
+                    names.forEach(name -> ECUtils.collection.computeIfAbsent(elements.itemOreNames, name, ArrayList::new).add((Item) entry));
                 } else if (entry instanceof Block) {
-                    names.forEach(name -> elements.blockOreNames.computeIfAbsent(name, n -> new ArrayList<>()).add((Block) entry));
+                    names.forEach(name -> ECUtils.collection.computeIfAbsent(elements.blockOreNames, name, ArrayList::new).add((Block) entry));
                 }
             });
         });

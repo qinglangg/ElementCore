@@ -5,6 +5,8 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
 
+import java.util.function.IntSupplier;
+
 /**
  * 自定义实现的 EnergyStorage
  * 主要自定义实现了 NBT 序列化/反序列化，添加一个代理类
@@ -17,6 +19,8 @@ import net.minecraftforge.energy.IEnergyStorage;
 public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBTTagCompound> {
 
     private int transfer = Integer.MAX_VALUE;
+    private IntSupplier capacitySupplier = null;
+    private IntSupplier transferSupplier = null;
 
     public EnergyHandler(int capacity, int maxReceive, int maxExtract) {
         super(capacity, maxReceive, maxExtract);
@@ -26,18 +30,11 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
         this.transfer = transfer;
     }
 
-    private int getEnergy() {
-        if (capacity < 0) {
-            return Integer.MAX_VALUE;
+    public int getTransfer() {
+        if (transferSupplier != null) {
+            setTransfer(transferSupplier.getAsInt());
         }
-        return energy;
-    }
-
-    private int getCapacity() {
-        if (capacity < 0) {
-            return Integer.MAX_VALUE;
-        }
-        return capacity;
+        return this.transfer;
     }
 
     private int getMaxReceive() {
@@ -52,6 +49,13 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
             return Integer.MAX_VALUE;
         }
         return maxExtract;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+        if (capacity < this.energy) {
+            this.energy = capacity;
+        }
     }
 
     @Override
@@ -80,6 +84,9 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
 
     @Override
     public int getMaxEnergyStored() {
+        if (capacitySupplier != null) {
+            setCapacity(capacitySupplier.getAsInt());
+        }
         if (capacity < 0) {
             return Integer.MAX_VALUE;
         }
@@ -129,6 +136,14 @@ public class EnergyHandler extends EnergyStorage implements INBTSerializable<NBT
         if (nbt.hasKey("transfer")) {
             transfer = nbt.getInteger("transfer");
         }
+    }
+
+    public void setCapacitySupplier(IntSupplier capacity) {
+        capacitySupplier = capacity;
+    }
+
+    public void setTransferSupplier(IntSupplier capacity) {
+        capacitySupplier = capacity;
     }
 
     public class EnergyProxy implements IEnergyStorage {

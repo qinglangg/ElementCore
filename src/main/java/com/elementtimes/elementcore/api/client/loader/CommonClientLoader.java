@@ -28,6 +28,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -38,12 +39,15 @@ import java.util.function.Predicate;
 public class CommonClientLoader {
 
     public static void load(ECModElements elements) {
+        elements.warn("[CLIENT]load: {}", elements.container.id());
         BlockClientLoader.load(elements);
         ItemClientLoader.load(elements);
         EntityClientLoader.load(elements);
         CommandClientLoader.load(elements);
+        KeyClientLoader.load(elements);
         loadColor(elements);
         loadTooltips(elements);
+        elements.warn("[CLIENT]load finished");
     }
 
     private static void loadColor(ECModElements elements) {
@@ -51,38 +55,48 @@ public class CommonClientLoader {
         ObjHelper.stream(elements, ModColor.class).forEach(data -> {
             ObjHelper.find(elements, Object.class, data).ifPresent(obj -> {
                 if (obj instanceof Item) {
-                    IItemColor itemColor = LoaderHelperClient.getMethodItemColor(elements, data.getAnnotationInfo().get("item"));
+                    Object itemColorRef = data.getAnnotationInfo().get("item");
+                    IItemColor itemColor = LoaderHelperClient.getMethodItemColor(elements, itemColorRef);
                     if (itemColor != null) {
-                        client.itemColors.computeIfAbsent(itemColor, k -> new ArrayList<>()).add((Item) obj);
+                        ECUtils.collection.computeIfAbsent(client.itemColors, itemColor, ArrayList::new).add((Item) obj);
                     }
+                    elements.warn("[ModColor]{}, item={}", ((Item) obj).getRegistryName(), RefHelper.toString(itemColorRef));
                 } else if (obj instanceof Block) {
-                    IBlockColor blockColor = LoaderHelperClient.getMethodBlockColor(elements, data.getAnnotationInfo().get("block"));
+                    Object blockColorRef = data.getAnnotationInfo().get("block");
+                    Object itemColorRef = data.getAnnotationInfo().get("item");
+                    IBlockColor blockColor = LoaderHelperClient.getMethodBlockColor(elements, blockColorRef);
                     if (blockColor != null) {
-                        client.blockColors.computeIfAbsent(blockColor, k -> new ArrayList<>()).add((Block) obj);
+                        ECUtils.collection.computeIfAbsent(client.blockColors, blockColor, ArrayList::new).add((Block) obj);
                     }
-                    IItemColor itemColor = LoaderHelperClient.getMethodItemColor(elements, data.getAnnotationInfo().get("item"));
+                    IItemColor itemColor = LoaderHelperClient.getMethodItemColor(elements, itemColorRef);
                     if (itemColor != null) {
-                        client.blockItemColors.computeIfAbsent(itemColor, k -> new ArrayList<>()).add((Block) obj);
+                        ECUtils.collection.computeIfAbsent(client.blockItemColors, itemColor, ArrayList::new).add((Block) obj);
                     }
+                    elements.warn("[ModColor]{}, block={}, item={}", ((Block) obj).getRegistryName(), RefHelper.toString(blockColorRef), RefHelper.toString(itemColorRef));
                 }
             });
         });
         ObjHelper.stream(elements, ModColorObj.class).forEach(data -> {
             ObjHelper.find(elements, Object.class, data).ifPresent(obj -> {
                 if (obj instanceof Item) {
-                    IItemColor itemColor = LoaderHelperClient.getObjectItemColor(elements, data.getAnnotationInfo().get("item"));
+                    Object itemColorRef = data.getAnnotationInfo().get("item");
+                    IItemColor itemColor = LoaderHelperClient.getObjectItemColor(elements, itemColorRef);
                     if (itemColor != null) {
-                        client.itemColors.computeIfAbsent(itemColor, k -> new ArrayList<>()).add((Item) obj);
+                        ECUtils.collection.computeIfAbsent(client.itemColors, itemColor, ArrayList::new).add((Item) obj);
                     }
+                    elements.warn("[ModColorObj]{}, item={}", ((Item) obj).getRegistryName(), itemColor);
                 } else if (obj instanceof Block) {
-                    IBlockColor blockColor = LoaderHelperClient.getObjectBlockColor(elements, data.getAnnotationInfo().get("block"));
+                    Object blockColorRef = data.getAnnotationInfo().get("block");
+                    Object itemColorRef = data.getAnnotationInfo().get("item");
+                    IBlockColor blockColor = LoaderHelperClient.getObjectBlockColor(elements, blockColorRef);
                     if (blockColor != null) {
-                        client.blockColors.computeIfAbsent(blockColor, k -> new ArrayList<>()).add((Block) obj);
+                        ECUtils.collection.computeIfAbsent(client.blockColors, blockColor, ArrayList::new).add((Block) obj);
                     }
-                    IItemColor itemColor = LoaderHelperClient.getObjectItemColor(elements, data.getAnnotationInfo().get("item"));
+                    IItemColor itemColor = LoaderHelperClient.getObjectItemColor(elements, itemColorRef);
                     if (itemColor != null) {
-                        client.blockItemColors.computeIfAbsent(itemColor, k -> new ArrayList<>()).add((Block) obj);
+                        ECUtils.collection.computeIfAbsent(client.blockItemColors, itemColor, ArrayList::new).add((Block) obj);
                     }
+                    elements.warn("[ModColorObj]{}, block={}, item={}", ((Block) obj).getRegistryName(), RefHelper.toString(blockColorRef), RefHelper.toString(itemColorRef));
                 }
             });
         });
@@ -91,61 +105,64 @@ public class CommonClientLoader {
     private static void loadTooltips(ECModElements elements) {
         ECModElementsClient client = elements.getClientNotInit();
         ObjHelper.stream(elements, ModTooltip.class).forEach(data -> {
-            Object o = ObjHelper.find(elements, Object.class, data).orElse(null);
-            Predicate<ItemStack> p;
-            if (o instanceof Item) {
-                p = s -> s.getItem() == o;
-            } else if (o instanceof Block) {
-                p = s -> s.getItem() == Item.getItemFromBlock((Block) o);
-            } else if (o instanceof Fluid) {
-                p = s -> ECUtils.fluid.hasFluid(FluidUtil.getFluidHandler(s), (Fluid) o);
-            } else if (o instanceof Enchantment) {
-                p = s -> EnchantmentHelper.getEnchantments(s).containsKey(o);
-            } else if (o instanceof Class) {
-                Class<?> aClass = (Class<?>) o;
-                if (Item.class.isAssignableFrom(aClass)) {
-                    p = s -> aClass.isInstance(s.getItem());
-                } else if (Block.class.isAssignableFrom(aClass)) {
-                    p = s -> aClass.isInstance(Block.getBlockFromItem(s.getItem()));
-                } else if (Fluid.class.isAssignableFrom(aClass)) {
-                    p = s -> {
-                        for (FluidStack stack : ECUtils.fluid.toList(FluidUtil.getFluidHandler(s))) {
-                            if (aClass.isInstance(stack.getFluid())) {
-                                return true;
+            ObjHelper.find(elements, Object.class, data).ifPresent(o -> {
+                Predicate<ItemStack> p;
+                if (o instanceof Item) {
+                    p = s -> s.getItem() == o;
+                } else if (o instanceof Block) {
+                    p = s -> s.getItem() == Item.getItemFromBlock((Block) o);
+                } else if (o instanceof Fluid) {
+                    p = s -> ECUtils.fluid.hasFluid(FluidUtil.getFluidHandler(s), (Fluid) o);
+                } else if (o instanceof Enchantment) {
+                    p = s -> EnchantmentHelper.getEnchantments(s).containsKey(o);
+                } else if (o instanceof Class) {
+                    Class<?> aClass = (Class<?>) o;
+                    if (Item.class.isAssignableFrom(aClass)) {
+                        p = s -> aClass.isInstance(s.getItem());
+                    } else if (Block.class.isAssignableFrom(aClass)) {
+                        p = s -> aClass.isInstance(Block.getBlockFromItem(s.getItem()));
+                    } else if (Fluid.class.isAssignableFrom(aClass)) {
+                        p = s -> {
+                            for (FluidStack stack : ECUtils.fluid.toList(FluidUtil.getFluidHandler(s))) {
+                                if (aClass.isInstance(stack.getFluid())) {
+                                    return true;
+                                }
                             }
-                        }
-                        return false;
-                    };
-                } else if (Enchantment.class.isAssignableFrom(aClass)) {
-                    p = s -> {
-                        Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(s);
-                        for (Enchantment enchantment : enchantments.keySet()) {
-                            if (aClass.isInstance(enchantment)) {
-                                return true;
+                            return false;
+                        };
+                    } else if (Enchantment.class.isAssignableFrom(aClass)) {
+                        p = s -> {
+                            Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(s);
+                            for (Enchantment enchantment : enchantments.keySet()) {
+                                if (aClass.isInstance(enchantment)) {
+                                    return true;
+                                }
                             }
-                        }
-                        return false;
-                    };
-                } else if (Entity.class.isAssignableFrom(aClass)) {
-                    p = s -> {
-                        ResourceLocation entityId = ItemMonsterPlacer.getNamedIdFrom(s);
-                        if (entityId != null) {
-                            Class<? extends Entity> entityClass = EntityList.getClass(entityId);
-                            return entityClass != null && entityClass.isAssignableFrom(aClass);
-                        }
-                        return false;
-                    };
+                            return false;
+                        };
+                    } else if (Entity.class.isAssignableFrom(aClass)) {
+                        p = s -> {
+                            ResourceLocation entityId = ItemMonsterPlacer.getNamedIdFrom(s);
+                            if (entityId != null) {
+                                Class<? extends Entity> entityClass = EntityList.getClass(entityId);
+                                return entityClass != null && entityClass.isAssignableFrom(aClass);
+                            }
+                            return false;
+                        };
+                    } else {
+                        p = s -> true;
+                    }
                 } else {
                     p = s -> true;
                 }
-            } else {
-                p = s -> true;
-            }
-            VoidInvoker invoker = RefHelper.invoker(elements, ObjHelper.getDefault(data));
-            client.tooltips.add((stack, strings) -> {
-                if (stack != null && p.test(stack)) {
-                    invoker.invoke(stack, strings);
-                }
+                Object aDefault = ObjHelper.getDefault(data);
+                VoidInvoker invoker = RefHelper.invoker(elements, aDefault, ItemStack.class, List.class);
+                elements.warn("[ModTooltip]Tooltip: {} {}", o, RefHelper.toString(aDefault));
+                client.tooltips.add((stack, strings) -> {
+                    if (stack != null && p.test(stack)) {
+                        invoker.invoke(stack, strings);
+                    }
+                });
             });
         });
     }

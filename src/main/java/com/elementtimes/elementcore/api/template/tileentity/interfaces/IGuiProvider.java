@@ -85,12 +85,14 @@ public interface IGuiProvider {
      * 在 {@link net.minecraft.client.gui.inventory.GuiContainer#drawGuiContainerBackgroundLayer(float, int, int)} 时触发
      */
     @SideOnly(Side.CLIENT)
+    @SuppressWarnings("JavadocReference")
     default void onBackgroundRender(com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer gui, BaseContainer container, float partialTicks, int mouseX, int mouseY) { }
 
     /**
      * 在 {@link net.minecraft.client.gui.inventory.GuiContainer#drawGuiContainerForegroundLayer(int, int)} 时触发
      */
     @SideOnly(Side.CLIENT)
+    @SuppressWarnings("JavadocReference")
     default void onForegroundRender(com.elementtimes.elementcore.api.template.gui.client.BaseGuiContainer gui, BaseContainer container, int mouseX, int mouseY) { }
 
     class FluidSlotInfo {
@@ -114,7 +116,7 @@ public interface IGuiProvider {
         }
 
         public static FluidSlotInfo createHorizontal(int slotId, SideHandlerType type, int x, int y) {
-            return new FluidSlotInfo(slotId, type, x, y, 16, 46, true);
+            return new FluidSlotInfo(slotId, type, x, y, 46, 16, true);
         }
 
         public static FluidSlotInfo createInput(int slotId, int x, int y) {
@@ -122,7 +124,7 @@ public interface IGuiProvider {
         }
 
         public static FluidSlotInfo createInputHorizontal(int slotId, int x, int y) {
-            return new FluidSlotInfo(slotId, SideHandlerType.INPUT, x, y, 16, 46, true);
+            return new FluidSlotInfo(slotId, SideHandlerType.INPUT, x, y, 46, 16, true);
         }
 
         public static FluidSlotInfo createOutput(int slotId, int x, int y) {
@@ -130,7 +132,7 @@ public interface IGuiProvider {
         }
 
         public static FluidSlotInfo createOutputHorizontal(int slotId, int x, int y) {
-            return new FluidSlotInfo(slotId, SideHandlerType.OUTPUT, x, y, 16, 46, true);
+            return new FluidSlotInfo(slotId, SideHandlerType.OUTPUT, x, y, 46, 16, true);
         }
     }
 

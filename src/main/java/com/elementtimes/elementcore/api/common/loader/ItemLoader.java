@@ -26,14 +26,19 @@ public class ItemLoader {
                 String registerName = (String) info.get("registerName");
                 String unlocalizedName = (String) info.get("unlocalizedName");
                 Item item = newItem(elements, data.getClassName(), data.getObjectName(), registerName, unlocalizedName);
-                ObjHelper.findTab(elements, (String) info.get("creativeTabKey")).ifPresent(item::setCreativeTab);
+                String tabKey = (String) info.get("creativeTabKey");
+                ObjHelper.findTab(elements, tabKey).ifPresent(item::setCreativeTab);
+                elements.warn("[ModItem]{} tab={}", item.getRegistryName(), tabKey);
             });
         });
     }
 
     private static void loadItemRetain(ECModElements elements) {
         ObjHelper.stream(elements, ModItem.RetainInCrafting.class).forEach(data -> {
-            ObjHelper.find(elements, Item.class, data).ifPresent(item -> item.setContainerItem(item));
+            ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
+                item.setContainerItem(item);
+                elements.warn("[ModItem.RetainInCrafting]{}", item.getRegistryName());
+            });
         });
     }
 
@@ -43,18 +48,21 @@ public class ItemLoader {
                 item.setHasSubtypes(true);
                 item.setMaxDamage(0);
                 item.setNoRepair();
+                elements.warn("[ModItem.HasSubItem]{}", item.getRegistryName());
             });
         });
     }
 
     private static void loadItemDamageable(ECModElements elements) {
-        ObjHelper.stream(elements, ModItem.HasSubItem.class).forEach(data -> {
+        ObjHelper.stream(elements, ModItem.Damageable.class).forEach(data -> {
             ObjHelper.find(elements, Item.class, data).ifPresent(item -> {
                 item.setMaxDamage(ObjHelper.getDefault(data, 0));
                 item.setMaxStackSize(1);
-                if ((boolean) data.getAnnotationInfo().getOrDefault("noRepair", false)) {
+                boolean noRepair = (boolean) data.getAnnotationInfo().getOrDefault("noRepair", false);
+                if (noRepair) {
                     item.setNoRepair();
                 }
+                elements.warn("[ModItem.Damageable]{}{}", item.getRegistryName(), noRepair ? " noRepair" : "");
             });
         });
     }

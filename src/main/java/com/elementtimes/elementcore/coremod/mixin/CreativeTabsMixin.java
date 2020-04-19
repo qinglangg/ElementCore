@@ -9,7 +9,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -21,11 +23,13 @@ public abstract class CreativeTabsMixin {
 
     @Inject(method = "displayAllRelevantItems", at = @At("TAIL"))
     private void inject_displayAllRelevantItems(NonNullList<ItemStack> items, CallbackInfo ci) {
+        CreativeTabs tab = (CreativeTabs) (Object) this;
         ECModContainer.MODS.values().forEach(container -> {
-            List<Consumer<NonNullList<ItemStack>>> consumers = container.elements.tabEditors.get((CreativeTabs) (Object) this);
+            List<Consumer<NonNullList<ItemStack>>> consumers = container.elements.tabEditors.get(tab);
             if (consumers != null && !consumers.isEmpty()) {
                 consumers.forEach(editor -> editor.accept(items));
             }
+            container.elements.tabEditorFuns.forEach(consumer -> consumer.accept(tab, items));
         });
     }
 }

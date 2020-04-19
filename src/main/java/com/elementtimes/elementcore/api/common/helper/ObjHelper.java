@@ -10,9 +10,7 @@ import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -37,7 +35,7 @@ public class ObjHelper {
      */
     @Deprecated
     public static <T> Optional<? extends T> findOrNew(@Nonnull ECModElements elements, @Nonnull Class<? extends T> type, ASMDataTable.ASMData data) {
-        return findOrNew(elements, type, data);
+        return find(elements, type, data);
     }
 
     public static Optional<CreativeTabs> findTab(@Nonnull ECModElements elements, String key) {
@@ -57,20 +55,19 @@ public class ObjHelper {
     }
 
     public static <T> Optional<Class<? extends T>> findClass(@Nonnull ECModElements elements, @Nonnull String className) {
-        boolean skip = true;
-        for (String packageName : elements.packages) {
-            if (className.startsWith(packageName)) {
-                skip = false;
-                break;
+        if (elements.container.otherMod) {
+            for (String packageName : elements.packages) {
+                if (className.startsWith(packageName)) {
+                    break;
+                } else {
+                    return Optional.empty();
+                }
             }
-        }
-        if (skip) {
-            return Optional.empty();
         }
         Class<? extends T> clazz = (Class<? extends T>) elements.classes.get(className);
         if (clazz == null) {
             try {
-                clazz = (Class<? extends T>) Class.forName(className);
+                clazz = (Class<? extends T>) Thread.currentThread().getContextClassLoader().loadClass(className);
             } catch (ClassNotFoundException e) {
                 elements.warn("Can't find class: {}", className);
             }
@@ -86,7 +83,11 @@ public class ObjHelper {
         if (all == null) {
             return Stream.empty();
         }
-        return all.stream();
+        if (elements.container.otherMod) {
+            return all.stream();
+        }
+        String modid = elements.container.id();
+        return all.stream().filter(data -> data.getCandidate().getContainedMods().stream().anyMatch(mod -> modid.equals(mod.getModId())));
     }
 
     public static <T> T getDefault(ASMDataTable.ASMData data) {

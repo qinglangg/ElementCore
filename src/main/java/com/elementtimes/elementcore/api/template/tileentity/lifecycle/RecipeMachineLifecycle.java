@@ -333,7 +333,7 @@ public class RecipeMachineLifecycle implements IMachineLifecycle {
     @Nullable
     protected MachineRecipeCapture getNextRecipe(IItemHandler input, ITankHandler tankHandler) {
         List<ItemStack> items = ECUtils.item.toList(input, machine.getRecipeSlotIgnore());
-        List<FluidStack> fluids = ECUtils.fluid.toListIndexed(tankHandler, FluidUtils.EMPTY);
+        List<FluidStack> fluids = ECUtils.fluid.toListIndexed(tankHandler);
         MachineRecipeCapture[] captures = machine.getRecipes().matchInput(items, fluids);
         if (captures.length == 0) {
             return null;

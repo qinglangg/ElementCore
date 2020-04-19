@@ -2,21 +2,28 @@ package com.elementtimes.elementcore.api.common;
 
 import com.elementtimes.elementcore.api.annotation.enums.GenType;
 import com.elementtimes.elementcore.api.annotation.enums.LoadState;
-import com.elementtimes.elementcore.api.common.event.*;
-import com.elementtimes.elementcore.api.common.loader.CapabilityLoader;
-import com.elementtimes.elementcore.api.common.loader.CommonLoader;
-import com.elementtimes.elementcore.api.common.loader.EntityLoader;
-import com.elementtimes.elementcore.api.common.loader.NetworkLoader;
+import com.elementtimes.elementcore.api.common.events.FmlRegister;
+import com.elementtimes.elementcore.api.common.events.ForgeRegister;
+import com.elementtimes.elementcore.api.common.events.OreBusRegister;
+import com.elementtimes.elementcore.api.common.events.TerrainBusRegister;
+import com.elementtimes.elementcore.api.common.loader.*;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import net.minecraft.block.Block;
 import net.minecraft.command.ICommand;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.potion.PotionType;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.NonNullList;
 import net.minecraft.world.gen.feature.WorldGenerator;
@@ -29,6 +36,8 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.FMLEventChannel;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -106,16 +115,20 @@ public class ECModElements extends AbstractLogger {
     public final List<Object> netEvent = new ArrayList<>();
     public SimpleNetworkWrapper simpleChannel;
     public FMLEventChannel eventChannel;
+    public String simpleChannelName, eventChannelName;
 
     /**
      * Enchantment
      */
     public final List<Enchantment> enchantments = new ArrayList<>();
+    public final List<EnchantmentLoader.EnchantmentBookWrapper> enchantmentBooks = new ArrayList<>();
 
     /**
      * Potion
      */
     public final List<Potion> potions = new ArrayList<>();
+    public final List<PotionType> potionTypes = new ArrayList<>();
+    public final List<PotionLoader.PotionBottle> potionBottles = new ArrayList<>();
 
     /**
      * GUI
@@ -137,6 +150,7 @@ public class ECModElements extends AbstractLogger {
      */
     public final Map<Object, ToIntFunction<ItemStack>> burnTimes = new HashMap<>();
     public final Map<CreativeTabs, List<Consumer<NonNullList<ItemStack>>>> tabEditors = new HashMap<>();
+    public final List<BiConsumer<CreativeTabs, NonNullList<ItemStack>>> tabEditorFuns = new ArrayList<>();
     public final List<Method> staticFunction = new ArrayList<>();
     public Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation;
     public boolean blockB3d = false, blockObj = false;
@@ -156,16 +170,18 @@ public class ECModElements extends AbstractLogger {
 
     ECModElements(FMLPreInitializationEvent event, boolean debugEnable, boolean netSimple, boolean netEvent,
                   Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation,
-                  Set<String> packages, ModContainer modContainer, Logger logger) {
+                  Set<String> packages, ModContainer modContainer, boolean otherMod, Logger logger) {
         this.customAnnotation = customAnnotation;
         this.packages = packages;
-        this.container = new ECModContainer(modContainer, this, debugEnable, logger);
+        this.container = new ECModContainer(modContainer, this, debugEnable, otherMod, logger);
         this.asm = event.getAsmData();
         this.fmlEventRegister = new FmlRegister(container);
         this.clientElement = ECUtils.common.isClient() ? new com.elementtimes.elementcore.api.client.ECModElementsClient(this) : null;
         // channel name 最大 20
-        this.simpleChannel = netSimple ? NetworkRegistry.INSTANCE.newSimpleChannel(newChannelName(modContainer.getModId())) : null;
-        this.eventChannel = netEvent ? NetworkRegistry.INSTANCE.newEventDrivenChannel(newChannelName(modContainer.getModId())) : null;
+        simpleChannelName = netSimple ? newChannelName(modContainer.getModId()) : null;
+        this.simpleChannel = netSimple ? NetworkRegistry.INSTANCE.newSimpleChannel(simpleChannelName) : null;
+        eventChannelName = netEvent ? newChannelName(modContainer.getModId()) : null;
+        this.eventChannel = netEvent ? NetworkRegistry.INSTANCE.newEventDrivenChannel(eventChannelName) : null;
     }
 
     public static Builder builder() {
@@ -176,7 +192,8 @@ public class ECModElements extends AbstractLogger {
 
         private Table<LoadState, Class<? extends Annotation>, BiConsumer<ASMDataTable.ASMData, ECModContainer>> customAnnotation = HashBasedTable.create();
         private Set<String> packages = new LinkedHashSet<>();
-        private boolean debugEnable = true, netSimple = true, netEvent = false;
+        private boolean debugEnable = false, netSimple = true, netEvent = false;
+        private boolean otherMod = false;
         private Logger logger = null;
 
         public Builder enableDebugMessage() {
@@ -215,12 +232,17 @@ public class ECModElements extends AbstractLogger {
             netEvent = false;
             return this;
         }
+        public Builder usePackage() {
+            otherMod = true;
+            return this;
+        }
 
         public ECModContainer build(FMLPreInitializationEvent event) {
             // newInstance
             ModContainer container = Loader.instance().getIndexedModList().get(event.getModMetadata().modId);
+            // packages.add("");
             packages.add(container.getMod().getClass().getPackage().getName());
-            ECModElements elements = new ECModElements(event, debugEnable, netSimple, netEvent, customAnnotation, packages, container, logger);
+            ECModElements elements = new ECModElements(event, debugEnable, netSimple, netEvent, customAnnotation, packages, container, otherMod, logger);
             ECModContainer.MODS.put(container.getModId(), elements.container);
             // event
             MinecraftForge.ORE_GEN_BUS.register(new OreBusRegister(elements.container));
@@ -255,7 +277,139 @@ public class ECModElements extends AbstractLogger {
 
     @SideOnly(Side.CLIENT)
     public com.elementtimes.elementcore.api.client.ECModElementsClient getClientNotInit() {
+        if (!isLoaded) {
+            CommonLoader.load(this);
+            isLoaded = true;
+        }
         return (com.elementtimes.elementcore.api.client.ECModElementsClient) clientElement;
+    }
+
+    @SideOnly(Side.CLIENT)
+    public boolean sendToServer(IMessage message) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToServer(message);
+        return true;
+    }
+
+    public boolean sendToAll(IMessage message) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToAll(message);
+        return true;
+    }
+
+    public boolean sendToPlayer(IMessage message, EntityPlayerMP player) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendTo(message, player);
+        return true;
+    }
+
+    public boolean sendToAround(IMessage message, NetworkRegistry.TargetPoint point) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToAllAround(message, point);
+        return true;
+    }
+
+    public boolean sendToTracking(IMessage message, NetworkRegistry.TargetPoint point) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToAllTracking(message, point);
+        return true;
+    }
+
+    public boolean sendToTracking(IMessage message, Entity entity) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToAllTracking(message, entity);
+        return true;
+    }
+
+    public boolean sendToDimension(IMessage message, int dimension) {
+        if (simpleChannel == null) {
+            return false;
+        }
+        simpleChannel.sendToDimension(message, dimension);
+        return true;
+    }
+
+    @SideOnly(Side.CLIENT)
+    public boolean postToServer(Consumer<ByteBuf> bufWriter) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendToServer(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName));
+        return true;
+    }
+
+    public boolean postToAll(Consumer<ByteBuf> bufWriter, EntityPlayerMP player) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendTo(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), player);
+        return true;
+    }
+
+    public boolean postToPlayer(Consumer<ByteBuf> bufWriter, EntityPlayerMP player) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendTo(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), player);
+        return true;
+    }
+
+    public boolean postToAround(Consumer<ByteBuf> bufWriter, NetworkRegistry.TargetPoint point) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendToAllAround(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), point);
+        return true;
+    }
+
+    public boolean postToTracking(Consumer<ByteBuf> bufWriter, NetworkRegistry.TargetPoint point) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendToAllTracking(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), point);
+        return true;
+    }
+
+    public boolean postToTracking(Consumer<ByteBuf> bufWriter, Entity entity) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendToAllTracking(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), entity);
+        return true;
+    }
+
+    public boolean postToDimension(Consumer<ByteBuf> bufWriter, int dimension) {
+        if (eventChannel == null) {
+            return false;
+        }
+        ByteBuf buf = Unpooled.buffer();
+        bufWriter.accept(buf);
+        eventChannel.sendToDimension(new FMLProxyPacket(new PacketBuffer(buf), eventChannelName), dimension);
+        return true;
     }
 
     private static String newChannelName(String modid) {

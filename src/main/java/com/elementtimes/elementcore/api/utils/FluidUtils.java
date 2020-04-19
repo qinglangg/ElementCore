@@ -5,13 +5,16 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.NonNullList;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
+import net.minecraftforge.fluids.capability.templates.EmptyFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStackSimple;
+import net.minecraftforge.fluids.capability.templates.VoidFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBucketWrapper;
 
 import javax.annotation.Nullable;
@@ -397,20 +400,54 @@ public class FluidUtils {
         return getFluid(itemStack, null);
     }
 
+    /**
+     * 判断一个容器是否具有某种流体
+     * @param handler 容器
+     * @param fluid 待检查流体
+     * @return 是否具有流体
+     */
     public boolean hasFluid(IFluidHandler handler, Fluid fluid) {
-        if (handler == null || fluid == null) {
+        if (handler == null || fluid == null || handler instanceof EmptyFluidHandler || handler instanceof VoidFluidHandler) {
             return false;
         }
-        IFluidTankProperties[] properties = handler.getTankProperties();
-        for (int i = 0; i < properties.length; i++) {
-            FluidStack contents = properties[i].getContents();
-            if (contents != null && contents.getFluid() == fluid) {
-                return true;
+        FluidStack f0 = null;
+        if (handler instanceof FluidTank) {
+            f0 = ((FluidTank) handler).getFluid();
+        } else if (handler instanceof FluidBucketWrapper) {
+            f0 = ((FluidBucketWrapper) handler).getFluid();
+        } else if (handler instanceof FluidHandlerItemStack) {
+            f0 = ((FluidHandlerItemStack) handler).getFluid();
+        } else if (handler instanceof FluidHandlerItemStackSimple) {
+            f0 = ((FluidHandlerItemStackSimple) handler).getFluid();
+        } else if (handler instanceof ITankHandler) {
+            ITankHandler tanks = (ITankHandler) handler;
+            for (int i = 0; i < tanks.size(); i++) {
+                FluidStack stack = tanks.getFluid(i, false);
+                if (stack != null && stack.getFluid() == fluid) {
+                    return true;
+                }
             }
+            return false;
+        } else {
+            for (IFluidTankProperties property : handler.getTankProperties()) {
+                FluidStack contents = property.getContents();
+                if (contents != null && contents.getFluid() == fluid) {
+                    return true;
+                }
+            }
+            return false;
         }
-        return false;
+        return f0 != null && f0.getFluid() == fluid;
     }
 
+    /**
+     * 将一个流体容器写入 NBT 数据中
+     * @see net.minecraft.inventory.ItemStackHelper#saveAllItems(NBTTagCompound, NonNullList)
+     * @param handler 容器
+     * @param key 写入 NBT 的 key
+     * @param nbtTagCompound nbt
+     * @return nbt
+     */
     public NBTTagCompound writeToNBT(IFluidHandler handler, String key, NBTTagCompound nbtTagCompound) {
         if (handler instanceof INBTSerializable) {
             nbtTagCompound.setTag(key, ((INBTSerializable<? extends NBTBase>) handler).serializeNBT());
@@ -428,6 +465,13 @@ public class FluidUtils {
         return nbtTagCompound;
     }
 
+    /**
+     * 从一个 NBT 数据中取出流体
+     * @see net.minecraft.inventory.ItemStackHelper#loadAllItems(NBTTagCompound, NonNullList)
+     * @param handler 容器
+     * @param key NBT 的 key
+     * @param nbtTagCompound nbt
+     */
     public void readFromNBT(IFluidHandler handler, String key, NBTTagCompound nbtTagCompound) {
         if (handler instanceof INBTSerializable) {
             //noinspection unchecked

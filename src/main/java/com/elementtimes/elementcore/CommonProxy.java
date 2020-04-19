@@ -1,6 +1,5 @@
 package com.elementtimes.elementcore;
 
-import com.elementtimes.elementcore.ElementCore;
 import com.elementtimes.elementcore.api.common.ECModContainer;
 import com.elementtimes.elementcore.api.common.ECModElements;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -14,7 +13,10 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 public class CommonProxy {
 
     public void preInit(FMLPreInitializationEvent event) {
-        ElementCore.instance().container = ECModElements.builder().disableDebugMessage().build(event);
+        ElementCore.instance().container = ECModElements.builder()
+                .disableDebugMessage()
+                .noEventNetwork()
+                .build(event);
     }
 
     public void init(FMLInitializationEvent event) {

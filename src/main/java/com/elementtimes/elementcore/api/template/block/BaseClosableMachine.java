@@ -26,6 +26,10 @@ public class BaseClosableMachine<T extends TileEntity> extends BlockTileBase<T> 
         setDefaultState(getDefaultState().withProperty(FACING, EnumFacing.NORTH).withProperty(IS_RUNNING, false));
     }
 
+    public BaseClosableMachine(Class<T> entityClass) {
+        this(entityClass, null);
+    }
+
     @Override
     @Nonnull
     protected BlockStateContainer createBlockState() {

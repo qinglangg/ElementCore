@@ -2,20 +2,18 @@ package com.elementtimes.elementcore.api.common.net;
 
 import com.elementtimes.elementcore.api.annotation.ModSimpleNetwork;
 import com.elementtimes.elementcore.api.annotation.part.Getter;
-import com.elementtimes.elementcore.api.template.tileentity.lifecycle.HandlerInfoMachineLifecycle;
+import com.elementtimes.elementcore.api.common.net.handler.GuiEnergyHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 
-@ModSimpleNetwork(value = @Getter(GuiEnergyNetwork.Handler.class), side = Side.CLIENT)
+@ModSimpleNetwork(value = @Getter(GuiEnergyHandler.class), side = Side.CLIENT)
 public class GuiEnergyNetwork implements IMessage {
 
-    int capacity;
-    int energy;
-    int guiType;
-    private boolean isValid = false;
+    public int capacity;
+    public int energy;
+    public int guiType;
+    public boolean isValid = false;
 
     public GuiEnergyNetwork(int gui, int capacity, int energy) {
         this.guiType = gui;
@@ -42,21 +40,5 @@ public class GuiEnergyNetwork implements IMessage {
         buf.writeInt(guiType);
         buf.writeInt(capacity);
         buf.writeInt(energy);
-    }
-
-    public static class Handler implements IMessageHandler<GuiEnergyNetwork, IMessage> {
-
-        public Handler() {}
-
-        @Override
-        public IMessage onMessage(GuiEnergyNetwork message, MessageContext ctx) {
-            synchronized (this) {
-                if (message.isValid) {
-                    com.elementtimes.elementcore.api.template.gui.client.GuiDataFromServer.ENERGIES.put(message.guiType,
-                            new HandlerInfoMachineLifecycle.EnergyInfo(message.capacity, message.energy));
-                }
-            }
-            return null;
-        }
     }
 }
